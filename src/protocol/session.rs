@@ -4,12 +4,15 @@
 use crate::crypto::{CryptoError, CryptoResult};
 use crate::crypto::pfs_plus::{PfsSession, PfsManager};
 use crate::crypto::hybrid::HybridPublicKey;
+use crate::crypto::hkdf;
+use crate::crypto::random;
 use crate::protocol::message::{Message, MessageCrypto, EncryptedMessage};
 use crate::protocol::handshake::{HandshakeResult, SessionKeys};
 use crate::error::{B4aeError, B4aeResult};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use std::sync::{Arc, Mutex};
+use tracing::{info, warn};
 
 /// Session state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -65,6 +68,21 @@ pub struct Session {
     info: SessionInfo,
     /// Key rotation policy
     rotation_policy: KeyRotationPolicy,
+    /// Key rotation counter
+    rotation_count: u64,
+    /// Last rotation timestamp
+    last_rotation_time: u64,
+}
+
+/// Key rotation message untuk komunikasi dengan peer
+#[derive(Debug, Clone)]
+pub struct KeyRotationMessage {
+    /// New encryption key (derived)
+    pub new_key_material: Vec<u8>,
+    /// Rotation sequence number
+    pub rotation_sequence: u64,
+    /// Timestamp
+    pub timestamp: u64,
 }
 
 /// Key rotation policy
@@ -129,6 +147,8 @@ impl Session {
             state: SessionState::Active,
             info,
             rotation_policy: KeyRotationPolicy::default(),
+            rotation_count: 0,
+            last_rotation_time: now,
         })
     }
 
@@ -146,12 +166,152 @@ impl Session {
         self.info.bytes_sent += encrypted.payload.len() as u64;
         self.update_activity();
 
-        // Check if rotation needed
+        // Check if rotation needed and perform automatic rotation
         if self.needs_rotation() {
-            // TODO: Trigger key rotation
+            if let Err(e) = self.perform_key_rotation() {
+                warn!("Key rotation failed: {}", e);
+            }
         }
 
         Ok(encrypted)
+    }
+
+    /// Perform key rotation - derives new session keys
+    pub fn perform_key_rotation(&mut self) -> CryptoResult<KeyRotationMessage> {
+        info!("Performing key rotation #{}", self.rotation_count + 1);
+        
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        
+        // Generate new key material using HKDF from current keys
+        let rotation_context = format!("B4AE-v1-key-rotation-{}", self.rotation_count + 1);
+        
+        // Derive new encryption key
+        let new_encryption_key = hkdf::derive_key(
+            &[&self.session_keys.encryption_key, &self.rotation_count.to_be_bytes()],
+            rotation_context.as_bytes(),
+            32
+        )?;
+        
+        // Derive new authentication key
+        let new_auth_key = hkdf::derive_key(
+            &[&self.session_keys.authentication_key, &self.rotation_count.to_be_bytes()],
+            rotation_context.as_bytes(),
+            32
+        )?;
+        
+        // Derive new metadata key
+        let new_metadata_key = hkdf::derive_key(
+            &[&self.session_keys.metadata_key, &self.rotation_count.to_be_bytes()],
+            rotation_context.as_bytes(),
+            32
+        )?;
+        
+        // Create new PFS+ session with rotated keys
+        let new_pfs_session = PfsSession::new(
+            &new_encryption_key,
+            &new_encryption_key,
+            self.session_id,
+        )?;
+        
+        // Update session keys
+        self.session_keys = SessionKeys {
+            encryption_key: new_encryption_key.clone(),
+            authentication_key: new_auth_key,
+            metadata_key: new_metadata_key,
+        };
+        
+        // Update message crypto
+        self.message_crypto = MessageCrypto::new(new_pfs_session);
+        
+        // Update rotation tracking
+        self.rotation_count += 1;
+        self.last_rotation_time = now;
+        
+        // Reset counters for next rotation cycle
+        self.info.messages_sent = 0;
+        self.info.bytes_sent = 0;
+        self.info.established_at = now;
+        
+        info!("Key rotation #{} completed successfully", self.rotation_count);
+        
+        Ok(KeyRotationMessage {
+            new_key_material: new_encryption_key,
+            rotation_sequence: self.rotation_count,
+            timestamp: now,
+        })
+    }
+
+    /// Apply key rotation received from peer
+    pub fn apply_peer_rotation(&mut self, rotation_msg: &KeyRotationMessage) -> CryptoResult<()> {
+        info!("Applying peer key rotation #{}", rotation_msg.rotation_sequence);
+        
+        // Verify rotation sequence is expected
+        if rotation_msg.rotation_sequence != self.rotation_count + 1 {
+            return Err(CryptoError::InvalidInput(format!(
+                "Unexpected rotation sequence: expected {}, got {}",
+                self.rotation_count + 1,
+                rotation_msg.rotation_sequence
+            )));
+        }
+        
+        // Generate matching keys using same derivation
+        let rotation_context = format!("B4AE-v1-key-rotation-{}", rotation_msg.rotation_sequence);
+        
+        let new_encryption_key = hkdf::derive_key(
+            &[&self.session_keys.encryption_key, &self.rotation_count.to_be_bytes()],
+            rotation_context.as_bytes(),
+            32
+        )?;
+        
+        let new_auth_key = hkdf::derive_key(
+            &[&self.session_keys.authentication_key, &self.rotation_count.to_be_bytes()],
+            rotation_context.as_bytes(),
+            32
+        )?;
+        
+        let new_metadata_key = hkdf::derive_key(
+            &[&self.session_keys.metadata_key, &self.rotation_count.to_be_bytes()],
+            rotation_context.as_bytes(),
+            32
+        )?;
+        
+        // Create new PFS+ session
+        let new_pfs_session = PfsSession::new(
+            &new_encryption_key,
+            &new_encryption_key,
+            self.session_id,
+        )?;
+        
+        // Update session
+        self.session_keys = SessionKeys {
+            encryption_key: new_encryption_key,
+            authentication_key: new_auth_key,
+            metadata_key: new_metadata_key,
+        };
+        self.message_crypto = MessageCrypto::new(new_pfs_session);
+        self.rotation_count = rotation_msg.rotation_sequence;
+        self.last_rotation_time = rotation_msg.timestamp;
+        
+        info!("Peer key rotation #{} applied successfully", self.rotation_count);
+        
+        Ok(())
+    }
+
+    /// Get rotation count
+    pub fn rotation_count(&self) -> u64 {
+        self.rotation_count
+    }
+
+    /// Get time since last rotation
+    pub fn time_since_rotation(&self) -> u64 {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        now.saturating_sub(self.last_rotation_time)
     }
 
     /// Receive and decrypt message
@@ -361,11 +521,11 @@ mod tests {
     }
 
     fn create_test_public_key() -> HybridPublicKey {
-        // This is a placeholder - in real tests, generate proper keys
+        // Use correct sizes for X25519 (32 bytes) and Ed25519 (32 bytes)
         HybridPublicKey {
-            ecdh_public: vec![0; 133],
+            ecdh_public: vec![0; 32],  // X25519 public key size
             kyber_public: crate::crypto::kyber::KyberPublicKey::from_bytes(&[0; 1568]).unwrap(),
-            ecdsa_public: vec![0; 133],
+            ecdsa_public: vec![0; 32],  // Ed25519 public key size
             dilithium_public: crate::crypto::dilithium::DilithiumPublicKey::from_bytes(&[0; 2592]).unwrap(),
         }
     }

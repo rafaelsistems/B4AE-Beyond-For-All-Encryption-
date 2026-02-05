@@ -9,6 +9,7 @@ use crate::protocol::{MessageType, PROTOCOL_VERSION};
 use crate::error::{B4aeError, B4aeResult};
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
+use subtle::ConstantTimeEq;
 
 /// Handshake state machine
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -221,7 +222,11 @@ impl HandshakeInitiator {
         // Deserialize signature manually
         let signature = deserialize_signature(&response.signature)?;
 
-        hybrid::verify(&peer_public_key, &message_to_verify, &signature)?;
+        // Verify signature dan kembalikan error jika tidak valid
+        let is_valid = hybrid::verify(&peer_public_key, &message_to_verify, &signature)?;
+        if !is_valid {
+            return Err(CryptoError::VerificationFailed("Response signature verification failed".to_string()));
+        }
 
         // Deserialize ciphertext manually
         let ciphertext = deserialize_ciphertext(&response.encrypted_shared_secret)?;
@@ -414,7 +419,11 @@ impl HandshakeResponder {
         // Deserialize signature manually
         let signature = deserialize_signature(&init.signature)?;
 
-        hybrid::verify(&peer_public_key, &message_to_verify, &signature)?;
+        // Verify signature dan kembalikan error jika tidak valid
+        let is_valid = hybrid::verify(&peer_public_key, &message_to_verify, &signature)?;
+        if !is_valid {
+            return Err(CryptoError::VerificationFailed("Init signature verification failed".to_string()));
+        }
 
         // Encapsulate - returns (shared_secret, ciphertext)
         let (shared_secret, ciphertext) = hybrid::encapsulate(&peer_public_key)?;
@@ -470,10 +479,18 @@ impl HandshakeResponder {
         // Deserialize signature manually
         let signature = deserialize_signature(&complete.signature)?;
 
-        hybrid::verify(peer_public_key, &complete.confirmation, &signature)?;
+        // Verify signature dan kembalikan error jika tidak valid
+        let is_valid = hybrid::verify(peer_public_key, &complete.confirmation, &signature)?;
+        if !is_valid {
+            return Err(CryptoError::VerificationFailed("Complete signature verification failed".to_string()));
+        }
 
         let expected_confirmation = self.generate_expected_confirmation()?;
-        if complete.confirmation != expected_confirmation {
+        
+        // Menggunakan constant-time comparison untuk mencegah timing attacks
+        // Tidak menggunakan == karena bisa bocor informasi melalui timing
+        let confirmation_valid = complete.confirmation.ct_eq(&expected_confirmation);
+        if !bool::from(confirmation_valid) {
             return Err(CryptoError::VerificationFailed("Confirmation mismatch".to_string()));
         }
 

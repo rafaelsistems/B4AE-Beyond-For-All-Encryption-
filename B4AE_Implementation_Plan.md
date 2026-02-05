@@ -85,7 +85,7 @@ Deliverables:
 └── Distributed key management system
 
 Technical Milestones:
-├── CRYSTALS-Kyber integration
+├── CRYSTALS-Kyber integr0ation
 ├── CRYSTALS-Dilithium implementation
 ├── Hardware security module support
 ├── Key rotation automation

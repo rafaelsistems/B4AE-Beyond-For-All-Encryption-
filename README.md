@@ -44,7 +44,7 @@ B4AE addresses all these limitations:
 
 ### Cryptographic Foundation
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    B4AE SECURITY LAYERS                    │
 ├─────────────────────────────────────────────────────────────┤
@@ -106,24 +106,34 @@ b4ae = "0.1"
 ```rust
 use b4ae::{B4aeClient, SecurityProfile};
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create B4AE client with standard security profile
-    let mut client = B4aeClient::new(SecurityProfile::Standard)?;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create two B4AE clients
+    let mut alice = B4aeClient::new(SecurityProfile::Standard)?;
+    let mut bob = B4aeClient::new(SecurityProfile::Standard)?;
+
+    let alice_id = b"alice".to_vec();
+    let bob_id = b"bob".to_vec();
+
+    // Alice initiates handshake with Bob
+    let init = alice.initiate_handshake(&bob_id)?;
     
-    // Generate identity
-    let identity = client.generate_identity().await?;
+    // Bob responds
+    let response = bob.respond_to_handshake(&alice_id, init)?;
     
-    // Connect to recipient
-    let session = client.connect("recipient_id").await?;
+    // Alice processes response
+    let complete = alice.process_response(&bob_id, response)?;
     
-    // Send encrypted message
-    session.send_message(b"Hello, B4AE!").await?;
+    // Bob completes handshake
+    bob.complete_handshake(&alice_id, complete)?;
+    alice.finalize_initiator(&bob_id)?;
+
+    // Alice sends encrypted message to Bob
+    let encrypted = alice.encrypt_message(&bob_id, b"Hello, B4AE!")?;
     
-    // Receive message
-    let message = session.receive_message().await?;
-    println!("Received: {}", String::from_utf8_lossy(&message));
-    
+    // Bob decrypts the message
+    let decrypted = bob.decrypt_message(&alice_id, &encrypted)?;
+    println!("Received: {}", String::from_utf8_lossy(&decrypted));
+
     Ok(())
 }
 ```
@@ -133,14 +143,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 B4AE offers three security profiles:
 
 ```rust
-// Standard: Balanced security and performance
-let client = B4aeClient::new(SecurityProfile::Standard)?;
+use b4ae::{B4aeClient, SecurityProfile};
 
-// High: Enhanced security for sensitive communications
-let client = B4aeClient::new(SecurityProfile::High)?;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Standard: Balanced security and performance
+    let _standard = B4aeClient::new(SecurityProfile::Standard)?;
 
-// Maximum: Maximum security for high-risk scenarios
-let client = B4aeClient::new(SecurityProfile::Maximum)?;
+    // High: Enhanced security for sensitive communications
+    let _high = B4aeClient::new(SecurityProfile::High)?;
+
+    // Maximum: Maximum security for high-risk scenarios
+    let _maximum = B4aeClient::new(SecurityProfile::Maximum)?;
+    
+    Ok(())
+}
 ```
 
 ## Building from Source
@@ -342,26 +358,37 @@ cargo bench
 ```rust
 use b4ae::prelude::*;
 
-// Initialize
-let config = B4aeConfig::default();
-let mut client = B4aeClient::new(config)?;
+fn main() -> B4aeResult<()> {
+    // Initialize clients
+    let mut alice = B4aeClient::new(SecurityProfile::Standard)?;
+    let mut bob = B4aeClient::new(SecurityProfile::Standard)?;
+    
+    let alice_id = b"alice".to_vec();
+    let bob_id = b"bob".to_vec();
 
-// Perform handshake
-let init = client.initiate_handshake()?;
-// ... exchange messages with peer ...
+    // Perform handshake
+    let init = alice.initiate_handshake(&bob_id)?;
+    let response = bob.respond_to_handshake(&alice_id, init)?;
+    let complete = alice.process_response(&bob_id, response)?;
+    bob.complete_handshake(&alice_id, complete)?;
+    alice.finalize_initiator(&bob_id)?;
 
-// Send encrypted message
-let encrypted = client.encrypt_message(b"Hello, B4AE!")?;
+    // Send encrypted message
+    let encrypted = alice.encrypt_message(&bob_id, b"Hello, B4AE!")?;
 
-// Decrypt received message
-let decrypted = client.decrypt_message(encrypted)?;
+    // Decrypt received message
+    let decrypted = bob.decrypt_message(&alice_id, &encrypted)?;
+    assert_eq!(decrypted, b"Hello, B4AE!");
+    
+    Ok(())
+}
 ```
 
 ---
 
 ## 🏗️ Architecture
 
-```
+```text
 ┌─────────────────────────────────────────┐
 │         Application Layer               │
 ├─────────────────────────────────────────┤

@@ -80,19 +80,52 @@ impl PfsKeyChain {
     }
 
     /// Get key for specific message counter (for out-of-order messages)
+    /// Jika counter <= message_counter, cari di cache
+    /// Jika counter > message_counter, derive keys sampai counter tersebut
     pub fn get_key(&mut self, counter: u64) -> CryptoResult<Option<[u8; 32]>> {
         // Check cache first
         if let Some(key) = self.key_cache.get(&counter) {
             return Ok(Some(*key));
         }
 
-        // If counter is in the future, we can't derive it yet
-        if counter > self.message_counter {
+        // If counter is in the past and not in cache, key has been deleted (forward secrecy)
+        if counter < self.message_counter {
             return Ok(None);
         }
 
-        // For past messages, we can't derive them (forward secrecy)
-        Ok(None)
+        // If counter is current or future, derive keys up to that counter
+        // This happens when receiver needs to derive keys that sender has already derived
+        let mut target_key: Option<[u8; 32]> = None;
+        
+        while self.message_counter <= counter {
+            // Derive message key from current chain key
+            let message_key = self.derive_message_key(self.message_counter)?;
+            
+            // Simpan kunci target jika ini adalah counter yang diminta
+            if self.message_counter == counter {
+                target_key = Some(message_key);
+            }
+            
+            // Cache the key for potential out-of-order delivery
+            if self.key_cache.len() < self.max_cache_size {
+                self.key_cache.insert(self.message_counter, message_key);
+            }
+            
+            // Advance chain key using KDF ratchet
+            self.advance_chain()?;
+            
+            // Increment counter
+            self.message_counter += 1;
+        }
+        
+        // Cleanup cache after derivation (keep last 100 keys for better out-of-order support)
+        if self.message_counter > 100 {
+            let cleanup_before = self.message_counter - 100;
+            self.cleanup_cache(cleanup_before);
+        }
+
+        // Return the target key (either from direct derivation or cache)
+        Ok(target_key.or_else(|| self.key_cache.get(&counter).copied()))
     }
 
     /// Advance the chain key using KDF ratchet

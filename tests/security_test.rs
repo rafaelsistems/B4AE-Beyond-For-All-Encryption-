@@ -44,12 +44,13 @@ fn test_replay_attack_prevention() {
     assert!(result1.is_ok());
     
     // Replay should fail (sequence number already used)
-    // Note: This depends on implementation details
+    // PFS+ maintains message counters that prevent replay
 }
 
 #[test]
 fn test_forward_secrecy() {
-    // Test that old keys cannot decrypt new messages
+    // Test that old keys are deleted after enough new keys are derived
+    // This ensures forward secrecy - compromising current keys doesn't reveal past keys
     let send_key = [0x42; 32];
     let receive_key = [0x43; 32];
     let session_id = [0x44; 32];
@@ -60,14 +61,23 @@ fn test_forward_secrecy() {
         session_id,
     ).unwrap();
     
-    // Generate some keys
-    let _key1 = session.next_send_key().unwrap();
-    let _key2 = session.next_send_key().unwrap();
-    let _key3 = session.next_send_key().unwrap();
+    // Generate more than 100 keys to trigger cleanup (cache keeps last 100)
+    for i in 0..150 {
+        let _ = session.next_send_key().unwrap();
+    }
     
-    // Try to get old key (should fail - forward secrecy)
+    // Send chain should have deleted keys 0-49 (keeps last 100: 50-149)
+    // But send_chain.get_key doesn't exist, we need to test receive chain
+    
+    // Use receive chain: derive keys 0-150
+    for i in 0..150 {
+        let _ = session.get_receive_key(i).unwrap();
+    }
+    
+    // After deriving 150 keys, keys 0-49 should be cleaned up
+    // Trying to get key 0 should return None (forward secrecy)
     let old_key = session.get_receive_key(0).unwrap();
-    assert!(old_key.is_none(), "Old keys should not be retrievable");
+    assert!(old_key.is_none(), "Old keys should not be retrievable due to forward secrecy");
 }
 
 #[test]
@@ -82,7 +92,7 @@ fn test_zero_knowledge_authentication() {
     let mut verifier = zkauth::ZkVerifier::new();
     verifier.register_identity(
         identity.public_commitment(),
-        identity.public_signing_key().clone(),
+        identity.public_signing_key().to_vec(),
         zkauth::AuthLevel::Admin,
     );
     
@@ -133,6 +143,8 @@ fn test_key_rotation() {
     
     // Get initial counters
     let (send_count1, recv_count1) = session.counters();
+    assert_eq!(send_count1, 0);
+    assert_eq!(recv_count1, 0);
     
     // Rotate keys
     let (new_send, new_receive) = session.rotate_keys().unwrap();
@@ -150,35 +162,93 @@ fn test_key_rotation() {
 #[test]
 fn test_message_expiration() {
     // Test that expired messages are rejected
+    // with_expiration(0) sets expires_at to now, so we need to wait briefly
     let msg = Message::text("Test")
-        .with_expiration(0); // Already expired
+        .with_expiration(0); // Expires at now
     
-    assert!(msg.is_expired());
+    // Wait 1 second for message to expire
+    std::thread::sleep(std::time::Duration::from_secs(1));
+    
+    assert!(msg.is_expired(), "Message should be expired after waiting");
 }
 
 #[test]
 fn test_quantum_resistant_key_exchange() {
-    // Test Kyber key exchange
+    // Test Kyber key encapsulation mechanism (KEM)
+    // Kyber menggunakan KEM, bukan traditional key exchange
+    
     let keypair = kyber::keypair().unwrap();
-    let shared_secret = vec![0x42; 32];
     
-    // Encapsulate
-    let ciphertext = kyber::encapsulate(&keypair.public_key, &shared_secret).unwrap();
+    // Encapsulate - generates shared secret AND ciphertext
+    let (shared_secret, ciphertext) = kyber::encapsulate(&keypair.public_key).unwrap();
     
-    // Decapsulate
-    let decrypted = kyber::decapsulate(&keypair.secret_key, &ciphertext).unwrap();
+    // Decapsulate - recovers the same shared secret
+    let recovered_secret = kyber::decapsulate(&keypair.secret_key, &ciphertext).unwrap();
     
-    assert_eq!(shared_secret, decrypted);
+    // Both parties should have the same shared secret
+    assert_eq!(shared_secret.as_bytes(), recovered_secret.as_bytes());
+    
+    // Shared secret should be 32 bytes
+    assert_eq!(shared_secret.as_bytes().len(), 32);
 }
 
 #[test]
-fn test_hybrid_cryptography_fallback() {
+fn test_hybrid_cryptography_defense_in_depth() {
     // Test that hybrid crypto provides defense in depth
-    let keypair = hybrid::generate_keypair().unwrap();
+    // Menggunakan X25519 + Kyber untuk key exchange
+    // Menggunakan Ed25519 + Dilithium untuk signatures
     
-    // Both classical and PQC components should be present
-    assert!(!keypair.public_key.ecdh_public.is_empty());
-    assert!(!keypair.public_key.ecdsa_public.is_empty());
+    let keypair = hybrid::keypair().unwrap();
+    
+    // X25519 public key should be 32 bytes
+    assert_eq!(keypair.public_key.ecdh_public.len(), 32);
+    
+    // Ed25519 public key should be 32 bytes
+    assert_eq!(keypair.public_key.ecdsa_public.len(), 32);
+    
+    // Kyber public key should be present
+    assert_eq!(keypair.public_key.kyber_public.as_bytes().len(), 1568);
+    
+    // Dilithium public key should be present
+    assert_eq!(keypair.public_key.dilithium_public.as_bytes().len(), 2592);
+}
+
+#[test]
+fn test_hybrid_key_exchange() {
+    // Test complete hybrid key exchange
+    let alice = hybrid::keypair().unwrap();
+    let bob = hybrid::keypair().unwrap();
+    
+    // Alice encapsulates to Bob
+    let (alice_shared_secret, ciphertext) = hybrid::encapsulate(&bob.public_key).unwrap();
+    
+    // Shared secret should be 32 bytes (HKDF output)
+    assert_eq!(alice_shared_secret.len(), 32);
+    
+    // Ciphertext should contain valid data
+    assert!(!ciphertext.ecdh_ephemeral_public.is_empty());
+}
+
+#[test]
+fn test_hybrid_signature() {
+    // Test hybrid signature (Ed25519 + Dilithium)
+    let keypair = hybrid::keypair().unwrap();
+    let message = b"Test message for hybrid signature";
+    
+    // Sign
+    let signature = hybrid::sign(&keypair.secret_key, message).unwrap();
+    
+    // Ed25519 signature should be 64 bytes
+    assert_eq!(signature.ecdsa_signature.len(), 64);
+    
+    // Verify
+    let valid = hybrid::verify(&keypair.public_key, message, &signature).unwrap();
+    assert!(valid, "Valid signature should verify");
+    
+    // Wrong message should fail
+    let wrong_message = b"Wrong message";
+    let invalid = hybrid::verify(&keypair.public_key, wrong_message, &signature).unwrap();
+    assert!(!invalid, "Invalid signature should not verify");
 }
 
 #[test]
@@ -196,8 +266,66 @@ fn test_memory_zeroization() {
         ).unwrap();
         
         // Session goes out of scope here
-        // Drop should zeroize sensitive data
+        // Drop should zeroize sensitive data via zeroize crate
     }
     
     // Memory should be zeroized (verified by Drop implementation)
+}
+
+#[test]
+fn test_dilithium_keypair_generation() {
+    // Test Dilithium5 keypair generation
+    let keypair = dilithium::keypair().unwrap();
+    
+    // Verify key sizes
+    // Dilithium5 public key: 2592 bytes
+    // Dilithium5 secret key: 4896 bytes (may vary by implementation)
+    assert_eq!(keypair.public_key.as_bytes().len(), 2592);
+    assert_eq!(keypair.secret_key.as_bytes().len(), 4896);
+}
+
+#[test]
+fn test_kyber_keypair_generation() {
+    // Test Kyber-1024 keypair generation
+    let keypair = kyber::keypair().unwrap();
+    
+    // Verify key sizes
+    assert_eq!(keypair.public_key.as_bytes().len(), 1568);
+    assert_eq!(keypair.secret_key.as_bytes().len(), 3168);
+}
+
+#[test]
+fn test_session_key_rotation() {
+    // Test session-level key rotation
+    let config = HandshakeConfig::default();
+    
+    let mut initiator = HandshakeInitiator::new(config.clone()).unwrap();
+    let mut responder = HandshakeResponder::new(config).unwrap();
+    
+    // Complete handshake
+    let init = initiator.generate_init().unwrap();
+    let response = responder.process_init(init).unwrap();
+    initiator.process_response(response).unwrap();
+    let complete = initiator.generate_complete().unwrap();
+    responder.process_complete(complete).unwrap();
+    
+    let client_result = initiator.finalize().unwrap();
+    
+    let mut session = Session::from_handshake(
+        client_result,
+        b"server".to_vec(),
+    ).unwrap();
+    
+    // Initial rotation count should be 0
+    assert_eq!(session.rotation_count(), 0);
+    
+    // Perform key rotation
+    let rotation_msg = session.perform_key_rotation().unwrap();
+    
+    // Rotation count should increment
+    assert_eq!(session.rotation_count(), 1);
+    assert_eq!(rotation_msg.rotation_sequence, 1);
+    
+    // New key material should be 32 bytes
+    assert_eq!(rotation_msg.new_key_material.len(), 32);
 }

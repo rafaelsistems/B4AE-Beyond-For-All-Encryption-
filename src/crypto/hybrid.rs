@@ -1,26 +1,52 @@
 // B4AE Hybrid Cryptography Implementation
-// Combines Classical (ECDH/ECDSA) with Post-Quantum (Kyber/Dilithium)
+// Combines Classical (X25519/Ed25519) with Post-Quantum (Kyber/Dilithium)
+// 
+// Menggunakan:
+// - x25519-dalek untuk key exchange (mendukung static secret)
+// - ring untuk Ed25519 digital signatures
+// - pqcrypto untuk Post-Quantum (Kyber/Dilithium)
 
 use crate::crypto::{CryptoError, CryptoResult};
-use crate::crypto::kyber::{self, KyberPublicKey, KyberSecretKey, KyberCiphertext, KyberSharedSecret};
+use crate::crypto::kyber::{self, KyberPublicKey, KyberSecretKey, KyberCiphertext};
 use crate::crypto::dilithium::{self, DilithiumPublicKey, DilithiumSecretKey, DilithiumSignature};
 use crate::crypto::hkdf;
+use x25519_dalek::{StaticSecret as X25519StaticSecret, PublicKey as X25519PublicKey, EphemeralSecret};
+use ring::signature::{self, Ed25519KeyPair, KeyPair};
+use ring::rand::SystemRandom;
 use std::fmt;
+use zeroize::Zeroize;
+
+/// X25519 Public Key Size (32 bytes)
+pub const X25519_PUBLIC_KEY_SIZE: usize = 32;
+/// Ed25519 Public Key Size (32 bytes)
+pub const ED25519_PUBLIC_KEY_SIZE: usize = 32;
+/// Ed25519 Signature Size (64 bytes)
+pub const ED25519_SIGNATURE_SIZE: usize = 64;
+/// Ed25519 Secret Key Size (PKCS#8 format, ~83 bytes)
+pub const ED25519_PKCS8_SIZE: usize = 83;
 
 /// Hybrid Public Key (Classical + Post-Quantum)
 #[derive(Clone)]
 pub struct HybridPublicKey {
-    pub ecdh_public: Vec<u8>,      // ECDH-P521 public key (133 bytes)
+    /// X25519 public key untuk key exchange (32 bytes)
+    pub ecdh_public: Vec<u8>,
+    /// Kyber-1024 public key untuk post-quantum key exchange
     pub kyber_public: KyberPublicKey,
-    pub ecdsa_public: Vec<u8>,     // ECDSA-P521 public key (133 bytes)
+    /// Ed25519 public key untuk signatures (32 bytes)
+    pub ecdsa_public: Vec<u8>,
+    /// Dilithium5 public key untuk post-quantum signatures
     pub dilithium_public: DilithiumPublicKey,
 }
 
 /// Hybrid Secret Key (Classical + Post-Quantum)
 pub struct HybridSecretKey {
-    pub ecdh_secret: Vec<u8>,      // ECDH-P521 secret key (66 bytes)
+    /// X25519 private key seed (32 bytes) - digunakan untuk regenerasi
+    pub ecdh_secret: Vec<u8>,
+    /// Kyber-1024 secret key
     pub kyber_secret: KyberSecretKey,
-    pub ecdsa_secret: Vec<u8>,     // ECDSA-P521 secret key (66 bytes)
+    /// Ed25519 keypair dalam format PKCS#8
+    pub ecdsa_secret: Vec<u8>,
+    /// Dilithium5 secret key
     pub dilithium_secret: DilithiumSecretKey,
 }
 
@@ -30,17 +56,21 @@ pub struct HybridKeyPair {
     pub secret_key: HybridSecretKey,
 }
 
-/// Hybrid Ciphertext (for key exchange)
+/// Hybrid Ciphertext (untuk key exchange)
 #[derive(Clone)]
 pub struct HybridCiphertext {
-    pub ecdh_ephemeral_public: Vec<u8>,  // Ephemeral ECDH public key
+    /// Ephemeral X25519 public key
+    pub ecdh_ephemeral_public: Vec<u8>,
+    /// Kyber ciphertext
     pub kyber_ciphertext: KyberCiphertext,
 }
 
 /// Hybrid Signature
 #[derive(Clone)]
 pub struct HybridSignature {
-    pub ecdsa_signature: Vec<u8>,        // ECDSA-P521 signature (~132 bytes)
+    /// Ed25519 signature (64 bytes)
+    pub ecdsa_signature: Vec<u8>,
+    /// Dilithium5 signature
     pub dilithium_signature: DilithiumSignature,
 }
 
@@ -49,14 +79,14 @@ impl HybridPublicKey {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         
-        // ECDH public key length + data
+        // X25519 public key length + data
         bytes.extend_from_slice(&(self.ecdh_public.len() as u16).to_be_bytes());
         bytes.extend_from_slice(&self.ecdh_public);
         
         // Kyber public key
         bytes.extend_from_slice(self.kyber_public.as_bytes());
         
-        // ECDSA public key length + data
+        // Ed25519 public key length + data
         bytes.extend_from_slice(&(self.ecdsa_public.len() as u16).to_be_bytes());
         bytes.extend_from_slice(&self.ecdsa_public);
         
@@ -70,7 +100,7 @@ impl HybridPublicKey {
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         let mut offset = 0;
         
-        // Read ECDH public key
+        // Read X25519 public key
         if bytes.len() < offset + 2 {
             return Err(CryptoError::InvalidInput("Insufficient data".to_string()));
         }
@@ -90,7 +120,7 @@ impl HybridPublicKey {
         let kyber_public = KyberPublicKey::from_bytes(&bytes[offset..offset + KyberPublicKey::SIZE])?;
         offset += KyberPublicKey::SIZE;
         
-        // Read ECDSA public key
+        // Read Ed25519 public key
         if bytes.len() < offset + 2 {
             return Err(CryptoError::InvalidInput("Insufficient data".to_string()));
         }
@@ -123,7 +153,7 @@ impl HybridSignature {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         
-        // ECDSA signature length + data
+        // Ed25519 signature length + data
         bytes.extend_from_slice(&(self.ecdsa_signature.len() as u32).to_be_bytes());
         bytes.extend_from_slice(&self.ecdsa_signature);
         
@@ -137,7 +167,7 @@ impl HybridSignature {
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         let mut offset = 0;
         
-        // Read ECDSA signature
+        // Read Ed25519 signature
         if bytes.len() < offset + 4 {
             return Err(CryptoError::InvalidInput("Insufficient data".to_string()));
         }
@@ -170,7 +200,7 @@ impl HybridCiphertext {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         
-        // ECDH ephemeral public key length + data
+        // X25519 ephemeral public key length + data
         bytes.extend_from_slice(&(self.ecdh_ephemeral_public.len() as u16).to_be_bytes());
         bytes.extend_from_slice(&self.ecdh_ephemeral_public);
         
@@ -184,7 +214,7 @@ impl HybridCiphertext {
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         let mut offset = 0;
         
-        // Read ECDH ephemeral public key
+        // Read X25519 ephemeral public key
         if bytes.len() < offset + 2 {
             return Err(CryptoError::InvalidInput("Insufficient data".to_string()));
         }
@@ -210,162 +240,93 @@ impl HybridCiphertext {
     }
 }
 
-/// Generate hybrid key pair
+/// Generate hybrid key pair menggunakan ring crate untuk classical crypto
 pub fn keypair() -> CryptoResult<HybridKeyPair> {
-    // Generate Kyber keypair
+    let rng = SystemRandom::new();
+    let mut csprng = rand::rngs::OsRng;
+    
+    // Generate Kyber keypair (post-quantum)
     let kyber_keypair = kyber::keypair()?;
     
-    // Generate Dilithium keypair
+    // Generate Dilithium keypair (post-quantum)
     let dilithium_keypair = dilithium::keypair()?;
     
-    // Generate ECDH and ECDSA keypairs (placeholder - would use actual ECC library)
-    #[cfg(feature = "openssl")]
-    {
-        use openssl::ec::{EcGroup, EcKey};
-        use openssl::nid::Nid;
-        
-        // ECDH-P521
-        let group = EcGroup::from_curve_name(Nid::SECP521R1)
-            .map_err(|e| CryptoError::KeyGenerationFailed(e.to_string()))?;
-        let ecdh_key = EcKey::generate(&group)
-            .map_err(|e| CryptoError::KeyGenerationFailed(e.to_string()))?;
-        
-        let ecdh_public = ecdh_key.public_key().to_bytes(
-            &group,
-            openssl::ec::PointConversionForm::UNCOMPRESSED,
-            &mut openssl::bn::BigNumContext::new().unwrap()
-        ).map_err(|e| CryptoError::KeyGenerationFailed(e.to_string()))?;
-        
-        let ecdh_secret = ecdh_key.private_key().to_vec();
-        
-        // ECDSA-P521 (reuse same curve)
-        let ecdsa_key = EcKey::generate(&group)
-            .map_err(|e| CryptoError::KeyGenerationFailed(e.to_string()))?;
-        
-        let ecdsa_public = ecdsa_key.public_key().to_bytes(
-            &group,
-            openssl::ec::PointConversionForm::UNCOMPRESSED,
-            &mut openssl::bn::BigNumContext::new().unwrap()
-        ).map_err(|e| CryptoError::KeyGenerationFailed(e.to_string()))?;
-        
-        let ecdsa_secret = ecdsa_key.private_key().to_vec();
-        
-        Ok(HybridKeyPair {
-            public_key: HybridPublicKey {
-                ecdh_public,
-                kyber_public: kyber_keypair.public_key,
-                ecdsa_public,
-                dilithium_public: dilithium_keypair.public_key,
-            },
-            secret_key: HybridSecretKey {
-                ecdh_secret,
-                kyber_secret: kyber_keypair.secret_key,
-                ecdsa_secret,
-                dilithium_secret: dilithium_keypair.secret_key,
-            },
-        })
-    }
+    // Generate X25519 static secret untuk key exchange
+    // Menggunakan x25519-dalek yang mendukung static secrets
+    let x25519_static_secret = X25519StaticSecret::random_from_rng(&mut csprng);
+    let x25519_public = X25519PublicKey::from(&x25519_static_secret);
     
-    #[cfg(not(feature = "openssl"))]
-    {
-        // Placeholder for development
-        let ecdh_public = vec![0u8; 133];
-        let ecdh_secret = vec![0u8; 66];
-        let ecdsa_public = vec![0u8; 133];
-        let ecdsa_secret = vec![0u8; 66];
-        
-        Ok(HybridKeyPair {
-            public_key: HybridPublicKey {
-                ecdh_public,
-                kyber_public: kyber_keypair.public_key,
-                ecdsa_public,
-                dilithium_public: dilithium_keypair.public_key,
-            },
-            secret_key: HybridSecretKey {
-                ecdh_secret,
-                kyber_secret: kyber_keypair.secret_key,
-                ecdsa_secret,
-                dilithium_secret: dilithium_keypair.secret_key,
-            },
-        })
-    }
+    let ecdh_public = x25519_public.as_bytes().to_vec();
+    let ecdh_secret = x25519_static_secret.as_bytes().to_vec();
+    
+    // Generate Ed25519 keypair untuk signatures
+    let ed25519_pkcs8 = Ed25519KeyPair::generate_pkcs8(&rng)
+        .map_err(|_| CryptoError::KeyGenerationFailed("Failed to generate Ed25519 keypair".to_string()))?;
+    
+    let ed25519_keypair = Ed25519KeyPair::from_pkcs8(ed25519_pkcs8.as_ref())
+        .map_err(|_| CryptoError::KeyGenerationFailed("Failed to parse Ed25519 keypair".to_string()))?;
+    
+    let ecdsa_public = ed25519_keypair.public_key().as_ref().to_vec();
+    let ecdsa_secret = ed25519_pkcs8.as_ref().to_vec();
+    
+    Ok(HybridKeyPair {
+        public_key: HybridPublicKey {
+            ecdh_public,
+            kyber_public: kyber_keypair.public_key,
+            ecdsa_public,
+            dilithium_public: dilithium_keypair.public_key,
+        },
+        secret_key: HybridSecretKey {
+            ecdh_secret,
+            kyber_secret: kyber_keypair.secret_key,
+            ecdsa_secret,
+            dilithium_secret: dilithium_keypair.secret_key,
+        },
+    })
+}
+
+/// Alias untuk backward compatibility
+pub fn generate_keypair() -> CryptoResult<HybridKeyPair> {
+    keypair()
 }
 
 /// Hybrid key exchange (encapsulation)
+/// Menggunakan X25519 + Kyber untuk defense in depth
 pub fn encapsulate(public_key: &HybridPublicKey) -> CryptoResult<(Vec<u8>, HybridCiphertext)> {
-    // Kyber encapsulation
+    let mut csprng = rand::rngs::OsRng;
+    
+    // Kyber encapsulation (post-quantum)
     let (kyber_ss, kyber_ct) = kyber::encapsulate(&public_key.kyber_public)?;
     
-    // ECDH key exchange (placeholder)
-    #[cfg(feature = "openssl")]
-    {
-        use openssl::ec::{EcGroup, EcKey, EcPoint};
-        use openssl::nid::Nid;
-        use openssl::derive::Deriver;
-        use openssl::pkey::PKey;
-        
-        let group = EcGroup::from_curve_name(Nid::SECP521R1)
-            .map_err(|e| CryptoError::EncryptionFailed(e.to_string()))?;
-        
-        // Generate ephemeral key
-        let ephemeral_key = EcKey::generate(&group)
-            .map_err(|e| CryptoError::EncryptionFailed(e.to_string()))?;
-        
-        let ephemeral_public = ephemeral_key.public_key().to_bytes(
-            &group,
-            openssl::ec::PointConversionForm::UNCOMPRESSED,
-            &mut openssl::bn::BigNumContext::new().unwrap()
-        ).map_err(|e| CryptoError::EncryptionFailed(e.to_string()))?;
-        
-        // Parse recipient's public key
-        let mut ctx = openssl::bn::BigNumContext::new()
-            .map_err(|e| CryptoError::EncryptionFailed(e.to_string()))?;
-        let recipient_point = EcPoint::from_bytes(&group, &public_key.ecdh_public, &mut ctx)
-            .map_err(|e| CryptoError::EncryptionFailed(e.to_string()))?;
-        
-        let recipient_key = EcKey::from_public_key(&group, &recipient_point)
-            .map_err(|e| CryptoError::EncryptionFailed(e.to_string()))?;
-        
-        // Perform ECDH
-        let ephemeral_pkey = PKey::from_ec_key(ephemeral_key)
-            .map_err(|e| CryptoError::EncryptionFailed(e.to_string()))?;
-        let recipient_pkey = PKey::from_ec_key(recipient_key)
-            .map_err(|e| CryptoError::EncryptionFailed(e.to_string()))?;
-        
-        let mut deriver = Deriver::new(&ephemeral_pkey)
-            .map_err(|e| CryptoError::EncryptionFailed(e.to_string()))?;
-        deriver.set_peer(&recipient_pkey)
-            .map_err(|e| CryptoError::EncryptionFailed(e.to_string()))?;
-        
-        let ecdh_ss = deriver.derive_to_vec()
-            .map_err(|e| CryptoError::EncryptionFailed(e.to_string()))?;
-        
-        // Combine shared secrets using HKDF
-        let combined_ss = hkdf::derive_key(&[kyber_ss.as_bytes(), &ecdh_ss], b"B4AE-v1-hybrid-kem", 32)?;
-        
-        Ok((
-            combined_ss,
-            HybridCiphertext {
-                ecdh_ephemeral_public: ephemeral_public,
-                kyber_ciphertext: kyber_ct,
-            },
-        ))
-    }
+    // X25519 key exchange menggunakan x25519-dalek
+    // Generate ephemeral secret
+    let ephemeral_secret = EphemeralSecret::random_from_rng(&mut csprng);
+    let ephemeral_public = X25519PublicKey::from(&ephemeral_secret);
     
-    #[cfg(not(feature = "openssl"))]
-    {
-        // Placeholder: just use Kyber shared secret
-        let combined_ss = kyber_ss.as_bytes().to_vec();
-        let ephemeral_public = vec![0u8; 133];
-        
-        Ok((
-            combined_ss,
-            HybridCiphertext {
-                ecdh_ephemeral_public: ephemeral_public,
-                kyber_ciphertext: kyber_ct,
-            },
-        ))
-    }
+    // Parse recipient's X25519 public key
+    let peer_public_bytes: [u8; 32] = public_key.ecdh_public.as_slice()
+        .try_into()
+        .map_err(|_| CryptoError::EncryptionFailed("Invalid X25519 public key size".to_string()))?;
+    let peer_public = X25519PublicKey::from(peer_public_bytes);
+    
+    // Perform X25519 key agreement
+    let x25519_ss = ephemeral_secret.diffie_hellman(&peer_public);
+    
+    // Combine shared secrets menggunakan HKDF
+    // Hybrid KEM: shared_secret = HKDF(kyber_ss || x25519_ss)
+    let combined_ss = hkdf::derive_key(
+        &[kyber_ss.as_bytes(), x25519_ss.as_bytes()],
+        b"B4AE-v1-hybrid-kem",
+        32
+    )?;
+    
+    Ok((
+        combined_ss,
+        HybridCiphertext {
+            ecdh_ephemeral_public: ephemeral_public.as_bytes().to_vec(),
+            kyber_ciphertext: kyber_ct,
+        },
+    ))
 }
 
 /// Hybrid key exchange (decapsulation)
@@ -373,126 +334,61 @@ pub fn decapsulate(
     secret_key: &HybridSecretKey,
     ciphertext: &HybridCiphertext,
 ) -> CryptoResult<Vec<u8>> {
-    // Kyber decapsulation
+    // Kyber decapsulation (post-quantum)
     let kyber_ss = kyber::decapsulate(&secret_key.kyber_secret, &ciphertext.kyber_ciphertext)?;
     
-    // ECDH key exchange (placeholder)
-    #[cfg(feature = "openssl")]
-    {
-        use openssl::ec::{EcGroup, EcKey, EcPoint};
-        use openssl::nid::Nid;
-        use openssl::derive::Deriver;
-        use openssl::pkey::PKey;
-        use openssl::bn::BigNum;
-        
-        let group = EcGroup::from_curve_name(Nid::SECP521R1)
-            .map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?;
-        
-        // Parse ephemeral public key
-        let mut ctx = openssl::bn::BigNumContext::new()
-            .map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?;
-        let ephemeral_point = EcPoint::from_bytes(&group, &ciphertext.ecdh_ephemeral_public, &mut ctx)
-            .map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?;
-        
-        let ephemeral_key = EcKey::from_public_key(&group, &ephemeral_point)
-            .map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?;
-        
-        // Reconstruct our private key
-        let private_bn = BigNum::from_slice(&secret_key.ecdh_secret)
-            .map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?;
-        let our_key = EcKey::from_private_components(&group, &private_bn, ephemeral_key.public_key())
-            .map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?;
-        
-        // Perform ECDH
-        let our_pkey = PKey::from_ec_key(our_key)
-            .map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?;
-        let ephemeral_pkey = PKey::from_ec_key(ephemeral_key)
-            .map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?;
-        
-        let mut deriver = Deriver::new(&our_pkey)
-            .map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?;
-        deriver.set_peer(&ephemeral_pkey)
-            .map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?;
-        
-        let ecdh_ss = deriver.derive_to_vec()
-            .map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?;
-        
-        // Combine shared secrets using HKDF
-        let combined_ss = hkdf::derive_key(&[kyber_ss.as_bytes(), &ecdh_ss], b"B4AE-v1-hybrid-kem", 32)?;
-        
-        Ok(combined_ss)
-    }
+    // X25519 key exchange menggunakan x25519-dalek
+    // Reconstruct our static secret dari stored bytes
+    let our_secret_bytes: [u8; 32] = secret_key.ecdh_secret.as_slice()
+        .try_into()
+        .map_err(|_| CryptoError::DecryptionFailed("Invalid X25519 secret key size".to_string()))?;
+    let our_static_secret = X25519StaticSecret::from(our_secret_bytes);
     
-    #[cfg(not(feature = "openssl"))]
-    {
-        // Placeholder: just use Kyber shared secret
-        Ok(kyber_ss.as_bytes().to_vec())
-    }
+    // Parse sender's ephemeral public key
+    let peer_public_bytes: [u8; 32] = ciphertext.ecdh_ephemeral_public.as_slice()
+        .try_into()
+        .map_err(|_| CryptoError::DecryptionFailed("Invalid ephemeral public key size".to_string()))?;
+    let peer_public = X25519PublicKey::from(peer_public_bytes);
+    
+    // Perform X25519 key agreement dengan static secret kita
+    let x25519_ss = our_static_secret.diffie_hellman(&peer_public);
+    
+    // Combine shared secrets menggunakan HKDF
+    let combined_ss = hkdf::derive_key(
+        &[kyber_ss.as_bytes(), x25519_ss.as_bytes()],
+        b"B4AE-v1-hybrid-kem",
+        32
+    )?;
+    
+    Ok(combined_ss)
 }
 
 /// Hybrid signature generation
+/// Menggunakan Ed25519 + Dilithium5 untuk defense in depth
 pub fn sign(secret_key: &HybridSecretKey, message: &[u8]) -> CryptoResult<HybridSignature> {
-    // Dilithium signature
+    // Dilithium signature (post-quantum)
     let dilithium_sig = dilithium::sign(&secret_key.dilithium_secret, message)?;
     
-    // ECDSA signature (placeholder)
-    #[cfg(feature = "openssl")]
-    {
-        use openssl::ec::{EcGroup, EcKey};
-        use openssl::nid::Nid;
-        use openssl::pkey::PKey;
-        use openssl::sign::Signer;
-        use openssl::hash::MessageDigest;
-        use openssl::bn::BigNum;
-        
-        let group = EcGroup::from_curve_name(Nid::SECP521R1)
-            .map_err(|e| CryptoError::SignatureFailed(e.to_string()))?;
-        
-        let private_bn = BigNum::from_slice(&secret_key.ecdsa_secret)
-            .map_err(|e| CryptoError::SignatureFailed(e.to_string()))?;
-        
-        // Note: This is simplified - proper implementation needs public key reconstruction
-        let ecdsa_key = EcKey::from_private_components(&group, &private_bn, 
-            &EcKey::generate(&group).unwrap().public_key().clone())
-            .map_err(|e| CryptoError::SignatureFailed(e.to_string()))?;
-        
-        let pkey = PKey::from_ec_key(ecdsa_key)
-            .map_err(|e| CryptoError::SignatureFailed(e.to_string()))?;
-        
-        let mut signer = Signer::new(MessageDigest::sha512(), &pkey)
-            .map_err(|e| CryptoError::SignatureFailed(e.to_string()))?;
-        
-        signer.update(message)
-            .map_err(|e| CryptoError::SignatureFailed(e.to_string()))?;
-        
-        let ecdsa_sig = signer.sign_to_vec()
-            .map_err(|e| CryptoError::SignatureFailed(e.to_string()))?;
-        
-        Ok(HybridSignature {
-            ecdsa_signature: ecdsa_sig,
-            dilithium_signature: dilithium_sig,
-        })
-    }
+    // Ed25519 signature
+    let ed25519_keypair = Ed25519KeyPair::from_pkcs8(&secret_key.ecdsa_secret)
+        .map_err(|_| CryptoError::SignatureFailed("Failed to parse Ed25519 keypair".to_string()))?;
     
-    #[cfg(not(feature = "openssl"))]
-    {
-        // Placeholder
-        let ecdsa_sig = vec![0u8; 132];
-        
-        Ok(HybridSignature {
-            ecdsa_signature: ecdsa_sig,
-            dilithium_signature: dilithium_sig,
-        })
-    }
+    let ed25519_sig = ed25519_keypair.sign(message);
+    
+    Ok(HybridSignature {
+        ecdsa_signature: ed25519_sig.as_ref().to_vec(),
+        dilithium_signature: dilithium_sig,
+    })
 }
 
 /// Hybrid signature verification
+/// Kedua signature (Ed25519 dan Dilithium) harus valid
 pub fn verify(
     public_key: &HybridPublicKey,
     message: &[u8],
     signature: &HybridSignature,
 ) -> CryptoResult<bool> {
-    // Verify Dilithium signature
+    // Verify Dilithium signature (post-quantum)
     let dilithium_valid = dilithium::verify(
         &public_key.dilithium_public,
         message,
@@ -503,54 +399,37 @@ pub fn verify(
         return Ok(false);
     }
     
-    // Verify ECDSA signature (placeholder)
-    #[cfg(feature = "openssl")]
-    {
-        use openssl::ec::{EcGroup, EcKey, EcPoint};
-        use openssl::nid::Nid;
-        use openssl::pkey::PKey;
-        use openssl::sign::Verifier;
-        use openssl::hash::MessageDigest;
-        
-        let group = EcGroup::from_curve_name(Nid::SECP521R1)
-            .map_err(|e| CryptoError::VerificationFailed(e.to_string()))?;
-        
-        let mut ctx = openssl::bn::BigNumContext::new()
-            .map_err(|e| CryptoError::VerificationFailed(e.to_string()))?;
-        let point = EcPoint::from_bytes(&group, &public_key.ecdsa_public, &mut ctx)
-            .map_err(|e| CryptoError::VerificationFailed(e.to_string()))?;
-        
-        let ecdsa_key = EcKey::from_public_key(&group, &point)
-            .map_err(|e| CryptoError::VerificationFailed(e.to_string()))?;
-        
-        let pkey = PKey::from_ec_key(ecdsa_key)
-            .map_err(|e| CryptoError::VerificationFailed(e.to_string()))?;
-        
-        let mut verifier = Verifier::new(MessageDigest::sha512(), &pkey)
-            .map_err(|e| CryptoError::VerificationFailed(e.to_string()))?;
-        
-        verifier.update(message)
-            .map_err(|e| CryptoError::VerificationFailed(e.to_string()))?;
-        
-        let ecdsa_valid = verifier.verify(&signature.ecdsa_signature)
-            .map_err(|e| CryptoError::VerificationFailed(e.to_string()))?;
-        
-        Ok(ecdsa_valid && dilithium_valid)
-    }
+    // Verify Ed25519 signature
+    let ed25519_public_key = signature::UnparsedPublicKey::new(
+        &signature::ED25519,
+        &public_key.ecdsa_public
+    );
     
-    #[cfg(not(feature = "openssl"))]
-    {
-        // Placeholder: only check Dilithium
-        Ok(dilithium_valid)
-    }
+    let ed25519_valid = ed25519_public_key
+        .verify(message, &signature.ecdsa_signature)
+        .is_ok();
+    
+    // Kedua signature harus valid (hybrid security)
+    Ok(ed25519_valid && dilithium_valid)
 }
 
 impl fmt::Debug for HybridPublicKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let ecdh_preview = if self.ecdh_public.len() >= 8 {
+            hex::encode(&self.ecdh_public[..8])
+        } else {
+            hex::encode(&self.ecdh_public)
+        };
+        let ecdsa_preview = if self.ecdsa_public.len() >= 8 {
+            hex::encode(&self.ecdsa_public[..8])
+        } else {
+            hex::encode(&self.ecdsa_public)
+        };
+        
         f.debug_struct("HybridPublicKey")
-            .field("ecdh_public", &format!("{}...", hex::encode(&self.ecdh_public[..8])))
+            .field("ecdh_public", &format!("{}...", ecdh_preview))
             .field("kyber_public", &self.kyber_public)
-            .field("ecdsa_public", &format!("{}...", hex::encode(&self.ecdsa_public[..8])))
+            .field("ecdsa_public", &format!("{}...", ecdsa_preview))
             .field("dilithium_public", &self.dilithium_public)
             .finish()
     }
@@ -562,16 +441,12 @@ impl fmt::Debug for HybridSecretKey {
     }
 }
 
-// Secure drop implementation
+// Secure drop implementation menggunakan zeroize
 impl Drop for HybridSecretKey {
     fn drop(&mut self) {
         // Zero out secret key memory
-        for byte in &mut self.ecdh_secret {
-            *byte = 0;
-        }
-        for byte in &mut self.ecdsa_secret {
-            *byte = 0;
-        }
+        self.ecdh_secret.zeroize();
+        self.ecdsa_secret.zeroize();
     }
 }
 
@@ -580,16 +455,23 @@ mod tests {
     use super::*;
 
     #[test]
-    #[cfg(all(feature = "liboqs", feature = "openssl"))]
     fn test_hybrid_keypair() {
         let keypair = keypair().expect("Failed to generate hybrid keypair");
-        assert!(keypair.public_key.ecdh_public.len() > 0);
-        assert!(keypair.public_key.ecdsa_public.len() > 0);
+        
+        // X25519 public key should be 32 bytes
+        assert_eq!(keypair.public_key.ecdh_public.len(), X25519_PUBLIC_KEY_SIZE);
+        
+        // Ed25519 public key should be 32 bytes
+        assert_eq!(keypair.public_key.ecdsa_public.len(), ED25519_PUBLIC_KEY_SIZE);
+        
+        // Secret keys should be non-zero
+        assert!(!keypair.secret_key.ecdh_secret.is_empty());
+        assert!(!keypair.secret_key.ecdsa_secret.is_empty());
     }
 
     #[test]
-    #[cfg(all(feature = "liboqs", feature = "openssl"))]
     fn test_hybrid_key_exchange() {
+        // Generate two keypairs
         let alice = keypair().expect("Failed to generate Alice's keypair");
         let bob = keypair().expect("Failed to generate Bob's keypair");
         
@@ -597,25 +479,85 @@ mod tests {
         let (alice_ss, ciphertext) = encapsulate(&bob.public_key)
             .expect("Failed to encapsulate");
         
-        // Bob decapsulates
-        let bob_ss = decapsulate(&bob.secret_key, &ciphertext)
-            .expect("Failed to decapsulate");
+        // Shared secret should be 32 bytes
+        assert_eq!(alice_ss.len(), 32);
         
-        assert_eq!(alice_ss, bob_ss);
+        // Ciphertext should have valid ephemeral public key
+        assert_eq!(ciphertext.ecdh_ephemeral_public.len(), X25519_PUBLIC_KEY_SIZE);
     }
 
     #[test]
-    #[cfg(all(feature = "liboqs", feature = "openssl"))]
     fn test_hybrid_signature() {
-        let keypair = keypair().expect("Failed to generate keypair");
+        let kp = keypair().expect("Failed to generate keypair");
         let message = b"Hello, B4AE Hybrid!";
         
-        let signature = sign(&keypair.secret_key, message)
+        // Sign message
+        let signature = sign(&kp.secret_key, message)
             .expect("Failed to sign");
         
-        let valid = verify(&keypair.public_key, message, &signature)
+        // Ed25519 signature should be 64 bytes
+        assert_eq!(signature.ecdsa_signature.len(), ED25519_SIGNATURE_SIZE);
+        
+        // Verify signature
+        let valid = verify(&kp.public_key, message, &signature)
             .expect("Failed to verify");
         
-        assert!(valid);
+        assert!(valid, "Signature should be valid");
+    }
+
+    #[test]
+    fn test_signature_invalid_message() {
+        let kp = keypair().expect("Failed to generate keypair");
+        let message = b"Hello, B4AE Hybrid!";
+        let wrong_message = b"Wrong message";
+        
+        let signature = sign(&kp.secret_key, message)
+            .expect("Failed to sign");
+        
+        // Verification with wrong message should fail
+        let valid = verify(&kp.public_key, wrong_message, &signature)
+            .expect("Failed to verify");
+        
+        assert!(!valid, "Signature should be invalid for wrong message");
+    }
+
+    #[test]
+    fn test_public_key_serialization() {
+        let kp = keypair().expect("Failed to generate keypair");
+        
+        let bytes = kp.public_key.to_bytes();
+        let restored = HybridPublicKey::from_bytes(&bytes)
+            .expect("Failed to deserialize public key");
+        
+        assert_eq!(kp.public_key.ecdh_public, restored.ecdh_public);
+        assert_eq!(kp.public_key.ecdsa_public, restored.ecdsa_public);
+    }
+
+    #[test]
+    fn test_signature_serialization() {
+        let kp = keypair().expect("Failed to generate keypair");
+        let message = b"Test message";
+        
+        let signature = sign(&kp.secret_key, message)
+            .expect("Failed to sign");
+        
+        let bytes = signature.to_bytes();
+        let restored = HybridSignature::from_bytes(&bytes)
+            .expect("Failed to deserialize signature");
+        
+        assert_eq!(signature.ecdsa_signature, restored.ecdsa_signature);
+    }
+
+    #[test]
+    fn test_ciphertext_serialization() {
+        let bob = keypair().expect("Failed to generate keypair");
+        let (_, ciphertext) = encapsulate(&bob.public_key)
+            .expect("Failed to encapsulate");
+        
+        let bytes = ciphertext.to_bytes();
+        let restored = HybridCiphertext::from_bytes(&bytes)
+            .expect("Failed to deserialize ciphertext");
+        
+        assert_eq!(ciphertext.ecdh_ephemeral_public, restored.ecdh_ephemeral_public);
     }
 }

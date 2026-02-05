@@ -245,9 +245,8 @@ pub fn verify(
     #[cfg(all(not(feature = "liboqs"), any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
     {
         // Use real pqcrypto implementation
-        dilithium5::verify_detached_signature(&signature.inner, message, &public_key.inner)
-            .map(|_| true)
-            .map_err(|_| CryptoError::VerificationFailed("Signature verification failed".to_string()))
+        // Return Ok(false) for invalid signature instead of error
+        Ok(dilithium5::verify_detached_signature(&signature.inner, message, &public_key.inner).is_ok())
     }
     
     #[cfg(all(not(feature = "liboqs"), not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))))]
