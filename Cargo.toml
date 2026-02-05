@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["B4AE Team"]
 description = "B4AE (Beyond For All Encryption) - Quantum-resistant secure communication protocol"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/b4ae/b4ae"
+repository = "https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-"
 keywords = ["cryptography", "post-quantum", "encryption", "security", "messaging"]
 categories = ["cryptography", "network-programming"]
 
