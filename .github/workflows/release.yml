@@ -29,13 +29,12 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Install Rust toolchain
-      uses: dtolnay/rust-action@stable
+      uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: stable
-        target: ${{ matrix.target }}
+        targets: ${{ matrix.target }}
 
     - name: Build release
-      run: cargo build --release --all-features --target ${{ matrix.target }}
+      run: cargo build --release --all-features
 
     - name: Run tests
       run: cargo test --release --all-features
@@ -44,7 +43,7 @@ jobs:
       if: matrix.os != 'windows-latest'
       run: |
         mkdir -p dist
-        cp target/${{ matrix.target }}/release/libq4ae.* dist/ 2>/dev/null || true
+        cp target/release/libb4ae.* dist/ 2>/dev/null || true
         cp README.md LICENSE-MIT LICENSE-APACHE dist/
         tar -czvf ${{ matrix.artifact_name }}.tar.gz -C dist .
 
@@ -52,8 +51,9 @@ jobs:
       if: matrix.os == 'windows-latest'
       run: |
         mkdir dist
-        Copy-Item target/${{ matrix.target }}/release/*.dll dist/ -ErrorAction SilentlyContinue
-        Copy-Item target/${{ matrix.target }}/release/*.lib dist/ -ErrorAction SilentlyContinue
+        Copy-Item target/release/*.dll dist/ -ErrorAction SilentlyContinue
+        Copy-Item target/release/*.lib dist/ -ErrorAction SilentlyContinue  
+        Copy-Item target/release/b4ae.* dist/ -ErrorAction SilentlyContinue
         Copy-Item README.md, LICENSE-MIT, LICENSE-APACHE dist/
         Compress-Archive -Path dist/* -DestinationPath ${{ matrix.artifact_name }}.zip
 
@@ -64,6 +64,7 @@ jobs:
         path: |
           *.tar.gz
           *.zip
+        if-no-files-found: ignore
 
   create-release:
     name: Create GitHub Release
@@ -79,9 +80,10 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         path: artifacts
+      continue-on-error: true
 
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: artifacts/**/*
         generate_release_notes: true
