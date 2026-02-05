@@ -49,3 +49,4 @@ test_*.rs
 # Compiled libraries
 *.rlib
 libhandshake.rlib
+targetL3XsP8/
