@@ -1,0 +1,4 @@
+// Test to see what methods are available
+use pqcrypto_kyber::kyber1024;
+let (pk, sk) = kyber1024::keypair();
+// pk is PublicKey, which should have methods from pqcrypto_traits

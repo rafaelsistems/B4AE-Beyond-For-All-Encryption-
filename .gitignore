@@ -1,0 +1,51 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.rlib
+
+# Test artifacts
+*.profraw
+*.profdata
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Benchmark results
+/target/criterion/
+
+# Documentation build
+/target/doc/
+
+# Local configuration
+.env
+.env.local
+
+# Windows
+rustup-init.exe
+test_*.exe
+test_*.rs
+
+# Compiled libraries
+*.rlib
+libhandshake.rlib

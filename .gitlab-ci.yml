@@ -1,0 +1,260 @@
+# B4AE CI/CD Pipeline Configuration
+# GitLab CI/CD for B4AE Protocol
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo
+  RUST_VERSION: "1.70"
+  DOCKER_DRIVER: overlay2
+
+stages:
+  - build
+  - test
+  - security
+  - benchmark
+  - deploy
+
+# Cache configuration
+.cache_template: &cache_definition
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .cargo/
+      - target/
+
+# Build stage
+build:rust:
+  stage: build
+  image: rust:${RUST_VERSION}
+  <<: *cache_definition
+  script:
+    - rustc --version
+    - cargo --version
+    - cargo build --release --all-features
+    - cargo build --release --no-default-features
+  artifacts:
+    paths:
+      - target/release/b4ae-cli
+      - target/release/b4ae-server
+      - target/release/libb4ae.so
+    expire_in: 1 week
+
+build:wasm:
+  stage: build
+  image: rust:${RUST_VERSION}
+  <<: *cache_definition
+  script:
+    - rustup target add wasm32-unknown-unknown
+    - cargo install wasm-pack
+    - wasm-pack build --target web
+  artifacts:
+    paths:
+      - pkg/
+    expire_in: 1 week
+
+# Test stage
+test:unit:
+  stage: test
+  image: rust:${RUST_VERSION}
+  <<: *cache_definition
+  script:
+    - cargo test --all-features --lib
+    - cargo test --all-features --bins
+  coverage: '/^\d+\.\d+% coverage/'
+  artifacts:
+    reports:
+      junit: target/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: target/coverage/cobertura.xml
+
+test:integration:
+  stage: test
+  image: rust:${RUST_VERSION}
+  <<: *cache_definition
+  services:
+    - name: postgres:14
+      alias: postgres
+  variables:
+    POSTGRES_DB: b4ae_test
+    POSTGRES_USER: b4ae
+    POSTGRES_PASSWORD: test_password
+  script:
+    - cargo test --all-features --test '*'
+  artifacts:
+    reports:
+      junit: target/junit.xml
+
+test:doc:
+  stage: test
+  image: rust:${RUST_VERSION}
+  <<: *cache_definition
+  script:
+    - cargo doc --no-deps --all-features
+    - cargo test --doc --all-features
+  artifacts:
+    paths:
+      - target/doc/
+    expire_in: 1 week
+
+# Security stage
+security:audit:
+  stage: security
+  image: rust:${RUST_VERSION}
+  <<: *cache_definition
+  script:
+    - cargo install cargo-audit
+    - cargo audit --deny warnings
+  allow_failure: false
+
+security:clippy:
+  stage: security
+  image: rust:${RUST_VERSION}
+  <<: *cache_definition
+  script:
+    - rustup component add clippy
+    - cargo clippy --all-features -- -D warnings
+  allow_failure: false
+
+security:fmt:
+  stage: security
+  image: rust:${RUST_VERSION}
+  script:
+    - rustup component add rustfmt
+    - cargo fmt -- --check
+  allow_failure: false
+
+security:crypto-audit:
+  stage: security
+  image: rust:${RUST_VERSION}
+  <<: *cache_definition
+  script:
+    - cargo install cargo-geiger
+    - cargo geiger --all-features
+    - python3 scripts/crypto_audit.py
+  artifacts:
+    reports:
+      security: security-report.json
+  allow_failure: false
+
+security:dependency-scan:
+  stage: security
+  image: rust:${RUST_VERSION}
+  script:
+    - cargo install cargo-deny
+    - cargo deny check
+  allow_failure: false
+
+security:sast:
+  stage: security
+  image: returntocorp/semgrep
+  script:
+    - semgrep --config=auto --json --output=sast-report.json .
+  artifacts:
+    reports:
+      sast: sast-report.json
+  allow_failure: true
+
+# Benchmark stage
+benchmark:crypto:
+  stage: benchmark
+  image: rust:${RUST_VERSION}
+  <<: *cache_definition
+  script:
+    - cargo bench --bench crypto_bench -- --save-baseline main
+  artifacts:
+    paths:
+      - target/criterion/
+    expire_in: 1 month
+  only:
+    - main
+    - merge_requests
+
+benchmark:protocol:
+  stage: benchmark
+  image: rust:${RUST_VERSION}
+  <<: *cache_definition
+  script:
+    - cargo bench --bench protocol_bench -- --save-baseline main
+  artifacts:
+    paths:
+      - target/criterion/
+    expire_in: 1 month
+  only:
+    - main
+    - merge_requests
+
+benchmark:regression:
+  stage: benchmark
+  image: rust:${RUST_VERSION}
+  <<: *cache_definition
+  script:
+    - cargo bench --bench crypto_bench -- --baseline main
+    - python3 scripts/check_regression.py
+  allow_failure: false
+  only:
+    - merge_requests
+
+# Deploy stage
+deploy:docs:
+  stage: deploy
+  image: rust:${RUST_VERSION}
+  <<: *cache_definition
+  script:
+    - cargo doc --no-deps --all-features
+    - mkdir -p public
+    - cp -r target/doc/* public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+
+deploy:crates-io:
+  stage: deploy
+  image: rust:${RUST_VERSION}
+  <<: *cache_definition
+  script:
+    - cargo login $CRATES_IO_TOKEN
+    - cargo publish --dry-run
+    - cargo publish
+  only:
+    - tags
+  when: manual
+
+deploy:docker:
+  stage: deploy
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:latest
+  only:
+    - tags
+
+# Scheduled jobs
+nightly:full-test:
+  stage: test
+  image: rust:nightly
+  <<: *cache_definition
+  script:
+    - cargo +nightly test --all-features
+    - cargo +nightly bench --no-run
+  only:
+    - schedules
+  allow_failure: true
+
+nightly:fuzzing:
+  stage: security
+  image: rust:nightly
+  <<: *cache_definition
+  script:
+    - cargo install cargo-fuzz
+    - cargo +nightly fuzz run fuzz_target_1 -- -max_total_time=3600
+  only:
+    - schedules
+  allow_failure: true
+  timeout: 2h
