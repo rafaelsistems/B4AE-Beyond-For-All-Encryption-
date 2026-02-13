@@ -45,4 +45,11 @@ val decrypted = B4AE.decrypt(key, encrypted)
 `bindings/b4ae.h` - C API for b4ae_ffi
 
 ## WASM (Web)
-See `b4ae-wasm` and `wasm-demo/` - use wasm-pack to build for web.
+
+**Crate:** `b4ae-wasm`
+
+```bash
+wasm-pack build b4ae-wasm --target web --out-dir pkg
+```
+
+Demo: `wasm-demo/` — run `wasm-pack build b4ae-wasm --target web --out-dir wasm-demo/pkg`

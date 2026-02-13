@@ -216,12 +216,24 @@ cargo test --all-features
 cargo bench
 ```
 
+## Platform SDKs
+
+B4AE provides bindings for mobile and web:
+
+| Platform | Crate/Binding | API |
+|----------|---------------|-----|
+| **Web** | `b4ae-wasm` | generate_key, encrypt, decrypt |
+| **Android** | `b4ae-android` | B4AE.generateKey(), encrypt(), decrypt() |
+| **iOS** | `b4ae-ffi` + Swift | B4AE.generateKey(), encrypt(), decrypt() |
+
+See [docs/PLATFORM_SDK.md](docs/PLATFORM_SDK.md) for build and usage.
+
 ## Documentation
 
-- [Technical Architecture](B4AE_Technical_Architecture.md)
-- [Security Framework](B4AE_Security_Framework.md)
-- [Implementation Plan](B4AE_Implementation_Plan.md)
-- [API Documentation](https://docs.rs/b4ae)
+- [Platform SDK](docs/PLATFORM_SDK.md) — iOS, Android, WASM bindings
+- [ROADMAP](docs/ROADMAP.md) — development roadmap
+- [Formal Verification](docs/FORMAL_VERIFICATION.md) — TLA+, Coq, proptest
+- [Specifications](specs/) — protocol, API, performance
 
 ## Research
 
@@ -252,13 +264,13 @@ Comprehensive research documentation:
 - [x] Cryptographic Core Implementation
 - [x] Performance Benchmarking Framework
 
-### Phase 2: Core Development (Months 7-12) 🚧
+### Phase 2: Core Development (Months 7-12) ✅
 - [x] Cryptographic Core (Kyber, Dilithium, Hybrid)
 - [x] Protocol Implementation
 - [x] Network Layer (ELARA transport integration)
-- [ ] Platform SDKs
+- [x] Platform SDKs (Swift, Kotlin, WASM)
 
-### Phase 3: Integration & Testing (Months 13-18)
+### Phase 3: Integration & Testing (Months 13-18) 🚧
 - [ ] Security Testing & Audits
 - [ ] Performance Optimization
 - [ ] Integration Testing
@@ -353,7 +365,6 @@ If you use B4AE in your research, please cite:
 
 #### In Progress 🚧
 - Integration testing
-- Platform SDKs (iOS, Android, Web)
 
 #### ELARA Integration ✅
 - **Transport Layer**: ElaraTransport (UDP dengan chunking)
@@ -368,7 +379,7 @@ If you use B4AE in your research, please cite:
 
 **Status:** Ahead of schedule, under budget
 
-See [PHASE2_COMPLETION_REPORT.md](PHASE2_COMPLETION_REPORT.md) for detailed progress.
+See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed progress.
 
 ---
 
@@ -477,12 +488,10 @@ fn main() -> B4aeResult<()> {
 - [Performance Requirements](specs/B4AE_Performance_Requirements.md)
 - [Compliance Requirements](specs/B4AE_Compliance_Requirements.md)
 
-### Architecture
-- [Technical Architecture](B4AE_Technical_Architecture.md)
-- [Security Framework](B4AE_Security_Framework.md)
-- [Implementation Plan](B4AE_Implementation_Plan.md)
-- [B4AE vs E2EE Comparison](B4AE_vs_E2EE_Comparison.md)
+### Guides
+- [Platform SDK](docs/PLATFORM_SDK.md) — iOS, Android, WASM
 - [ELARA Integration](docs/ELARA_INTEGRATION.md)
+- [Formal Verification](docs/FORMAL_VERIFICATION.md)
 
 ### Research
 - [Quantum Cryptography Analysis](research/01_Quantum_Cryptography_Analysis.md)
@@ -491,10 +500,8 @@ fn main() -> B4aeResult<()> {
 - [Performance Benchmarking Framework](research/04_Performance_Benchmarking_Framework.md)
 - [Competitive Analysis](research/05_Competitive_Analysis.md)
 
-### Status Reports
-- [Phase 1 & 2 Completion Status](PHASE1_2_COMPLETION_STATUS.md)
-- [Phase 2 Completion Report](PHASE2_COMPLETION_REPORT.md)
-- [Implementation Audit](IMPLEMENTATION_AUDIT.md)
+### Status
+- [ROADMAP](docs/ROADMAP.md) — development roadmap
 
 ---
 

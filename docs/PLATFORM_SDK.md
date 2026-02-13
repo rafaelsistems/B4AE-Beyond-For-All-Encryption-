@@ -1,106 +1,113 @@
-# B4AE Platform SDK Implementation Guide
+# B4AE Platform SDK
 
-Panduan implementasi B4AE SDK untuk iOS, Android, dan Web.
+Bindings B4AE untuk iOS, Android, dan Web. Subset API AES-256-GCM (generateKey, encrypt, decrypt).
 
 ---
 
-## Status: Perencanaan
+## Status
 
-| Platform | Status | Prioritas |
-|----------|--------|-----------|
-| **Web (WASM)** | Planning | P1 |
-| **Android** | Planning | P2 |
-| **iOS** | Planning | P2 |
+| Platform | Status | Lokasi |
+|----------|--------|--------|
+| **Web (WASM)** | ✅ Implemented | `b4ae-wasm/`, `wasm-demo/` |
+| **Android** | ✅ Implemented | `b4ae-android/`, `bindings/kotlin/` |
+| **iOS** | ✅ Implemented | `b4ae-ffi/`, `bindings/swift/` |
+| **C FFI** | ✅ Implemented | `b4ae-ffi/`, `bindings/b4ae.h` |
 
 ---
 
 ## 1. WebAssembly (Web)
 
-### Kendala
-- `ring` crate: dukungan wasm terbatas (experimental)
-- `pqcrypto-*`: mungkin perlu wasm-compatible fork
-- `std::net`, tokio: tidak available di wasm
+**Crate:** `b4ae-wasm`
 
-### Pendekatan
-1. **Option A**: Crate terpisah `b4ae-wasm` dengan subset API
-   - Gunakan `getrandom` dengan `wasm-bindgen` untuk RNG
-   - Ganti ring dengan pure-Rust crypto (aes-gcm, sha3 sudah wasm-compat)
-   - pqcrypto: cek wasm support
-
-2. **Option B**: Conditional compilation di crate utama
-   ```toml
-   [target.'cfg(target_arch = "wasm32")'.dependencies]
-   getrandom = { version = "0.2", features = ["js"] }
-   wasm-bindgen = "0.2"
-   ```
-
-### Langkah Implementasi
-- [ ] `rustup target add wasm32-unknown-unknown`
-- [ ] Feature `wasm` di Cargo.toml
-- [ ] `#[cfg(target_arch = "wasm32")]` untuk platform-specific code
-- [ ] wasm-bindgen exports untuk B4aeClient (handshake, encrypt, decrypt)
-- [ ] wasm-pack build script
-- [ ] Contoh HTML/JS consuming the wasm module
-
-### Struktur
-```
-b4ae/
-  src/
-    lib.rs
-    wasm/           # #[cfg(target_arch = "wasm32")]
-      mod.rs
-      client.rs
-```
-
----
-
-## 2. Android
-
-### Stack
-- **JNI** via `jni` crate
-- **Kotlin/Java** binding layer
-- **AAR** output untuk integrasi ke project Android
-
-### Langkah
-- [ ] crate `b4ae-ffi` atau mod `ffi` di b4ae
-- [ ] `#[no_mangle]` extern functions untuk JNI
-- [ ] Build script: `cargo ndk` atau manual NDK
-- [ ] Kotlin wrapper class `B4aeClient`
-- [ ] Example app (minimal)
-
-### Dependencies
-```toml
-[target.'cfg(target_os = "android")'.dependencies]
-jni = "0.21"
-```
-
----
-
-## 3. iOS
-
-### Stack
-- **Objective-C** atau **Swift** via `cbindgen`
-- **XCFramework** output
-- **UniFFI** (alternatif) untuk Swift-first API
-
-### Langkah
-- [ ] `cbindgen` untuk generate C header
-- [ ] Build script: `cargo lipo` untuk universal (arm64 + x86_64)
-- [ ] XCFramework packaging
-- [ ] Swift Package Manager atau CocoaPods
-- [ ] Example app
-
-### Targets
+### Build
 ```bash
-cargo build --target aarch64-apple-ios --release
-cargo build --target x86_64-apple-ios --release  # simulator
+rustup target add wasm32-unknown-unknown
+cargo install wasm-pack
+wasm-pack build b4ae-wasm --target web --out-dir pkg
+```
+
+### Demo
+```bash
+# Build wasm-demo
+wasm-pack build b4ae-wasm --target web --out-dir wasm-demo/pkg
+# Serve wasm-demo/ via HTTP (e.g. python -m http.server 8080)
+```
+
+### JavaScript API
+```javascript
+import { generate_key, encrypt, decrypt } from './pkg/b4ae_wasm.js';
+
+const key = new Uint8Array(generate_key());
+const enc = encrypt(key, new TextEncoder().encode('Hello'));
+const dec = decrypt(key, enc);
+```
+
+---
+
+## 2. Android (Kotlin)
+
+**Crate:** `b4ae-android` (JNI)
+
+### Build
+```bash
+cd b4ae-android
+cargo build --release --target aarch64-linux-android   # ARM64
+cargo build --release --target i686-linux-android      # x86
+cargo build --release --target x86_64-linux-android   # x86_64
+```
+
+Copy `libb4ae_android.so` ke `android/app/src/main/jniLibs/<abi>/`
+
+### Kotlin Usage
+```kotlin
+val key = B4AE.generateKey()
+val encrypted = B4AE.encrypt(key, "Hello".toByteArray())
+val decrypted = B4AE.decrypt(key, encrypted)
+```
+
+---
+
+## 3. iOS (Swift)
+
+**Crate:** `b4ae-ffi` (C ABI static lib)
+
+### Build
+```bash
+cd b4ae-ffi
+cargo build --release --target aarch64-apple-ios
+cargo build --release --target x86_64-apple-ios   # simulator
+# Use lipo for universal binary
+```
+
+### Swift Usage
+```swift
+let key = B4AE.generateKey()
+let encrypted = try B4AE.encrypt(key: key, plaintext: Data("Hello".utf8))
+let decrypted = try B4AE.decrypt(key: key, encrypted: encrypted)
+```
+
+Lihat `bindings/swift/` untuk Swift Package structure.
+
+---
+
+## 4. C FFI
+
+**Header:** `bindings/b4ae.h`
+
+```c
+uint8_t* b4ae_generate_key(size_t* out_len);
+uint8_t* b4ae_encrypt(const uint8_t* key, size_t key_len,
+    const uint8_t* plaintext, size_t plaintext_len, size_t* out_len);
+uint8_t* b4ae_decrypt(const uint8_t* key, size_t key_len,
+    const uint8_t* encrypted, size_t encrypted_len, size_t* out_len);
+void b4ae_free(uint8_t* ptr);
 ```
 
 ---
 
 ## Referensi
 
+- [bindings/README.md](../bindings/README.md)
 - [wasm-bindgen](https://rustwasm.github.io/wasm-bindgen/)
-- [rust-android](https://github.com/rust-android)
+- [jni-rs](https://github.com/jni-rs/jni-rs)
 - [cbindgen](https://github.com/eqrion/cbindgen)
-- [UniFFI](https://mozilla.github.io/uniffi-rs/)

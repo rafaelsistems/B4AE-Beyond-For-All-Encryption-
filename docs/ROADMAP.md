@@ -76,15 +76,15 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 
 | Periode | Fokus |
 |---------|-------|
-| **Sekarang** | Tutup PR Dependabot rand, bersihkan warnings, perbaiki tests |
-| **1–3 bln** | Security audit, integration testing, crates.io prep |
-| **6–12 bln** | Platform SDK (iOS, Android, Web) |
-| **12–24 bln** | Production-ready, HSM, formal verification |
+| **Sekarang** | Security audit, integration testing, crates.io prep |
+| **1–3 bln** | Contoh aplikasi (chat, file transfer) |
+| **6–12 bln** | Production-ready, enterprise deployment |
+| **12–24 bln** | Ekosistem (plugin, gateway) |
 
 ---
 
 ## Referensi
 
-- [Phase 2 Completion Report](../PHASE2_COMPLETION_REPORT.md)
-- [Implementation Audit](../IMPLEMENTATION_AUDIT.md)
+- [Platform SDK](PLATFORM_SDK.md)
+- [Formal Verification](FORMAL_VERIFICATION.md)
 - [CHANGELOG](../CHANGELOG.md)

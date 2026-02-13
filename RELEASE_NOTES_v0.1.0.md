@@ -4,7 +4,13 @@
 
 B4AE (Beyond For All Encryption) is a quantum-resistant secure communication protocol that provides comprehensive protection against current and future threats, including quantum computing attacks.
 
-> **Update (2026-02):** B4AE now includes optional **ELARA Protocol** integration for UDP transport. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **Update (2026-02):** B4AE now includes:
+> - Optional **ELARA Protocol** integration for UDP transport
+> - **Platform SDK** bindings: Swift (iOS), Kotlin (Android), WASM (Web)
+> - **Formal verification**: TLA+ spec, Coq safety theorem, cargo-fuzz
+> - **HSM**: PKCS#11 integration (feature `hsm-pkcs11`)
+>
+> See [CHANGELOG.md](CHANGELOG.md) and [docs/PLATFORM_SDK.md](docs/PLATFORM_SDK.md) for details.
 
 ## Features
 

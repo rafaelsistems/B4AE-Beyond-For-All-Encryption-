@@ -11,7 +11,7 @@ Rencana pengujian integrasi yang lebih lengkap untuk B4AE Protocol.
 | Security / Penetration | Replay, MITM, forgery | ✅ |
 | Performance | Handshake, AES-GCM, throughput | ✅ |
 | Fuzzing | Binary, handshake, malformed | ✅ |
-| ELARA end-to-end | Demo only | 🚧 |
+| ELARA end-to-end | tests/elara_integration_test.rs | ✅ |
 | Multi-node / Distributed | — | ❌ |
 | Chaos / Failure injection | — | ❌ |
 

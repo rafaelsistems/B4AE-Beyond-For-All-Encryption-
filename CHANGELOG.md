@@ -9,13 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Platform SDK** (Swift, Kotlin, WASM)
+  - `b4ae-ffi` — C API (AES-256-GCM: generate_key, encrypt, decrypt)
+  - `b4ae-android` — JNI crate untuk Kotlin/Android
+  - `b4ae-wasm` — WebAssembly bindings untuk browser
+  - `bindings/swift` — Swift package untuk iOS/macOS
+  - `bindings/kotlin` — Kotlin wrapper
+  - `wasm-demo` — HTML demo untuk WASM
+
+- **HSM PKCS#11**
+  - `src/hsm/pkcs11.rs` — Pkcs11Hsm (EC keypair, sign, verify via cryptoki)
+  - Feature `hsm-pkcs11`
+
+- **Formal Verification**
+  - `specs/B4AE_Handshake.tla` — TLA+ spec + TLC model check
+  - `specs/coq/B4AE_Handshake.v` — Coq safety theorem
+  - cargo-fuzz targets (fuzz_handshake, fuzz_message)
+
 - **Platform SDK & Production-Ready**
   - `docs/PLATFORM_SDK.md` — panduan iOS, Android, WASM
   - `docs/FORMAL_VERIFICATION.md` — proptest + formal verification plan
   - `src/audit.rs` — audit logging (AuditEvent, AuditSink) untuk compliance
-  - `src/hsm.rs` — HSM trait `HsmBackend` + `NoOpHsm` (feature `hsm`)
+  - `src/hsm/mod.rs` — HSM trait `HsmBackend` + `NoOpHsm` (feature `hsm`)
   - `tests/proptest_invariants.rs` — AES roundtrip, handshake completeness
-  - CI: job Proptest Invariants
+  - CI: proptest, cargo-fuzz, TLA+, Coq, wasm, ffi, android jobs
 
 - **Dokumentasi roadmap dan audit**
   - `docs/SECURITY_AUDIT_CHECKLIST.md` — checklist security audit
