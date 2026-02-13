@@ -186,4 +186,4 @@ jobs:
 
     - name: Build Coq spec
       run: |
-        docker run --rm -v $PWD/specs/coq:/work -w /work coqorg/coq:latest coqc B4AE_Handshake.v
+        docker run --rm -v $PWD/specs/coq:/work:ro -w /tmp coqorg/coq:latest sh -c "cp /work/B4AE_Handshake.v /tmp/ && coqc B4AE_Handshake.v"
