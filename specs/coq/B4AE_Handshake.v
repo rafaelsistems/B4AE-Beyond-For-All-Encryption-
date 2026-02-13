@@ -95,7 +95,6 @@ Proof.
   destruct s as [si sr]; destruct s' as [si' sr'].
   unfold both_completed in *; simpl in *.
   intros [Hc1 Hc2].
-  subst si' sr'.
   inversion Ht; subst; simpl in *.
   - (* InitiatorSendsInit *) discriminate Hc1.
   - (* ResponderSendsResponse *) discriminate Hc2.

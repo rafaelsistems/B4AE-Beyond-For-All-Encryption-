@@ -139,7 +139,7 @@ jobs:
     - name: Run TLC
       run: |
         cd specs
-        java -XX:+UseParallelGC -jar ../tla/tla2tools.jar -config B4AE_Handshake.cfg B4AE_Handshake.tla
+        java -XX:+UseParallelGC -jar ../tla/tla2tools.jar -deadlock -config B4AE_Handshake.cfg B4AE_Handshake.tla
 
   wasm:
     name: WASM Build
