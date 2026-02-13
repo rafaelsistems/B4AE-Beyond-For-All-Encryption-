@@ -61,7 +61,7 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 - [x] **Proptest invariants** — AES roundtrip, handshake completeness (lihat [FORMAL_VERIFICATION.md](FORMAL_VERIFICATION.md))
 - [x] **Fuzzing CI** — job Proptest Invariants di GitHub Actions
 - [x] **HSM trait** — `HsmBackend` + `NoOpHsm` + `Pkcs11Hsm` (feature `hsm-pkcs11`)
-- [x] Formal verification (TLA+ spec + TLC CI)
+- [x] Formal verification (TLA+ spec + TLC CI, Coq safety theorem)
 - [x] cargo-fuzz / libfuzzer (fuzz targets + CI)
 - [ ] Performance tuning (AES-NI, SIMD)
 

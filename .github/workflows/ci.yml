@@ -177,3 +177,13 @@ jobs:
 
     - name: Build b4ae-android
       run: cargo build --release --manifest-path b4ae-android/Cargo.toml
+
+  coq:
+    name: Coq Formal Verification
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Build Coq spec
+      run: |
+        docker run --rm -v $PWD/specs/coq:/work -w /work coqorg/coq:latest coqc B4AE_Handshake.v

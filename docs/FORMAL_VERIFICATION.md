@@ -8,10 +8,11 @@ Rencana verifikasi formal dan property-based testing untuk critical paths.
 
 | Area | Status | Tool |
 |------|--------|------|
-| Property-based testing (proptest) | Partial | proptest |
-| Handshake invariants | In progress | proptest |
-| Cryptographic invariants | Planned | proptest |
-| Formal specification | Future | TLA+ / Coq |
+| Property-based testing (proptest) | Done | proptest |
+| Handshake invariants | Done | proptest |
+| Cryptographic invariants | Partial | proptest |
+| TLA+ model checking | Done | TLC |
+| **Coq formal spec** | **Done** | **Coq 8.20** |
 
 ---
 
@@ -32,16 +33,16 @@ Rencana verifikasi formal dan property-based testing untuk critical paths.
 
 ---
 
-## 2. Formal Specification (Future)
+## 2. Formal Specification
 
-### TLA+
-- Handshake state machine
-- Session establishment guarantees
-- Replay prevention
+### TLA+ (specs/B4AE_Handshake.tla)
+- Handshake state machine model
+- TLC model checking in CI
 
-### Coq / F*
-- Cryptographic primitives correctness
-- Protocol security proofs
+### Coq (specs/coq/B4AE_Handshake.v)
+- Formal model of handshake state machine
+- **safety_theorem**: Reachable states satisfy SafetyInvariant
+- Both Completed only after valid handshake sequence
 
 ---
 
