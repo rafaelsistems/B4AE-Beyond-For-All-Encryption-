@@ -100,7 +100,7 @@ pub fn decrypt(
 
     let plaintext = cipher
         .decrypt(nonce, payload)
-        .map_err(|e| CryptoError::DecryptionFailed("Authentication failed".to_string()))?;
+        .map_err(|_| CryptoError::DecryptionFailed("Authentication failed".to_string()))?;
 
     Ok(plaintext)
 }

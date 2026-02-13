@@ -4,6 +4,7 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 #![warn(rust_2018_idioms)]
+#![allow(unexpected_cfgs)] // liboqs feature untuk implementasi future
 
 pub mod crypto;
 pub mod protocol;

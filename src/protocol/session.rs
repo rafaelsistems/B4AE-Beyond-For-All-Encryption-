@@ -5,12 +5,11 @@ use crate::crypto::{CryptoError, CryptoResult};
 use crate::crypto::pfs_plus::{PfsSession, PfsManager};
 use crate::crypto::hybrid::HybridPublicKey;
 use crate::crypto::hkdf;
-use crate::crypto::random;
 use crate::protocol::message::{Message, MessageCrypto, EncryptedMessage};
 use crate::protocol::handshake::{HandshakeResult, SessionKeys};
-use crate::error::{B4aeError, B4aeResult};
+use crate::error::B4aeResult;
 use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH, Duration};
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::sync::{Arc, Mutex};
 use tracing::{info, warn};
 
@@ -405,7 +404,8 @@ impl Session {
 pub struct SessionManager {
     /// Active sessions
     sessions: HashMap<[u8; 32], Session>,
-    /// PFS+ manager
+    /// PFS+ manager (reserved for future key rotation)
+    #[allow(dead_code)]
     pfs_manager: PfsManager,
     /// Session timeout (seconds)
     session_timeout: u64,
@@ -503,7 +503,6 @@ pub fn create_shared_manager() -> SharedSessionManager {
 mod tests {
     use super::*;
     use crate::protocol::handshake::HandshakeResult;
-    use crate::protocol::message::Message;
 
     fn create_test_handshake_result() -> HandshakeResult {
         let session_keys = SessionKeys {

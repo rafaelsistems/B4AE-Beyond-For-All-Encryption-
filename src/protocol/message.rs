@@ -4,7 +4,6 @@
 use crate::crypto::{CryptoError, CryptoResult};
 use crate::crypto::aes_gcm::{self, AesKey};
 use crate::crypto::pfs_plus::PfsSession;
-use crate::error::{B4aeError, B4aeResult};
 use crate::protocol::MessageType;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};

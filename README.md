@@ -144,24 +144,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Untuk komunikasi melalui jaringan UDP dengan [ELARA Protocol](https://github.com/rafaelsistems/ELARA-Protocol):
 
-```rust
+```rust,no_run
+# #[cfg(feature = "elara")]
 use b4ae::elara_node::B4aeElaraNode;
+# #[cfg(feature = "elara")]
 use b4ae::protocol::SecurityProfile;
 
+# #[cfg(feature = "elara")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut node = B4aeElaraNode::new("127.0.0.1:0", SecurityProfile::Standard).await?;
-    
     // Sebagai initiator: connect ke peer
     node.connect("127.0.0.1:8080").await?;
     node.send_message("127.0.0.1:8080", b"Hello via B4AE+ELARA!").await?;
-    
     // Sebagai responder: accept koneksi
-    let peer = node.accept().await?;
-    let (from, plaintext) = node.recv_message().await?;
-    
+    let _peer = node.accept().await?;
+    let (_from, _plaintext) = node.recv_message().await?;
     Ok(())
 }
+# #[cfg(not(feature = "elara"))]
+# fn main() {}
 ```
 
 Jalankan demo: `cargo run --example b4ae_elara_demo --features elara`

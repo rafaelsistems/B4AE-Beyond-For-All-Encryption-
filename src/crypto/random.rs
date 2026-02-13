@@ -1,9 +1,9 @@
 // B4AE Random Number Generation
 // Cryptographically secure random number generation
 
-use crate::crypto::{CryptoError, CryptoResult};
-use rand::{RngCore, CryptoRng};
+use crate::crypto::CryptoResult;
 use rand::rngs::OsRng;
+use rand::RngCore;
 
 /// Generate cryptographically secure random bytes
 pub fn random_bytes(length: usize) -> Vec<u8> {
@@ -102,7 +102,7 @@ impl RngCore for SecureRng {
     }
 }
 
-impl CryptoRng for SecureRng {}
+impl rand::CryptoRng for SecureRng {}
 
 /// Generate random delay for timing obfuscation (in milliseconds)
 /// Returns delay between min_ms and max_ms
@@ -142,7 +142,7 @@ mod tests {
     #[test]
     fn test_fill_random() {
         let mut buffer = [0u8; 32];
-        fill_random(&mut buffer);
+        fill_random(&mut buffer).unwrap();
         
         // Check that buffer is not all zeros
         assert!(buffer.iter().any(|&b| b != 0));

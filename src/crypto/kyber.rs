@@ -1,7 +1,7 @@
 // B4AE Kyber-1024 Implementation
 // Post-Quantum Key Encapsulation Mechanism
 
-use crate::crypto::{CryptoError, CryptoResult, SecurityLevel};
+use crate::crypto::{CryptoError, CryptoResult};
 use std::fmt;
 
 #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]

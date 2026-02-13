@@ -62,7 +62,7 @@ fn test_forward_secrecy() {
     ).unwrap();
     
     // Generate more than 100 keys to trigger cleanup (cache keeps last 100)
-    for i in 0..150 {
+    for _ in 0..150 {
         let _ = session.next_send_key().unwrap();
     }
     
@@ -216,7 +216,7 @@ fn test_hybrid_cryptography_defense_in_depth() {
 #[test]
 fn test_hybrid_key_exchange() {
     // Test complete hybrid key exchange
-    let alice = hybrid::keypair().unwrap();
+    let _alice = hybrid::keypair().unwrap();
     let bob = hybrid::keypair().unwrap();
     
     // Alice encapsulates to Bob

@@ -324,7 +324,7 @@ impl ZkVerifier {
         hasher.update(commitment);
         hasher.update(&proof.commitment);
         hasher.update(&challenge.nonce);
-        let verification_hash = hasher.finalize();
+        let _verification_hash = hasher.finalize();
         
         // For this simplified implementation, we accept the proof if signature is valid
         // and the proof structure is correct
@@ -332,6 +332,7 @@ impl ZkVerifier {
     }
 
     /// Compute expected response for verification
+    #[allow(dead_code)]
     fn compute_expected_response(
         &self,
         identity_commitment: &[u8; 32],
@@ -473,7 +474,7 @@ mod tests {
         let mut verifier = ZkVerifier::new();
         verifier.challenge_timeout = 1; // 1 second timeout
 
-        let challenge = verifier.generate_challenge();
+        let _challenge = verifier.generate_challenge();
         assert_eq!(verifier.active_challenge_count(), 1);
 
         // Wait for expiration

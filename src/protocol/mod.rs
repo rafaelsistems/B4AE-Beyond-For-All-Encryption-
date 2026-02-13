@@ -4,7 +4,6 @@ pub mod handshake;
 pub mod message;
 pub mod session;
 
-use crate::crypto::hybrid::{HybridKeyPair, HybridPublicKey};
 use crate::error::{B4aeError, B4aeResult};
 use serde::{Deserialize, Serialize};
 

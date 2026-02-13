@@ -1,7 +1,6 @@
 // B4AE Integration Tests
 // End-to-end testing of complete protocol flow
 
-use b4ae::crypto::hybrid;
 use b4ae::protocol::handshake::{HandshakeConfig, HandshakeInitiator, HandshakeResponder};
 use b4ae::protocol::message::{Message, MessagePriority};
 use b4ae::protocol::session::Session;

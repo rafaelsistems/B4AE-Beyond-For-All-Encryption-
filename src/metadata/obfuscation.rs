@@ -3,7 +3,9 @@
 
 use crate::crypto::random::{fill_random, random_range};
 use crate::error::{B4aeError, B4aeResult};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
+#[cfg(test)]
+use std::time::Duration;
 
 /// Dummy message types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

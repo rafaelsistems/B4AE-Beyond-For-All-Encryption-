@@ -472,7 +472,7 @@ mod tests {
     #[test]
     fn test_hybrid_key_exchange() {
         // Generate two keypairs
-        let alice = keypair().expect("Failed to generate Alice's keypair");
+        let _alice = keypair().expect("Failed to generate Alice's keypair");
         let bob = keypair().expect("Failed to generate Bob's keypair");
         
         // Alice encapsulates to Bob

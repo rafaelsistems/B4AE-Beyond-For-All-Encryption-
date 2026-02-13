@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Dokumentasi roadmap dan audit**
+  - `docs/SECURITY_AUDIT_CHECKLIST.md` — checklist security audit
+  - `docs/INTEGRATION_TESTING_PLAN.md` — rencana integrasi testing
+  - `docs/CRATES_IO_PUBLISH_PREP.md` — persiapan publish ke crates.io
+  - `docs/ROADMAP.md` — roadmap jangka panjang (SDK, production-ready)
+
 - **ELARA Transport Integration**
   - `elara-transport` sebagai optional dependency untuk UDP transport
   - `ElaraTransport`: adapter UDP dengan chunking untuk payload > 1400 bytes
@@ -21,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Cargo.toml`: tambah feature `elara` dan dependency `elara-transport`
 - Roadmap: Network layer implementation marked complete via ELARA
+- **Dependabot**: ignore major version update untuk `rand` (`.github/dependabot.yml`)
+- **Warnings**: perbaikan unused imports (Duration, hybrid), dead_code (zkauth, session), unused variables di tests
+- **Tests**: relax `test_aes_gcm_performance` threshold (1000 µs untuk CI/Windows)
+- **rand**: pin ke `=0.8.5` untuk hindari rand 0.10 (breaking API); regenerate Cargo.lock
+- **Doctest**: blok ELARA di README pakai `no_run` untuk hindari kegagalan networking di CI
 
 ## [0.1.0] - 2026-02-05
 

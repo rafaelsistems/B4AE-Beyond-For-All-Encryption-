@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    ignore:
+      # rand 0.10 membutuhkan Edition 2024, MSRV 1.85, dan breaking API changes
+      - dependency-name: "rand"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"

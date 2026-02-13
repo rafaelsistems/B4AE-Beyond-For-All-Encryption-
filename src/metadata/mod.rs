@@ -4,7 +4,7 @@ pub mod padding;
 pub mod timing;
 pub mod obfuscation;
 
-use crate::error::{B4aeError, B4aeResult};
+use crate::error::B4aeResult;
 use crate::protocol::ProtocolConfig;
 
 /// Metadata protection level
