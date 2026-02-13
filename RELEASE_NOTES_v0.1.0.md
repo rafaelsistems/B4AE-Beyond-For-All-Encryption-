@@ -4,6 +4,8 @@
 
 B4AE (Beyond For All Encryption) is a quantum-resistant secure communication protocol that provides comprehensive protection against current and future threats, including quantum computing attacks.
 
+> **Update (2026-02):** B4AE now includes optional **ELARA Protocol** integration for UDP transport. See [CHANGELOG.md](CHANGELOG.md) for details.
+
 ## Features
 
 ### Cryptographic Implementation
@@ -29,8 +31,15 @@ B4AE (Beyond For All Encryption) is a quantum-resistant secure communication pro
 
 ### High-Level API
 - `B4aeClient` for simplified usage
+- `B4aeElaraNode` for network communication via ELARA (feature `elara`)
 - `prelude` module for convenient imports
 - Three security profiles: Standard, High, Maximum
+
+### ELARA Transport (Optional)
+- `ElaraTransport`: UDP transport dengan chunking
+- `B4aeElaraNode`: Full B4AE over ELARA
+- Build: `cargo build --features elara`
+- Demo: `cargo run --example b4ae_elara_demo --features elara`
 
 ## Test Results
 

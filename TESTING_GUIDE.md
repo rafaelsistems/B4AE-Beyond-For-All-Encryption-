@@ -34,7 +34,14 @@ B4AE memiliki 5 kategori test suite:
 4. **Fuzzing Tests** (`tests/fuzzing_test.rs`) - 11 tests
 5. **Penetration Tests** (`tests/penetration_test.rs`) - 8 tests
 
-**Total: 45 tests**
+**Total: 45+ tests**
+
+### ELARA Example (Feature `elara`)
+
+```powershell
+# Demo B4AE + ELARA (Alice-Bob via UDP)
+cargo run --example b4ae_elara_demo --features elara
+```
 
 ---
 
@@ -43,7 +50,13 @@ B4AE memiliki 5 kategori test suite:
 ### 1. Build Project
 
 ```powershell
-# Build dengan semua features
+# Clone dengan submodule (jika belum)
+git submodule update --init --recursive
+
+# Build default
+cargo build
+
+# Build dengan semua features (termasuk ELARA)
 cargo build --all-features
 
 # Build release version

@@ -14,6 +14,7 @@ B4AE is a next-generation secure communication protocol that goes **beyond** tra
 - 🔐 **Quantum-Resistant**: Uses NIST-standardized post-quantum cryptography (Kyber-1024, Dilithium5)
 - 🛡️ **Metadata Protection**: Comprehensive protection against traffic analysis and surveillance
 - 🔄 **Hybrid Cryptography**: Combines classical (ECDH/ECDSA) with post-quantum algorithms
+- 📡 **ELARA Transport**: Optional integration with [ELARA Protocol](https://github.com/rafaelsistems/ELARA-Protocol) for UDP transport, NAT traversal, and resilient delivery
 - ⚡ **High Performance**: Optimized for real-world deployment with hardware acceleration
 - 🌐 **Cross-Platform**: Works on desktop, mobile, IoT, and web platforms
 - 🏢 **Enterprise-Ready**: Built-in compliance features and audit capabilities
@@ -67,6 +68,7 @@ B4AE addresses all these limitations:
 │          - Automatic Sync                                   │
 ├─────────────────────────────────────────────────────────────┤
 │ Layer 3: Network-Level Protection                          │
+│          - ELARA Transport (UDP, NAT traversal)             │
 │          - Onion Routing (Optional)                         │
 │          - IP Anonymization                                 │
 ├─────────────────────────────────────────────────────────────┤
@@ -138,6 +140,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+### B4AE + ELARA (Network Transport)
+
+Untuk komunikasi melalui jaringan UDP dengan [ELARA Protocol](https://github.com/rafaelsistems/ELARA-Protocol):
+
+```rust
+use b4ae::elara_node::B4aeElaraNode;
+use b4ae::protocol::SecurityProfile;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut node = B4aeElaraNode::new("127.0.0.1:0", SecurityProfile::Standard).await?;
+    
+    // Sebagai initiator: connect ke peer
+    node.connect("127.0.0.1:8080").await?;
+    node.send_message("127.0.0.1:8080", b"Hello via B4AE+ELARA!").await?;
+    
+    // Sebagai responder: accept koneksi
+    let peer = node.accept().await?;
+    let (from, plaintext) = node.recv_message().await?;
+    
+    Ok(())
+}
+```
+
+Jalankan demo: `cargo run --example b4ae_elara_demo --features elara`
+
 ### Security Profiles
 
 B4AE offers three security profiles:
@@ -165,17 +193,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 - Rust 1.70 or later
 - OpenSSL development libraries
-- liboqs (for post-quantum cryptography)
 
 ### Build
 
 ```bash
-# Clone repository
-git clone https://github.com/b4ae/b4ae.git
-cd b4ae
+# Clone repository (--recursive untuk ELARA submodule)
+git clone --recursive https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-.git
+cd B4AE-Beyond-For-All-Encryption-
 
-# Build with all features
-cargo build --release --all-features
+# Build default (tanpa ELARA)
+cargo build --release
+
+# Build dengan ELARA transport
+cargo build --release --features elara
 
 # Run tests
 cargo test --all-features
@@ -222,7 +252,8 @@ Comprehensive research documentation:
 
 ### Phase 2: Core Development (Months 7-12) 🚧
 - [x] Cryptographic Core (Kyber, Dilithium, Hybrid)
-- [ ] Protocol Implementation
+- [x] Protocol Implementation
+- [x] Network Layer (ELARA transport integration)
 - [ ] Platform SDKs
 
 ### Phase 3: Integration & Testing (Months 13-18)
@@ -277,7 +308,7 @@ If you use B4AE in your research, please cite:
   title = {B4AE: Beyond For All Encryption},
   author = {B4AE Team},
   year = {2026},
-  url = {https://github.com/b4ae/b4ae}
+  url = {https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-}
 }
 ```
 
@@ -285,6 +316,7 @@ If you use B4AE in your research, please cite:
 
 - NIST for post-quantum cryptography standardization
 - Open Quantum Safe project for liboqs
+- [ELARA Protocol](https://github.com/rafaelsistems/ELARA-Protocol) for transport substrate integration
 - Signal Foundation for pioneering E2EE
 - The Rust community for excellent cryptographic libraries
 
@@ -318,9 +350,13 @@ If you use B4AE in your research, please cite:
   - Metadata protection (100%) - Padding, Timing, Obfuscation
 
 #### In Progress 🚧
-- Network layer implementation
 - Integration testing
 - Platform SDKs (iOS, Android, Web)
+
+#### ELARA Integration ✅
+- **Transport Layer**: ElaraTransport (UDP dengan chunking)
+- **B4aeElaraNode**: Full handshake & messaging via ELARA
+- **Example**: `b4ae_elara_demo`
 
 #### Performance Metrics ⚡
 - Handshake: <150ms (target: <200ms) ✅
@@ -339,15 +375,21 @@ See [PHASE2_COMPLETION_REPORT.md](PHASE2_COMPLETION_REPORT.md) for detailed prog
 ### Installation
 
 ```bash
-# Clone repository
-git clone https://github.com/b4ae/b4ae.git
-cd b4ae
+# Clone repository (gunakan --recursive untuk ELARA)
+git clone --recursive https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-.git
+cd B4AE-Beyond-For-All-Encryption-
 
 # Build
 cargo build --release
 
+# Build dengan ELARA
+cargo build --release --features elara
+
 # Run tests
 cargo test
+
+# Run ELARA demo
+cargo run --example b4ae_elara_demo --features elara
 
 # Run benchmarks
 cargo bench
@@ -418,6 +460,8 @@ fn main() -> B4aeResult<()> {
 - **`src/crypto/`** - Cryptographic primitives (Kyber, Dilithium, Hybrid, PFS+, ZKAuth)
 - **`src/protocol/`** - Protocol implementation (Handshake, Message, Session)
 - **`src/metadata/`** - Metadata protection (Padding, Timing, Obfuscation)
+- **`src/transport/`** - Transport layer (ElaraTransport untuk UDP, feature `elara`)
+- **`src/elara_node.rs`** - B4aeElaraNode: B4AE + ELARA integration (feature `elara`)
 - **`specs/`** - Technical specifications
 - **`research/`** - Research documents
 
@@ -436,6 +480,7 @@ fn main() -> B4aeResult<()> {
 - [Security Framework](B4AE_Security_Framework.md)
 - [Implementation Plan](B4AE_Implementation_Plan.md)
 - [B4AE vs E2EE Comparison](B4AE_vs_E2EE_Comparison.md)
+- [ELARA Integration](docs/ELARA_INTEGRATION.md)
 
 ### Research
 - [Quantum Cryptography Analysis](research/01_Quantum_Cryptography_Analysis.md)
@@ -526,7 +571,7 @@ Dual-licensed under MIT or Apache 2.0.
 - **Website:** https://b4ae.org
 - **Email:** info@b4ae.org
 - **Security:** security@b4ae.org
-- **GitHub:** https://github.com/b4ae/b4ae
+- **GitHub:** https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-
 
 ---
 

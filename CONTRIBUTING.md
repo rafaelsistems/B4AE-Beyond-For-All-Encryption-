@@ -40,15 +40,21 @@ Be respectful, inclusive, and professional in all interactions.
 ### Development Setup
 
 ```bash
-# Clone your fork
-git clone https://github.com/YOUR_USERNAME/B4AE-Beyond-For-All-Encryption-.git
+# Clone your fork (--recursive untuk ELARA submodule)
+git clone --recursive https://github.com/YOUR_USERNAME/B4AE-Beyond-For-All-Encryption-.git
 cd B4AE-Beyond-For-All-Encryption-
+
+# Jika sudah clone tanpa --recursive, update submodule:
+git submodule update --init --recursive
 
 # Add upstream remote
 git remote add upstream https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-.git
 
 # Install dependencies
 cargo build
+
+# Build dengan ELARA
+cargo build --features elara
 
 # Run tests
 cargo test
