@@ -51,7 +51,7 @@ jobs:
       run: cargo clippy --all-features -- -D warnings
       continue-on-error: true
 
-  fuzz:
+  proptest:
     name: Proptest Invariants
     runs-on: ubuntu-latest
     steps:
@@ -86,7 +86,7 @@ jobs:
       run: cargo audit
       continue-on-error: true
 
-  fuzz:
+  cargo-fuzz:
     name: Cargo Fuzz (libFuzzer)
     runs-on: ubuntu-latest
     steps:
