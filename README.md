@@ -233,6 +233,9 @@ See [docs/PLATFORM_SDK.md](docs/PLATFORM_SDK.md) for build and usage.
 - [Platform SDK](docs/PLATFORM_SDK.md) — iOS, Android, WASM bindings
 - [ROADMAP](docs/ROADMAP.md) — development roadmap
 - [Formal Verification](docs/FORMAL_VERIFICATION.md) — TLA+, Coq, proptest
+- [Plugin Architecture](docs/PLUGIN_ARCHITECTURE.md) — Signal, Matrix integration
+- [Gateway/Proxy](docs/GATEWAY_PROXY.md) — B4AE ↔ legacy protocol
+- [Enterprise Deployment](docs/ENTERPRISE_DEPLOYMENT_GUIDE.md) — enterprise guide
 - [Specifications](specs/) — protocol, API, performance
 
 ## Research
@@ -401,6 +404,14 @@ cargo test
 
 # Run ELARA demo
 cargo run --example b4ae_elara_demo --features elara
+
+# Run chat demo (2 terminals: server + client)
+cargo run --example b4ae_chat_demo --features elara -- server 9000
+cargo run --example b4ae_chat_demo --features elara -- client 127.0.0.1:9000
+
+# Run file transfer (receiver first, then sender)
+cargo run --example b4ae_file_transfer_demo --features elara -- recv output.bin 9001
+cargo run --example b4ae_file_transfer_demo --features elara -- send file.txt 127.0.0.1:9001
 
 # Run benchmarks
 cargo bench

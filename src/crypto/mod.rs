@@ -6,6 +6,7 @@ pub mod dilithium;
 pub mod hybrid;
 pub mod aes_gcm;
 pub mod hkdf;
+pub mod perf;
 pub mod random;
 pub mod pfs_plus;
 pub mod zkauth;

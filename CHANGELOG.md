@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Contoh Aplikasi & Ekosistem**
+  - `b4ae_chat_demo` — terminal chat (server/client)
+  - `b4ae_file_transfer_demo` — file transfer via B4AE+ELARA
+  - `b4ae_gateway_demo` — proxy B4AE ↔ TCP backend
+  - `crypto::perf` — AES-NI, AVX2 runtime detection
+  - `docs/PLUGIN_ARCHITECTURE.md` — Signal, Matrix integration
+  - `docs/GATEWAY_PROXY.md` — gateway design
+  - `docs/ENTERPRISE_DEPLOYMENT_GUIDE.md` — enterprise deployment
+
+- **crates.io Prep**
+  - Cargo.toml: add documentation, homepage, readme, exclude
+  - exclude: elara/, docs/, bindings/, scripts/, etc. (lean package)
+  - CRATES_IO_PUBLISH_PREP.md updated
+  - catatan: elara-transport path→version diperlukan sebelum publish
+
 - **Phase 2: Platform SDK 100% Complete**
   - `scripts/build_ios.sh` / `build_ios.ps1` — build C FFI for Swift Package
   - `scripts/build_android.sh` / `build_android.ps1` — build JNI, copy to app

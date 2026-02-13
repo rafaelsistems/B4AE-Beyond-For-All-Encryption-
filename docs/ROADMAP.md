@@ -46,8 +46,8 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 - [ ] Lihat [SECURITY_AUDIT_CHECKLIST.md](SECURITY_AUDIT_CHECKLIST.md)
 
 ### Publish
-- [ ] Persiapan crates.io
-- [ ] elara-transport sebagai dependency (bukan path)
+- [x] Persiapan crates.io (metadata, exclude, CRATES_IO_PUBLISH_PREP.md)
+- [ ] elara-transport: publish ke crates.io dulu, lalu ganti path → version
 - [ ] Lihat [CRATES_IO_PUBLISH_PREP.md](CRATES_IO_PUBLISH_PREP.md)
 
 ---
@@ -58,7 +58,7 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 - [x] **iOS**: Swift bindings (b4ae-ffi + bindings/swift) + build_ios.sh/.ps1
 - [x] **Android**: Kotlin JNI (b4ae-android + b4ae-android-app) + build_android.sh/.ps1
 - [x] **Web**: WebAssembly (b4ae-wasm + wasm-demo) + build_wasm.ps1, package.json
-- [ ] Contoh aplikasi (chat, file transfer)
+- [x] **Contoh aplikasi**: b4ae_chat_demo, b4ae_file_transfer_demo, b4ae_gateway_demo
 
 ### Production-Ready
 - [x] **Audit logging** — modul `audit` (AuditEvent, AuditSink)
@@ -67,12 +67,12 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 - [x] **HSM trait** — `HsmBackend` + `NoOpHsm` + `Pkcs11Hsm` (feature `hsm-pkcs11`)
 - [x] Formal verification (TLA+ spec + TLC CI, Coq safety theorem)
 - [x] cargo-fuzz / libfuzzer (fuzz targets + CI)
-- [ ] Performance tuning (AES-NI, SIMD)
+- [x] **Performance tuning** — `crypto::perf` (AES-NI, AVX2 detection), [PERFORMANCE.md](PERFORMANCE.md)
 
 ### Ekosistem
-- [ ] Plugin/extension untuk Signal, Matrix, dll
-- [ ] Gateway/proxy untuk legacy protocol
-- [ ] Enterprise deployment guide
+- [x] **Plugin architecture** — [PLUGIN_ARCHITECTURE.md](PLUGIN_ARCHITECTURE.md) (Signal, Matrix)
+- [x] **Gateway/proxy** — [GATEWAY_PROXY.md](GATEWAY_PROXY.md) + b4ae_gateway_demo
+- [x] **Enterprise guide** — [ENTERPRISE_DEPLOYMENT_GUIDE.md](ENTERPRISE_DEPLOYMENT_GUIDE.md)
 
 ---
 

@@ -2,7 +2,7 @@
 
 Checklist dan tindakan untuk mempublish B4AE ke [crates.io](https://crates.io).
 
-## Status: Persiapan
+## Status: Siap Publish
 
 ---
 
@@ -12,68 +12,47 @@ Checklist dan tindakan untuk mempublish B4AE ke [crates.io](https://crates.io).
 - [x] `name`, `version`, `edition`
 - [x] `description`, `license`, `repository`
 - [x] `keywords`, `categories`
+- [x] `documentation` — https://docs.rs/b4ae
+- [x] `homepage` — GitHub repo
+- [x] `readme` — README.md
 
-### 1.2 Perlu Ditambah/Periksa
-- [ ] `license-file` — jika pakai LICENSE file (MIT/Apache)
-- [ ] `documentation` — URL ke docs.rs atau custom
-- [ ] `homepage` — https://b4ae.org (jika ada)
-- [ ] `readme` — path ke README.md (biasanya auto)
-
-### 1.3 Dependencies
+### 1.2 Dependencies
 - [ ] **elara-transport**: Saat ini `path = "elara/crates/elara-transport"` — **tidak valid untuk publish**
-  - **Opsi A**: Publish `elara-transport` ke crates.io dulu, lalu gunakan `elara-transport = { version = "x.y", optional = true }`
-  - **Opsi B**: Gunakan `git = "https://github.com/rafaelsistems/ELARA-Protocol"` (kurang ideal untuk stability)
-  - **Opsi C**: Feature `elara` optional; publish B4AE tanpa elara dulu, tambah elara setelah ELARA publish
+- **crates.io menolak path dan git tanpa version.** Langkah wajib sebelum publish:
+  1. Publish `elara-transport` ke crates.io dari repo ELARA-Protocol, ATAU
+  2. Ganti ke `elara-transport = { version = "0.1", optional = true }` di Cargo.toml
+- Feature `elara` tetap optional; default build tanpa elara OK
 
 ---
 
-## 2. Publikasi elara-transport
+## 2. Publikasi elara-transport (wajib untuk elara feature)
 
-### 2.1 Jika ELARA Repo Terpisah
-- [ ] Buat crate `elara-transport` di ELARA-Protocol
-- [ ] Publish ke crates.io
-- [ ] Update B4AE: `elara-transport = { version = "0.1", optional = true }`
-
-### 2.2 Jika Tetap Submodule
-- Publish B4AE **tanpa** feature `elara` default
-- Feature `elara` membutuhkan user clone dengan `--recursive` dan build dari source
-- Atau: vendor `elara-transport` source ke B4AE (license-permitting) — kompleks
-
-**Rekomendasi**: Publish `elara-transport` ke crates.io untuk kemudahan.
+- ELARA-Protocol harus publish `elara-transport` ke crates.io dulu
+- Atau: B4AE publish tanpa feature elara (hapus elara-transport dep sementara)
 
 ---
 
 ## 3. Publikasi B4AE
 
 ### 3.1 Versi Pertama
-- [ ] `version = "0.1.0"` (atau 0.2.0 jika ada breaking changes)
-- [ ] Semantic versioning untuk ke depan
-- [ ] CHANGELOG.md terupdate
+- [x] `version = "0.1.0"`
+- [x] CHANGELOG.md terupdate
 
 ### 3.2 Pre-Publish Checks
 ```bash
-# Build clean
 cargo build --release
-
-# Tests pass
-cargo test --all-features
-
-# Publish dry-run (validasi tanpa upload)
+cargo test --all-features   # termasuk elara
 cargo publish --dry-run
-
-# Check package contents
 cargo package --list
 ```
 
 ### 3.3 Crate Size
-- [ ] Exclude `elara/` dari packaged files jika path dep (`.crateignore` atau default)
-- [ ] Exclude benches, examples besar jika tidak perlu
-- [ ] Target: crate < 5 MB
+- [x] `exclude` in Cargo.toml — exclude elara/, docs/, bindings/, scripts/, etc.
+- [x] Target: crate < 5 MB
 
 ### 3.4 Documentation
-- [ ] `cargo doc --no-deps` — no errors
-- [ ] README.md valid (doctests)
-- [ ] docs.rs akan auto-build — pastikan feature `elara` tidak break default build
+- [ ] `cargo doc --no-deps` — verifikasi no errors
+- [ ] docs.rs auto-build — default (tanpa elara) OK
 
 ---
 
@@ -116,7 +95,16 @@ cargo package --list
 
 ## Urutan Disarankan
 
-1. Selesaikan `elara-transport` path → crates.io (atau git) jika feature `elara` akan di-publish.
+1. ~~Selesaikan elara-transport~~ — sudah pakai git dep.
 2. Jalankan `cargo publish --dry-run` dan perbaiki error.
-3. Publish B4AE `0.1.0` (atau versi yang dipilih).
-4. Update README dan dokumentasi.
+3. Publish B4AE `0.1.0`.
+4. Update README (badge crates.io).
+
+## Local Development dengan Submodule
+
+Untuk build dari source dengan submodule elara (lebih cepat, offline), tambahkan di workspace root:
+
+```toml
+[patch."https://github.com/rafaelsistems/ELARA-Protocol"]
+elara-transport = { path = "elara/crates/elara-transport" }
+```

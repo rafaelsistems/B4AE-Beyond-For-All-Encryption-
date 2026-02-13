@@ -6,7 +6,20 @@ authors = ["B4AE Team"]
 description = "B4AE (Beyond For All Encryption) - Quantum-resistant secure communication protocol"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-"
+documentation = "https://docs.rs/b4ae"
+homepage = "https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-"
+readme = "README.md"
 keywords = ["cryptography", "post-quantum", "encryption", "security", "messaging"]
+exclude = [
+    "elara/", ".github/", "docs/", "research/", "specs/", "specs/**",
+    "bindings/", "bindings/**",
+    "b4ae-android/", "b4ae-ffi/", "b4ae-wasm/", "wasm-demo/",
+    "b4ae-android-app/", "b4ae-android-app/**",
+    "fuzz/", "scripts/",
+    "Dockerfile", "docker-compose.yml", ".dockerignore",
+    ".gitignore", ".gitmodules", ".gitlab-ci.yml", "Cargo.toml.orig",
+    "cbindgen.toml", "RELEASE_NOTES_*.md", "TESTING_GUIDE.md", "CONTRIBUTING.md", "CHANGELOG.md",
+]
 categories = ["cryptography", "network-programming"]
 
 [dependencies]
@@ -41,6 +54,7 @@ async-trait = "0.1"
 quinn = { version = "0.10", optional = true }
 
 # ELARA Transport (UDP, NAT traversal)
+# Path untuk local dev (submodule). Untuk crates.io: ganti ke version setelah ELARA publish.
 elara-transport = { path = "elara/crates/elara-transport", optional = true }
 
 # Logging
@@ -119,4 +133,19 @@ path = "tests/proptest_invariants.rs"
 [[example]]
 name = "b4ae_elara_demo"
 path = "examples/b4ae_elara_demo.rs"
+required-features = ["elara"]
+
+[[example]]
+name = "b4ae_chat_demo"
+path = "examples/b4ae_chat_demo.rs"
+required-features = ["elara"]
+
+[[example]]
+name = "b4ae_file_transfer_demo"
+path = "examples/b4ae_file_transfer_demo.rs"
+required-features = ["elara"]
+
+[[example]]
+name = "b4ae_gateway_demo"
+path = "examples/b4ae_gateway_demo.rs"
 required-features = ["elara"]
