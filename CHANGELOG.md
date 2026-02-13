@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 2: Platform SDK 100% Complete**
+  - `scripts/build_ios.sh` / `build_ios.ps1` — build C FFI for Swift Package
+  - `scripts/build_android.sh` / `build_android.ps1` — build JNI, copy to app
+  - `scripts/build_wasm.ps1` — build WASM for wasm-demo
+  - `b4ae-android-app/` — minimal Android demo app (MainActivity, B4AE.kt, jniLibs)
+  - `bindings/swift/libs/` — Swift Package library path
+  - `wasm-demo/package.json` — npm run build, npm run serve
+
 - **Phase 3: Integration & Testing**
   - `scripts/security_audit.sh` / `security_audit.ps1` — security audit script
   - CI: security audit script (cargo audit, build, test)

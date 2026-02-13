@@ -14,7 +14,7 @@ let package = Package(
             path: "Sources/B4AE",
             linkerSettings: [
                 .linkedLibrary("b4ae_ffi", .when(platforms: [.iOS, .macOS])),
-                .unsafeFlags(["-L", "../.."], .when(platforms: [.iOS, .macOS])),
+                .unsafeFlags(["-L", "libs"], .when(platforms: [.iOS, .macOS])),
             ]
         ),
     ]

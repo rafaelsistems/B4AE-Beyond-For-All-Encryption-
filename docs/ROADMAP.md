@@ -13,7 +13,7 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 
 ---
 
-## Phase 2: Core Development ✅ (85% Selesai)
+## Phase 2: Core Development ✅ (100% Selesai)
 
 ### Selesai
 - [x] Cryptographic core (Kyber, Dilithium, Hybrid, PFS+, ZKAuth)
@@ -23,9 +23,7 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 - [x] B4aeElaraNode
 - [x] CI/CD, Dependabot
 - [x] Basic integration & security tests
-
-### Sisa
-- [x] Platform SDK (iOS Swift, Android Kotlin, Web WASM) — bindings implemented
+- [x] Platform SDK (iOS Swift, Android Kotlin, Web WASM) — 100%
 
 ---
 
@@ -57,9 +55,9 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 ## Jangka Panjang (6–24 Bulan)
 
 ### Platform SDK
-- [x] **iOS**: Swift bindings (b4ae-ffi C API + bindings/swift)
-- [x] **Android**: Kotlin JNI (b4ae-android crate)
-- [x] **Web**: WebAssembly (b4ae-wasm + wasm-demo)
+- [x] **iOS**: Swift bindings (b4ae-ffi + bindings/swift) + build_ios.sh/.ps1
+- [x] **Android**: Kotlin JNI (b4ae-android + b4ae-android-app) + build_android.sh/.ps1
+- [x] **Web**: WebAssembly (b4ae-wasm + wasm-demo) + build_wasm.ps1, package.json
 - [ ] Contoh aplikasi (chat, file transfer)
 
 ### Production-Ready

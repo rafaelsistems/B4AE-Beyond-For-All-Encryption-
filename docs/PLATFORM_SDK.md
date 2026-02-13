@@ -8,10 +8,15 @@ Bindings B4AE untuk iOS, Android, dan Web. Subset API AES-256-GCM (generateKey, 
 
 | Platform | Status | Lokasi |
 |----------|--------|--------|
-| **Web (WASM)** | ✅ Implemented | `b4ae-wasm/`, `wasm-demo/` |
-| **Android** | ✅ Implemented | `b4ae-android/`, `bindings/kotlin/` |
-| **iOS** | ✅ Implemented | `b4ae-ffi/`, `bindings/swift/` |
+| **Web (WASM)** | ✅ 100% | `b4ae-wasm/`, `wasm-demo/` |
+| **Android** | ✅ 100% | `b4ae-android/`, `b4ae-android-app/` |
+| **iOS** | ✅ 100% | `b4ae-ffi/`, `bindings/swift/` |
 | **C FFI** | ✅ Implemented | `b4ae-ffi/`, `bindings/b4ae.h` |
+
+### Build Scripts (repo root)
+- `scripts/build_ios.sh` / `build_ios.ps1` — C FFI for Swift Package
+- `scripts/build_android.sh` / `build_android.ps1` — JNI .so → b4ae-android-app
+- `scripts/build_wasm.ps1` — WASM → wasm-demo/pkg
 
 ---
 
@@ -28,10 +33,14 @@ wasm-pack build b4ae-wasm --target web --out-dir pkg
 
 ### Demo
 ```bash
-# Build wasm-demo
+# Option 1: Build script
+./scripts/build_wasm.ps1   # or build.sh from wasm-demo/
+# Option 2: wasm-pack directly
 wasm-pack build b4ae-wasm --target web --out-dir wasm-demo/pkg
-# Serve wasm-demo/ via HTTP (e.g. python -m http.server 8080)
+# Option 3: npm (from wasm-demo/)
+cd wasm-demo && npm run build && npm run serve
 ```
+Serve: `python -m http.server 8080` or `npx serve -l 8080`
 
 ### JavaScript API
 ```javascript
@@ -50,13 +59,12 @@ const dec = decrypt(key, enc);
 
 ### Build
 ```bash
-cd b4ae-android
-cargo build --release --target aarch64-linux-android   # ARM64
-cargo build --release --target i686-linux-android      # x86
-cargo build --release --target x86_64-linux-android   # x86_64
+# Automated (builds all targets, copies to b4ae-android-app)
+./scripts/build_android.sh   # Linux/macOS
+./scripts/build_android.ps1   # Windows
 ```
 
-Copy `libb4ae_android.so` ke `android/app/src/main/jniLibs/<abi>/`
+Manual: build `b4ae-android` for each target, copy `.so` to `b4ae-android-app/app/src/main/jniLibs/<abi>/`. Demo app: `b4ae-android-app/`.
 
 ### Kotlin Usage
 ```kotlin
@@ -73,11 +81,11 @@ val decrypted = B4AE.decrypt(key, encrypted)
 
 ### Build
 ```bash
-cd b4ae-ffi
-cargo build --release --target aarch64-apple-ios
-cargo build --release --target x86_64-apple-ios   # simulator
-# Use lipo for universal binary
+./scripts/build_ios.sh   # macOS — produces libs/libb4ae_ffi.a
+./scripts/build_ios.ps1  # Windows — host only; iOS requires macOS
 ```
+
+Then: `cd bindings/swift && swift build`
 
 ### Swift Usage
 ```swift
@@ -86,7 +94,7 @@ let encrypted = try B4AE.encrypt(key: key, plaintext: Data("Hello".utf8))
 let decrypted = try B4AE.decrypt(key: key, encrypted: encrypted)
 ```
 
-Lihat `bindings/swift/` untuk Swift Package structure.
+Lihat `bindings/swift/README.md` untuk Swift Package.
 
 ---
 

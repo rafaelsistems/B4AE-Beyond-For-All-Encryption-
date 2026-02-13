@@ -1,0 +1,13 @@
+{
+  "name": "b4ae-wasm-demo",
+  "version": "0.1.0",
+  "description": "B4AE WebAssembly demo - AES-256-GCM in browser",
+  "scripts": {
+    "build": "wasm-pack build ../b4ae-wasm --target web --out-dir pkg",
+    "postinstall": "echo 'Run: npm run build (requires wasm-pack)'",
+    "serve": "npx serve -l 8080"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}
