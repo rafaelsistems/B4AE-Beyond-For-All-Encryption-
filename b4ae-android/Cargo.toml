@@ -1,6 +1,6 @@
 [package]
 name = "b4ae-android"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 description = "B4AE JNI bindings for Android/Kotlin"
 

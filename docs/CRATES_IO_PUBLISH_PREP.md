@@ -35,7 +35,7 @@ Checklist dan tindakan untuk mempublish B4AE ke [crates.io](https://crates.io).
 ## 3. Publikasi B4AE
 
 ### 3.1 Versi Pertama
-- [x] `version = "0.1.0"`
+- [x] `version = "1.0.0"`
 - [x] CHANGELOG.md terupdate
 
 ### 3.2 Pre-Publish Checks
@@ -97,7 +97,7 @@ cargo package --list
 
 1. ~~Selesaikan elara-transport~~ — sudah pakai git dep.
 2. Jalankan `cargo publish --dry-run` dan perbaiki error.
-3. Publish B4AE `0.1.0`.
+3. Publish B4AE `1.0.0`.
 4. Update README (badge crates.io).
 
 ## Local Development dengan Submodule

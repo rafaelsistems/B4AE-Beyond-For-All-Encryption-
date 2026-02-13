@@ -25,8 +25,8 @@ Checklist untuk General Availability (GA) release.
 
 ### GitHub Release
 
-- [ ] Tag: `git tag v0.1.0`
-- [ ] Push tag: `git push origin v0.1.0`
+- [ ] Tag: `git tag v1.0.0`
+- [ ] Push tag: `git push origin v1.0.0`
 - [ ] Create GitHub Release with notes from CHANGELOG
 - [ ] Attach artifacts (optional): binaries, SDK builds
 
@@ -39,8 +39,8 @@ Checklist untuk General Availability (GA) release.
 
 ### Versioning
 
-- **Patch** (0.1.x): bug fixes, no API change
-- **Minor** (0.x.0): new features, backward compatible
+- **Patch** (1.0.x): bug fixes, no API change
+- **Minor** (1.x.0): new features, backward compatible
 - **Major** (x.0.0): breaking changes
 
 ---

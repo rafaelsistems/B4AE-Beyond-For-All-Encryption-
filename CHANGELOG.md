@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- (Future releases)
+
+## [1.0.0] - 2026-02-13
+
+### Added — Protocol Specification v1.0 Implementation
+
 - **Contoh Aplikasi & Ekosistem**
   - `b4ae_chat_demo` — terminal chat (server/client)
   - `b4ae_file_transfer_demo` — file transfer via B4AE+ELARA
@@ -84,8 +90,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Example `b4ae_elara_demo`: demo Alice-Bob komunikasi via UDP
 - ELARA Protocol sebagai git submodule (`elara/`)
 
-### Changed
+### Changed — Audit Fixes (Protocol Spec v1.0 compliance)
 
+- **Master secret**: HKDF with salt (client_random||server_random), info B4AE-v1-master-secret
+- **HKDF info strings**: B4AE-v1-encryption-key, authentication-key, metadata-key
+- **Handshake state**: Initial → Initiation (align with TLA+/Coq)
+- **Specs/docs**: X25519/Ed25519, Dilithium 4627 bytes, key hierarchy status, API design
 - `Cargo.toml`: tambah feature `elara` dan dependency `elara-transport`
 - Roadmap: Network layer implementation marked complete via ELARA
 - **Dependabot**: ignore major version update untuk `rand` (`.github/dependabot.yml`)

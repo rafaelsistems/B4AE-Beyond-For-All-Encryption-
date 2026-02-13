@@ -100,7 +100,7 @@ Add B4AE to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-b4ae = "0.1"
+b4ae = "1.0"
 ```
 
 ### Basic Usage
