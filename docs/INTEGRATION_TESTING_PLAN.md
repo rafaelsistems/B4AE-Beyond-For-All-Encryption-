@@ -94,7 +94,7 @@ Rencana pengujian integrasi yang lebih lengkap untuk B4AE Protocol.
 
 ```rust
 #[cfg(all(feature = "elara", test))]
-mod elara_e2e {
+mod elara_integration {
     use b4ae::elara_node::B4aeElaraNode;
     use b4ae::protocol::SecurityProfile;
 

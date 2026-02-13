@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Platform SDK & Production-Ready**
+  - `docs/PLATFORM_SDK.md` — panduan iOS, Android, WASM
+  - `docs/FORMAL_VERIFICATION.md` — proptest + formal verification plan
+  - `src/audit.rs` — audit logging (AuditEvent, AuditSink) untuk compliance
+  - `src/hsm.rs` — HSM trait `HsmBackend` + `NoOpHsm` (feature `hsm`)
+  - `tests/proptest_invariants.rs` — AES roundtrip, handshake completeness
+  - CI: job Proptest Invariants
+
 - **Dokumentasi roadmap dan audit**
   - `docs/SECURITY_AUDIT_CHECKLIST.md` — checklist security audit
   - `docs/INTEGRATION_TESTING_PLAN.md` — rencana integrasi testing

@@ -59,6 +59,7 @@ pqcrypto-alt = ["pqcrypto-kyber", "pqcrypto-dilithium"]
 async = ["tokio"]
 networking = ["quinn", "tokio"]
 elara = ["elara-transport", "tokio"]
+hsm = []
 
 [profile.release]
 opt-level = 3
@@ -101,6 +102,15 @@ path = "tests/fuzzing_test.rs"
 [[test]]
 name = "penetration_test"
 path = "tests/penetration_test.rs"
+
+[[test]]
+name = "elara_integration_test"
+path = "tests/elara_integration_test.rs"
+required-features = ["elara"]
+
+[[test]]
+name = "proptest_invariants"
+path = "tests/proptest_invariants.rs"
 
 [[example]]
 name = "b4ae_elara_demo"

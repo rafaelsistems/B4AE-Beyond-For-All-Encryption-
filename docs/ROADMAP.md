@@ -51,16 +51,18 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 ## Jangka Panjang (6–24 Bulan)
 
 ### Platform SDK
-- [ ] **iOS**: Swift/ObjC bindings, XCFramework
+- [ ] **iOS**: Swift/ObjC bindings, XCFramework — Lihat [PLATFORM_SDK.md](PLATFORM_SDK.md)
 - [ ] **Android**: Kotlin/Java JNI atau Rust via jni-rs
 - [ ] **Web**: WebAssembly (wasm-bindgen), target `wasm32-unknown-unknown`
 - [ ] Contoh aplikasi (chat, file transfer)
 
 ### Production-Ready
-- [ ] Formal verification (critical paths)
-- [ ] Fuzzing CI (OSS-Fuzz atau libfuzzer)
-- [ ] Hardware Security Module (HSM) support
-- [ ] Audit logging & compliance tooling
+- [x] **Audit logging** — modul `audit` (AuditEvent, AuditSink)
+- [x] **Proptest invariants** — AES roundtrip, handshake completeness (lihat [FORMAL_VERIFICATION.md](FORMAL_VERIFICATION.md))
+- [x] **Fuzzing CI** — job Proptest Invariants di GitHub Actions
+- [x] **HSM trait** — `HsmBackend` + `NoOpHsm` (feature `hsm`)
+- [ ] Formal verification (TLA+/Coq)
+- [ ] OSS-Fuzz / libfuzzer integration
 - [ ] Performance tuning (AES-NI, SIMD)
 
 ### Ekosistem

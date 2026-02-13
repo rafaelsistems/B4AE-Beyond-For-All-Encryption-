@@ -12,6 +12,10 @@ pub mod metadata;
 pub mod error;
 pub mod client;
 pub mod prelude;
+pub mod audit;
+
+#[cfg(feature = "hsm")]
+pub mod hsm;
 
 #[cfg(feature = "elara")]
 pub mod transport;

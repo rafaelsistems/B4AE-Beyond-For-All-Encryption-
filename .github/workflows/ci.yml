@@ -51,6 +51,22 @@ jobs:
       run: cargo clippy --all-features -- -D warnings
       continue-on-error: true
 
+  fuzz:
+    name: Proptest Invariants
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: recursive
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Run proptest invariants
+      run: cargo test --test proptest_invariants --all-features
+      env:
+        PROPTEST_CASES: 128
+
   security:
     name: Security Audit
     runs-on: ubuntu-latest
