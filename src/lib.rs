@@ -22,10 +22,10 @@ pub mod storage;
 #[cfg(feature = "hsm")]
 pub mod hsm;
 
-#[cfg(feature = "elara")]
+#[cfg(feature = "elara-transport")]
 pub mod transport;
 
-#[cfg(feature = "elara")]
+#[cfg(feature = "elara-transport")]
 pub mod elara_node;
 
 // Re-export commonly used types

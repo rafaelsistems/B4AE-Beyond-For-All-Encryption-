@@ -90,7 +90,6 @@ dependencies = [
  "bincode",
  "criterion",
  "cryptoki",
- "elara-transport",
  "hex",
  "hkdf",
  "pqcrypto-dilithium",
@@ -439,35 +438,6 @@ name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
-
-[[package]]
-name = "elara-core"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "thiserror",
-]
-
-[[package]]
-name = "elara-transport"
-version = "0.1.0"
-dependencies = [
- "elara-core",
- "elara-wire",
- "rand 0.8.5",
- "thiserror",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "elara-wire"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "elara-core",
- "thiserror",
-]
 
 [[package]]
 name = "equivalent"

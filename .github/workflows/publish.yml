@@ -40,6 +40,9 @@ jobs:
     - name: Run tests before publish
       run: cargo test --release --all-features
 
+    - name: Prepare Cargo.toml for publish
+      run: python3 scripts/prepare_publish.py
+
     - name: Verify package
       run: cargo publish --dry-run
 

@@ -11,8 +11,8 @@ pub use crate::protocol::message::{Message, MessageContent, EncryptedMessage};
 // Protocol constants
 pub use crate::{VERSION, PROTOCOL_VERSION, PROTOCOL_NAME, PROTOCOL_FULL_NAME};
 
-#[cfg(feature = "elara")]
+#[cfg(feature = "elara-transport")]
 pub use crate::elara_node::B4aeElaraNode;
 
-#[cfg(feature = "elara")]
+#[cfg(feature = "elara-transport")]
 pub use crate::transport::elara::ElaraTransport;
