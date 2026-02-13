@@ -1,0 +1,9 @@
+# B4AE + ELARA Demo - Docker Compose
+# Phase 4: Production Infrastructure
+# Run: docker-compose up
+
+services:
+  b4ae-demo:
+    build: .
+    stdin_open: true
+    tty: true

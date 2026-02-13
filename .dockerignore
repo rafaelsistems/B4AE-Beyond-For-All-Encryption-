@@ -1,0 +1,20 @@
+# Docker build - exclude unnecessary files
+target/
+.git/
+.gitignore
+*.md
+!README.md
+docs/
+research/
+specs/coq/
+bindings/
+b4ae-ffi/
+b4ae-android/
+b4ae-wasm/
+wasm-demo/
+fuzz/
+.github/
+*.txt
+*.log
+.vscode/
+.idea/

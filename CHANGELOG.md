@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 3: Integration & Testing**
+  - `scripts/security_audit.sh` / `security_audit.ps1` — security audit script
+  - CI: security audit script (cargo audit, build, test)
+  - `docs/PERFORMANCE.md` — performance optimization guide
+  - ELARA integration tests: concurrent_two_connections, bidirectional_messages
+
+- **Phase 4: Production & Deployment**
+  - `Dockerfile` — production Docker image (B4AE + ELARA demo)
+  - `docker-compose.yml` — local demo
+  - `docs/PRODUCTION_DEPLOYMENT.md` — production deployment guide
+  - `docs/PILOT_DEPLOYMENT_GUIDE.md` — pilot deployment guide
+  - `docs/RELEASE_CHECKLIST.md` — GA release checklist
+
 - **Platform SDK** (Swift, Kotlin, WASM)
   - `b4ae-ffi` — C API (AES-256-GCM: generate_key, encrypt, decrypt)
   - `b4ae-android` — JNI crate untuk Kotlin/Android

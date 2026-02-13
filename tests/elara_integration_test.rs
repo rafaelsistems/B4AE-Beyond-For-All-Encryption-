@@ -65,3 +65,69 @@ async fn test_two_node_large_payload() {
     let received = recv_handle.await.unwrap();
     assert_eq!(received, payload);
 }
+
+#[tokio::test]
+async fn test_concurrent_two_connections() {
+    // Two initiators connect to one responder (sequential accepts)
+    let mut alice = B4aeElaraNode::new("127.0.0.1:0", SecurityProfile::Standard)
+        .await
+        .unwrap();
+    let mut bob =
+        B4aeElaraNode::new("127.0.0.1:0", SecurityProfile::Standard)
+            .await
+            .unwrap();
+    let mut carol =
+        B4aeElaraNode::new("127.0.0.1:0", SecurityProfile::Standard)
+            .await
+            .unwrap();
+
+    let bob_addr = bob.local_addr();
+
+    // Bob accepts two connections (alice, then carol)
+    let bob_handle = tokio::spawn(async move {
+        let _p1 = bob.accept().await.unwrap();
+        let (_, m1) = bob.recv_message().await.unwrap();
+        let _p2 = bob.accept().await.unwrap();
+        let (_, m2) = bob.recv_message().await.unwrap();
+        (m1, m2)
+    });
+
+    alice.connect(&bob_addr).await.unwrap();
+    alice.send_message(&bob_addr, b"from alice").await.unwrap();
+
+    carol.connect(&bob_addr).await.unwrap();
+    carol.send_message(&bob_addr, b"from carol").await.unwrap();
+
+    let (m1, m2) = bob_handle.await.unwrap();
+    assert!(m1 == b"from alice" || m1 == b"from carol");
+    assert!(m2 == b"from alice" || m2 == b"from carol");
+    assert_ne!(m1, m2);
+}
+
+#[tokio::test]
+async fn test_bidirectional_messages() {
+    let mut alice = B4aeElaraNode::new("127.0.0.1:0", SecurityProfile::Standard)
+        .await
+        .unwrap();
+    let mut bob =
+        B4aeElaraNode::new("127.0.0.1:0", SecurityProfile::Standard)
+            .await
+            .unwrap();
+    let bob_addr = bob.local_addr();
+    let alice_addr = alice.local_addr();
+
+    let recv_handle = tokio::spawn(async move {
+        let _peer = bob.accept().await.unwrap();
+        bob.send_message(&alice_addr, b"Hi Alice").await.unwrap();
+        let (_, msg) = bob.recv_message().await.unwrap();
+        msg
+    });
+
+    alice.connect(&bob_addr).await.unwrap();
+    let (_, from_bob) = alice.recv_message().await.unwrap();
+    assert_eq!(from_bob, b"Hi Alice");
+    alice.send_message(&bob_addr, b"Hi Bob").await.unwrap();
+
+    let bob_received = recv_handle.await.unwrap();
+    assert_eq!(bob_received, b"Hi Bob");
+}

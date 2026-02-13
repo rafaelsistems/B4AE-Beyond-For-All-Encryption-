@@ -82,8 +82,12 @@ jobs:
       run: cargo install cargo-audit
       continue-on-error: true
 
-    - name: Security audit
+    - name: Cargo audit
       run: cargo audit
+      continue-on-error: true
+
+    - name: Security audit script
+      run: chmod +x scripts/security_audit.sh && FULL_AUDIT=0 ./scripts/security_audit.sh
       continue-on-error: true
 
   cargo-fuzz:

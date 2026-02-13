@@ -29,17 +29,23 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 
 ---
 
+## Phase 3: Integration & Testing ✅
+
+- [x] Security Testing & Audits — `scripts/security_audit.sh`, cargo audit di CI
+- [x] Performance Optimization — `docs/PERFORMANCE.md`, release profile
+- [x] Integration Testing — ELARA tests expanded (concurrent, bidirectional)
+
+## Phase 4: Production & Deployment ✅
+
+- [x] Production Infrastructure — Dockerfile, docker-compose
+- [x] Pilot Deployment — `docs/PILOT_DEPLOYMENT_GUIDE.md`
+- [x] General Availability — `docs/RELEASE_CHECKLIST.md`
+
 ## Selanjutnya (1–3 Bulan)
 
 ### Security
-- [ ] Security audit (internal + external)
-- [ ] `cargo audit` integration
+- [ ] External security audit
 - [ ] Lihat [SECURITY_AUDIT_CHECKLIST.md](SECURITY_AUDIT_CHECKLIST.md)
-
-### Testing
-- [ ] Integrasi testing lebih lengkap
-- [ ] ELARA end-to-end tests
-- [ ] Lihat [INTEGRATION_TESTING_PLAN.md](INTEGRATION_TESTING_PLAN.md)
 
 ### Publish
 - [ ] Persiapan crates.io
