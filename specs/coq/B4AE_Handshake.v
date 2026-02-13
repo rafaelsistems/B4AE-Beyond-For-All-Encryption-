@@ -92,13 +92,15 @@ Lemma transition_preserves_inv :
     (both_completed s' -> Reachable s').
 Proof.
   intros s s' Ht Hi Hbc.
-  inversion Ht; subst; simpl in *;
-    unfold both_completed in Hbc; simpl in Hbc;
-    destruct Hbc as [Hc1 Hc2].
-  - discriminate Hc1.
-  - discriminate Hc2.
-  - discriminate Hc1.
-  - apply ReachStep with (s := (WaitingComplete, WaitingComplete)).
+  inversion Ht; subst; simpl in *.
+  - (* InitiatorSendsInit *)
+    unfold both_completed in Hbc; simpl in Hbc; destruct Hbc as [Hc1 _]; discriminate Hc1.
+  - (* ResponderSendsResponse *)
+    unfold both_completed in Hbc; simpl in Hbc; destruct Hbc as [_ Hc2]; discriminate Hc2.
+  - (* InitiatorSendsComplete *)
+    unfold both_completed in Hbc; simpl in Hbc; destruct Hbc as [Hc1 _]; discriminate Hc1.
+  - (* ResponderReceivesComplete *)
+    apply ReachStep with (s := (WaitingComplete, WaitingComplete)).
     apply ReachStep with (s := (WaitingResponse, WaitingComplete)).
     apply ReachStep with (s := (WaitingResponse, Initiation)).
     apply ReachStep with (s := init_state).
