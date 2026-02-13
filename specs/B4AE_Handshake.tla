@@ -1,3 +1,4 @@
+---- MODULE B4AE_Handshake ----
 (*
  * B4AE Handshake State Machine - TLA+ Specification
  *
@@ -66,3 +67,5 @@ Invariant ==
 (* Spec == Init /\ [][Next]_<<initiatorState, responderState>> /\ <>Invariant *)
 
 Spec == Init /\ [][Next]_<<initiatorState, responderState>>
+
+====
