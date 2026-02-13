@@ -13,7 +13,7 @@ B4AE is a next-generation secure communication protocol that goes **beyond** tra
 
 - 🔐 **Quantum-Resistant**: Uses NIST-standardized post-quantum cryptography (Kyber-1024, Dilithium5)
 - 🛡️ **Metadata Protection**: Comprehensive protection against traffic analysis and surveillance
-- 🔄 **Hybrid Cryptography**: Combines classical (ECDH/ECDSA) with post-quantum algorithms
+- 🔄 **Hybrid Cryptography**: Combines classical (X25519/Ed25519) with post-quantum algorithms
 - 📡 **ELARA Transport**: Optional integration with [ELARA Protocol](https://github.com/rafaelsistems/ELARA-Protocol) for UDP transport, NAT traversal, and resilient delivery
 - ⚡ **High Performance**: Optimized for real-world deployment with hardware acceleration
 - 🌐 **Cross-Platform**: Works on desktop, mobile, IoT, and web platforms
@@ -52,7 +52,7 @@ B4AE addresses all these limitations:
 │ Layer 7: Quantum-Resistant Cryptography                    │
 │          - Kyber-1024 (Key Exchange)                        │
 │          - Dilithium5 (Digital Signatures)                  │
-│          - Hybrid with ECDH-P521 / ECDSA-P521              │
+│          - Hybrid with X25519 / Ed25519                     │
 ├─────────────────────────────────────────────────────────────┤
 │ Layer 6: Metadata Obfuscation                              │
 │          - Traffic Padding                                  │
@@ -214,6 +214,13 @@ cargo test --all-features
 
 # Run benchmarks
 cargo bench
+
+# Demos (dengan ELARA)
+cargo run --example b4ae_elara_demo --features elara
+cargo run --example b4ae_chat_demo --features elara -- server 9000   # terminal 1
+cargo run --example b4ae_chat_demo --features elara -- client 127.0.0.1:9000  # terminal 2
+cargo run --example b4ae_file_transfer_demo --features elara -- recv output.bin 9001  # receiver first
+cargo run --example b4ae_file_transfer_demo --features elara -- send file.txt 127.0.0.1:9001  # sender
 ```
 
 ## Platform SDKs
@@ -348,12 +355,9 @@ If you use B4AE in your research, please cite:
 
 **B4AE: Securing Communication for the Quantum Era** 🔐🚀
 
-
 ---
 
-## 📊 Project Status
-
-### Current Phase: Phase 2 - Core Development (100% Complete) ✅
+## 📊 Project Status (Phases 1–4 Complete)
 
 #### Completed ✅
 - **Phase 1: Foundation** (100%)
@@ -381,72 +385,6 @@ If you use B4AE in your research, please cite:
 **Status:** Ahead of schedule, under budget
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed progress.
-
----
-
-## 🚀 Quick Start
-
-### Installation
-
-```bash
-# Clone repository (gunakan --recursive untuk ELARA)
-git clone --recursive https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-.git
-cd B4AE-Beyond-For-All-Encryption-
-
-# Build
-cargo build --release
-
-# Build dengan ELARA
-cargo build --release --features elara
-
-# Run tests
-cargo test
-
-# Run ELARA demo
-cargo run --example b4ae_elara_demo --features elara
-
-# Run chat demo (2 terminals: server + client)
-cargo run --example b4ae_chat_demo --features elara -- server 9000
-cargo run --example b4ae_chat_demo --features elara -- client 127.0.0.1:9000
-
-# Run file transfer (receiver first, then sender)
-cargo run --example b4ae_file_transfer_demo --features elara -- recv output.bin 9001
-cargo run --example b4ae_file_transfer_demo --features elara -- send file.txt 127.0.0.1:9001
-
-# Run benchmarks
-cargo bench
-```
-
-### Basic Usage
-
-```rust
-use b4ae::prelude::*;
-
-fn main() -> B4aeResult<()> {
-    // Initialize clients
-    let mut alice = B4aeClient::new(SecurityProfile::Standard)?;
-    let mut bob = B4aeClient::new(SecurityProfile::Standard)?;
-    
-    let alice_id = b"alice".to_vec();
-    let bob_id = b"bob".to_vec();
-
-    // Perform handshake
-    let init = alice.initiate_handshake(&bob_id)?;
-    let response = bob.respond_to_handshake(&alice_id, init)?;
-    let complete = alice.process_response(&bob_id, response)?;
-    bob.complete_handshake(&alice_id, complete)?;
-    alice.finalize_initiator(&bob_id)?;
-
-    // Send encrypted message
-    let encrypted = alice.encrypt_message(&bob_id, b"Hello, B4AE!")?;
-
-    // Decrypt received message
-    let decrypted = bob.decrypt_message(&alice_id, &encrypted)?;
-    assert_eq!(decrypted, b"Hello, B4AE!");
-    
-    Ok(())
-}
-```
 
 ---
 
@@ -533,8 +471,8 @@ fn main() -> B4aeResult<()> {
 ## 🔒 Security
 
 ### Cryptographic Algorithms
-- **Key Exchange:** Kyber-1024 (NIST FIPS 203) + ECDH P-521
-- **Signatures:** Dilithium5 (NIST FIPS 204) + ECDSA P-521
+- **Key Exchange:** Kyber-1024 (NIST FIPS 203) + X25519
+- **Signatures:** Dilithium5 (NIST FIPS 204) + Ed25519
 - **Encryption:** AES-256-GCM
 - **Key Derivation:** HKDF-SHA3-256
 

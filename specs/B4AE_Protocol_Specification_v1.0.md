@@ -69,30 +69,34 @@ Security Level: NIST Level 5 (256-bit quantum security)
 Key Sizes:
 - Public Key: 2592 bytes
 - Secret Key: 4864 bytes
-- Signature: 4595 bytes
+- Signature: 4627 bytes (pqcrypto-dilithium5 wire format; NIST FIPS 204 core)
 ```
 
 ### 3.2 Classical Algorithms (Hybrid Mode)
 
+B4AE uses Curve25519/Ed25519 for high performance and broad ecosystem support (x25519-dalek, ring).
+
 #### 3.2.1 Key Exchange
 ```
-Algorithm: ECDH with Curve P-521
-Security Level: 256-bit classical security
+Algorithm: X25519 (ECDH over Curve25519)
+Standard: RFC 7748
+Security Level: ~128-bit classical (256-bit with PQ hybrid)
 
 Key Sizes:
-- Public Key: 133 bytes
-- Secret Key: 66 bytes
+- Public Key: 32 bytes
+- Secret Key: 32 bytes
 ```
 
 #### 3.2.2 Digital Signature
 ```
-Algorithm: ECDSA with Curve P-521
-Security Level: 256-bit classical security
+Algorithm: Ed25519
+Standard: RFC 8032
+Security Level: ~128-bit classical (256-bit with PQ hybrid)
 
 Key Sizes:
-- Public Key: 133 bytes
-- Secret Key: 66 bytes
-- Signature: ~132 bytes
+- Public Key: 32 bytes
+- Secret Key: 64 bytes (or 83 bytes PKCS#8)
+- Signature: 64 bytes
 ```
 
 ### 3.3 Symmetric Cryptography
@@ -121,14 +125,16 @@ Output: 32 bytes (256 bits)
 
 ### 4.1 Key Types
 ```
-Master Identity Key (MIK)
-├── Device Master Key (DMK)
-│   ├── Session Key (SK)
-│   │   ├── Message Key (MK)
-│   │   └── Ephemeral Key (EK)
-│   └── Storage Key (STK)
-└── Backup Key Shards (BKS)
+Master Identity Key (MIK)           [Roadmap - not yet implemented]
+├── Device Master Key (DMK)        [Roadmap]
+│   ├── Session Key (SK)          [Implemented - from handshake]
+│   │   ├── Message Key (MK)      [Implemented - PFS+ per-message]
+│   │   └── Ephemeral Key (EK)    [Implemented]
+│   └── Storage Key (STK)          [Roadmap]
+└── Backup Key Shards (BKS)        [Roadmap]
 ```
+
+**Implementation Status:** Session-level keys (SK, MK, EK) are fully implemented via handshake + PFS+. MIK/DMK/STK/BKS are planned for future versions.
 
 ### 4.2 Key Lifetimes
 ```
@@ -143,22 +149,22 @@ Ephemeral Key           Per message     Automatic
 
 ## 5. PROTOCOL MESSAGES
 
-### 5.1 Message Format
+### 5.1 Message Format (EncryptedMessage)
 ```
 ┌────────────────────────────────────────────────────────┐
-│ B4AE Protocol Message                                  │
+│ B4AE Encrypted Message                                 │
 ├────────────────────────────────────────────────────────┤
-│ Version (2 bytes)                                      │
+│ Version (2 bytes)                                       │
 │ Message Type (1 byte)                                  │
 │ Flags (1 byte)                                         │
-│ Sequence Number (8 bytes)                              │
+│ Sequence (8 bytes)                                     │
 │ Timestamp (8 bytes)                                    │
-│ Payload Length (4 bytes)                               │
-│ Payload (variable)                                     │
-│ Authentication Tag (16 bytes)                          │
+│ Nonce (variable, typically 12 bytes for AES-GCM)      │
+│ Payload (variable, includes authentication tag)       │
 └────────────────────────────────────────────────────────┘
 
-Total Header Size: 40 bytes
+Header fields: version, message_type, flags, sequence, timestamp.
+Payload is AES-256-GCM ciphertext (includes 16-byte auth tag inline).
 ```
 
 ### 5.2 Message Types
@@ -215,10 +221,10 @@ Alice                                                Bob
 HandshakeInit:
 ├── protocol_version: u16
 ├── client_random: [u8; 32]
-├── hybrid_public_key: HybridPublicKey
-│   ├── ecdh_public: [u8; 133]
+├── hybrid_public_key: HybridPublicKey (length-prefixed serialization)
+│   ├── ecdh_public: [u8; 32]     (X25519)
 │   ├── kyber_public: [u8; 1568]
-│   ├── ecdsa_public: [u8; 133]
+│   ├── ecdsa_public: [u8; 32]    (Ed25519)
 │   └── dilithium_public: [u8; 2592]
 ├── supported_algorithms: Vec<AlgorithmId>
 ├── extensions: Vec<Extension>
@@ -243,26 +249,26 @@ HandshakeResponse:
 ```
 After handshake, derive session keys:
 
-master_secret = HKDF(
-    ikm = kyber_ss || ecdh_ss,
+master_secret = HKDF-SHA3-256(
+    ikm = shared_secret,  (* from hybrid KEM: kyber_ss || x25519_ss *)
     salt = client_random || server_random,
     info = "B4AE-v1-master-secret",
     length = 32
 )
 
-encryption_key = HKDF(
+encryption_key = HKDF-SHA3-256(
     ikm = master_secret,
     info = "B4AE-v1-encryption-key",
     length = 32
 )
 
-authentication_key = HKDF(
+authentication_key = HKDF-SHA3-256(
     ikm = master_secret,
     info = "B4AE-v1-authentication-key",
     length = 32
 )
 
-metadata_key = HKDF(
+metadata_key = HKDF-SHA3-256(
     ikm = master_secret,
     info = "B4AE-v1-metadata-key",
     length = 32

@@ -50,3 +50,6 @@ test_*.rs
 *.rlib
 libhandshake.rlib
 targetL3XsP8/
+
+# TLA+ tools (downloaded locally, CI fetches fresh)
+tla/

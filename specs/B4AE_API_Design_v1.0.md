@@ -2,7 +2,20 @@
 
 **Version:** 1.0  
 **Date:** February 2026  
-**Status:** Draft for Implementation
+**Status:** Implemented (Core API) / Roadmap (Extended API)
+
+## Implementation Status
+
+| API Area | Status | Notes |
+|----------|--------|-------|
+| **B4aeClient** (handshake, encrypt/decrypt) | Implemented | Manual handshake flow + `encrypt_message` / `decrypt_message` |
+| **B4aeConfig** | Implemented | `security_profile`, `crypto_config`, `protocol_config`, `handshake_config` |
+| **connect() / session.send_text()** | Roadmap | Higher-level session API planned |
+| **generate_identity()** | Roadmap | Identity/backup features planned |
+| **Group chat, file transfer** | Examples | `b4ae_chat_demo`, `b4ae_file_transfer_demo` (custom apps) |
+| **Platform SDK** | Implemented | `generateKey`, `encrypt`, `decrypt` (b4ae-ffi, b4ae-android, b4ae-wasm) |
+
+See [docs/PLATFORM_SDK.md](../docs/PLATFORM_SDK.md) for bindings. Sections below document both current and target API.
 
 ## 1. API OVERVIEW
 
@@ -40,22 +53,39 @@
 
 ### 2.1 Client Initialization
 
-#### Rust API
+#### Rust API (Current Implementation)
 ```rust
 use b4ae::{B4aeClient, SecurityProfile, B4aeConfig};
 
-// Simple initialization with default config
+// Simple initialization with security profile
 let client = B4aeClient::new(SecurityProfile::Standard)?;
 
 // Advanced initialization with custom config
-let config = B4aeConfig {
-    security_profile: SecurityProfile::High,
-    metadata_protection: true,
-    enable_dummy_traffic: true,
-    storage_path: Some("/path/to/storage".into()),
-    ..Default::default()
-};
+let config = B4aeConfig::from_profile(SecurityProfile::High);
 let client = B4aeClient::with_config(config)?;
+
+// B4aeConfig fields: security_profile, crypto_config, protocol_config, handshake_config
+```
+
+#### Current Rust Handshake & Messaging (Implemented)
+```rust
+use b4ae::prelude::*;
+
+let mut alice = B4aeClient::new(SecurityProfile::Standard)?;
+let mut bob = B4aeClient::new(SecurityProfile::Standard)?;
+let alice_id = b"alice".to_vec();
+let bob_id = b"bob".to_vec();
+
+// Handshake (manual steps)
+let init = alice.initiate_handshake(&bob_id)?;
+let response = bob.respond_to_handshake(&alice_id, init)?;
+let complete = alice.process_response(&bob_id, response)?;
+bob.complete_handshake(&alice_id, complete)?;
+alice.finalize_initiator(&bob_id)?;
+
+// Encrypt/decrypt
+let encrypted = alice.encrypt_message(&bob_id, b"Hello!")?;
+let decrypted = bob.decrypt_message(&alice_id, &encrypted)?;
 ```
 
 #### Swift API (iOS/macOS)
@@ -110,7 +140,9 @@ const config = {
 const client = new B4AEClient(config);
 ```
 
-### 2.2 Identity Management
+### 2.2 Identity Management [Roadmap]
+
+*The following APIs (2.2–2.6) are target design. Use the handshake + encrypt/decrypt flow above for now.*
 
 #### Create Identity
 ```rust

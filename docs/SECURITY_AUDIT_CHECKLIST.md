@@ -10,14 +10,14 @@ Checklist untuk security audit internal dan eksternal B4AE Protocol.
 
 ### 1.1 Key Exchange
 - [ ] Kyber-1024 implementation (pqcrypto-kyber) — NIST FIPS 203
-- [ ] ECDH P-521 (hybrid) — constant-time, no side-channel
+- [ ] X25519 (hybrid) — constant-time, no side-channel
 - [ ] Key derivation HKDF-SHA3-256 — salt, context, proper length
 - [ ] Replay protection pada handshake
 - [ ] Forward secrecy (PFS+)
 
 ### 1.2 Signatures
 - [ ] Dilithium5 (pqcrypto-dilithium) — NIST FIPS 204
-- [ ] ECDSA P-521 (hybrid) — constant-time comparison
+- [ ] Ed25519 (hybrid) — constant-time comparison
 - [ ] Nonce/salt uniqueness
 - [ ] Signature verification sebelum processing
 

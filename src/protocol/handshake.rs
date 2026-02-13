@@ -10,10 +10,10 @@ use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use subtle::ConstantTimeEq;
 
-/// Handshake state machine
+/// Handshake state machine (matches TLA+/Coq spec: Initiation, WaitingResponse, etc.)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HandshakeState {
-    Initial,
+    Initiation,
     WaitingResponse,
     WaitingComplete,
     Completed,
@@ -155,7 +155,7 @@ impl HandshakeInitiator {
         Ok(HandshakeInitiator {
             config,
             local_keypair,
-            state: HandshakeState::Initial,
+            state: HandshakeState::Initiation,
             client_random,
             server_random: None,
             shared_secret: None,
@@ -165,7 +165,7 @@ impl HandshakeInitiator {
     }
 
     pub fn generate_init(&mut self) -> CryptoResult<HandshakeInit> {
-        if self.state != HandshakeState::Initial {
+        if self.state != HandshakeState::Initiation {
             return Err(CryptoError::InvalidInput("Invalid state for init".to_string()));
         }
 
@@ -279,11 +279,13 @@ impl HandshakeInitiator {
         let peer_public_key = self.peer_public_key.clone()
             .ok_or_else(|| CryptoError::InvalidInput("No peer public key".to_string()))?;
 
-        let session_keys = self.derive_session_keys(shared_secret, &server_random)?;
+        // Spec: master_secret = HKDF(ikm=shared_secret, salt=client_random||server_random, info="B4AE-v1-master-secret")
+        let master_secret = self.derive_master_secret(shared_secret, &server_random)?;
+        let session_keys = self.derive_session_keys(&master_secret)?;
         let session_id = self.generate_session_id(&server_random)?;
 
         Ok(HandshakeResult {
-            master_secret: shared_secret.clone(),
+            master_secret,
             session_keys,
             peer_public_key,
             session_id,
@@ -314,34 +316,22 @@ impl HandshakeInitiator {
         Ok(result)
     }
 
-    fn derive_session_keys(&self, shared_secret: &[u8], server_random: &[u8; 32]) -> CryptoResult<SessionKeys> {
-        let mut key_material = Vec::new();
-        key_material.extend_from_slice(&self.client_random);
-        key_material.extend_from_slice(server_random);
+    /// Derive master_secret per spec: HKDF(ikm=shared_secret, salt=client_random||server_random, info="B4AE-v1-master-secret")
+    fn derive_master_secret(&self, shared_secret: &[u8], server_random: &[u8; 32]) -> CryptoResult<Vec<u8>> {
+        let mut salt = Vec::with_capacity(64);
+        salt.extend_from_slice(&self.client_random);
+        salt.extend_from_slice(server_random);
+        hkdf::derive_key_with_salt(&salt, &[shared_secret], b"B4AE-v1-master-secret", 32)
+    }
 
-        // Derive three keys using hkdf::derive_key
-        let encryption_key = hkdf::derive_key(
-            &[shared_secret, &key_material],
-            b"B4AE-v1-encryption",
-            32
-        )?;
-        
-        let authentication_key = hkdf::derive_key(
-            &[shared_secret, &key_material],
-            b"B4AE-v1-authentication",
-            32
-        )?;
-        
-        let metadata_key = hkdf::derive_key(
-            &[shared_secret, &key_material],
-            b"B4AE-v1-metadata",
-            32
-        )?;
-
+    /// Derive session keys from master_secret per spec (B4AE-v1-encryption-key, etc.)
+    fn derive_session_keys(&self, master_secret: &[u8]) -> CryptoResult<SessionKeys> {
+        let kdf = hkdf::B4aeKeyDerivation::new(master_secret.to_vec());
+        let keys = kdf.derive_all_keys()?;
         Ok(SessionKeys {
-            encryption_key,
-            authentication_key,
-            metadata_key,
+            encryption_key: keys.encryption_key.clone(),
+            authentication_key: keys.authentication_key.clone(),
+            metadata_key: keys.metadata_key.clone(),
         })
     }
 
@@ -388,7 +378,7 @@ impl HandshakeResponder {
         Ok(HandshakeResponder {
             config,
             local_keypair,
-            state: HandshakeState::Initial,
+            state: HandshakeState::Initiation,
             server_random,
             client_random: None,
             shared_secret: None,
@@ -398,7 +388,7 @@ impl HandshakeResponder {
     }
 
     pub fn process_init(&mut self, init: HandshakeInit) -> CryptoResult<HandshakeResponse> {
-        if self.state != HandshakeState::Initial {
+        if self.state != HandshakeState::Initiation {
             return Err(CryptoError::InvalidInput("Invalid state for init".to_string()));
         }
 
@@ -511,11 +501,13 @@ impl HandshakeResponder {
         let peer_public_key = self.peer_public_key.clone()
             .ok_or_else(|| CryptoError::InvalidInput("No peer public key".to_string()))?;
 
-        let session_keys = self.derive_session_keys(shared_secret, &client_random)?;
+        // Spec: master_secret = HKDF(ikm=shared_secret, salt=client_random||server_random, info="B4AE-v1-master-secret")
+        let master_secret = self.derive_master_secret(shared_secret, &client_random)?;
+        let session_keys = self.derive_session_keys(&master_secret)?;
         let session_id = self.generate_session_id(&client_random)?;
 
         Ok(HandshakeResult {
-            master_secret: shared_secret.clone(),
+            master_secret,
             session_keys,
             peer_public_key,
             session_id,
@@ -546,34 +538,22 @@ impl HandshakeResponder {
         Ok(result)
     }
 
-    fn derive_session_keys(&self, shared_secret: &[u8], client_random: &[u8; 32]) -> CryptoResult<SessionKeys> {
-        let mut key_material = Vec::new();
-        key_material.extend_from_slice(client_random);
-        key_material.extend_from_slice(&self.server_random);
+    /// Derive master_secret per spec: HKDF(ikm=shared_secret, salt=client_random||server_random, info="B4AE-v1-master-secret")
+    fn derive_master_secret(&self, shared_secret: &[u8], client_random: &[u8; 32]) -> CryptoResult<Vec<u8>> {
+        let mut salt = Vec::with_capacity(64);
+        salt.extend_from_slice(client_random);
+        salt.extend_from_slice(&self.server_random);
+        hkdf::derive_key_with_salt(&salt, &[shared_secret], b"B4AE-v1-master-secret", 32)
+    }
 
-        // Derive three keys using hkdf::derive_key
-        let encryption_key = hkdf::derive_key(
-            &[shared_secret, &key_material],
-            b"B4AE-v1-encryption",
-            32
-        )?;
-        
-        let authentication_key = hkdf::derive_key(
-            &[shared_secret, &key_material],
-            b"B4AE-v1-authentication",
-            32
-        )?;
-        
-        let metadata_key = hkdf::derive_key(
-            &[shared_secret, &key_material],
-            b"B4AE-v1-metadata",
-            32
-        )?;
-
+    /// Derive session keys from master_secret per spec (B4AE-v1-encryption-key, etc.)
+    fn derive_session_keys(&self, master_secret: &[u8]) -> CryptoResult<SessionKeys> {
+        let kdf = hkdf::B4aeKeyDerivation::new(master_secret.to_vec());
+        let keys = kdf.derive_all_keys()?;
         Ok(SessionKeys {
-            encryption_key,
-            authentication_key,
-            metadata_key,
+            encryption_key: keys.encryption_key.clone(),
+            authentication_key: keys.authentication_key.clone(),
+            metadata_key: keys.metadata_key.clone(),
         })
     }
 
