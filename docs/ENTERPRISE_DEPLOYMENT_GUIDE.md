@@ -74,8 +74,9 @@ Panduan deployment B4AE untuk lingkungan enterprise (on-prem, hybrid, compliance
 
 ### 3.3 Audit & Compliance
 
-- Enable audit sink: `AuditSink`, `AuditEvent`
-- Export ke SIEM (Syslog, Splunk, Elastic)
+- Set `B4aeConfig::audit_sink` dengan implementasi `AuditSink` (mis. `MemoryAuditSink` atau custom sink ke SIEM)
+- Events: HandshakeInitiated/Completed, SessionCreated/Closed, KeyRotation (peer/session di-hash untuk privacy)
+- Export ke SIEM (Syslog, Splunk, Elastic) via custom sink
 - Retention policy sesuai regulasi (GDPR, SOC2, dll)
 
 ### 3.4 Container / Orchestration

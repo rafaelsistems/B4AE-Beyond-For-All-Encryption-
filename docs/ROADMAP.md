@@ -18,7 +18,7 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 ### Selesai
 - [x] Cryptographic core (Kyber, Dilithium, Hybrid, PFS+, ZKAuth)
 - [x] Protocol (Handshake, Message, Session)
-- [x] Metadata protection (Padding, Timing, Obfuscation)
+- [x] Metadata protection (Padding, Timing, Obfuscation) — terintegrasi di B4aeClient (encrypt/decrypt)
 - [x] ELARA transport integration
 - [x] B4aeElaraNode
 - [x] CI/CD, Dependabot
@@ -58,10 +58,11 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 - [x] **iOS**: Swift bindings (b4ae-ffi + bindings/swift) + build_ios.sh/.ps1
 - [x] **Android**: Kotlin JNI (b4ae-android + b4ae-android-app) + build_android.sh/.ps1
 - [x] **Web**: WebAssembly (b4ae-wasm + wasm-demo) + build_wasm.ps1, package.json
+- [x] **Full protocol**: b4ae-ffi feature `full-protocol` (handshake + encrypt/decrypt C API)
 - [x] **Contoh aplikasi**: b4ae_chat_demo, b4ae_file_transfer_demo, b4ae_gateway_demo
 
 ### Production-Ready
-- [x] **Audit logging** — modul `audit` (AuditEvent, AuditSink)
+- [x] **Audit logging** — modul `audit` (AuditEvent, AuditSink) + terhubung ke B4aeClient (audit_sink)
 - [x] **Proptest invariants** — AES roundtrip, handshake completeness (lihat [FORMAL_VERIFICATION.md](FORMAL_VERIFICATION.md))
 - [x] **Fuzzing CI** — job Proptest Invariants di GitHub Actions
 - [x] **HSM trait** — `HsmBackend` + `NoOpHsm` + `Pkcs11Hsm` (feature `hsm-pkcs11`)

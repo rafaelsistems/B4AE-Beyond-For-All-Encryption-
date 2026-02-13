@@ -10,11 +10,14 @@
 | API Area | Status | Notes |
 |----------|--------|-------|
 | **B4aeClient** (handshake, encrypt/decrypt) | Implemented | Manual handshake flow + `encrypt_message` / `decrypt_message` |
-| **B4aeConfig** | Implemented | `security_profile`, `crypto_config`, `protocol_config`, `handshake_config` |
+| **B4aeConfig** | Implemented | `security_profile`, `crypto_config`, `protocol_config`, `handshake_config`, `audit_sink` |
+| **Metadata protection** | Implemented | Padding, timing obfuscation, dummy traffic terintegrasi di `encrypt_message`/`decrypt_message` |
+| **Audit** | Implemented | `B4aeConfig.audit_sink`, log ke handshake/session/key rotation |
+| **Dummy/timing helpers** | Implemented | `should_generate_dummy()`, `encrypt_dummy_message()`, `timing_delay_ms()` |
 | **connect() / session.send_text()** | Roadmap | Higher-level session API planned |
 | **generate_identity()** | Roadmap | Identity/backup features planned |
 | **Group chat, file transfer** | Examples | `b4ae_chat_demo`, `b4ae_file_transfer_demo` (custom apps) |
-| **Platform SDK** | Implemented | `generateKey`, `encrypt`, `decrypt` (b4ae-ffi, b4ae-android, b4ae-wasm) |
+| **Platform SDK** | Implemented | Default: `generateKey`, `encrypt`, `decrypt`. Full: `b4ae-ffi --features full-protocol` |
 
 See [docs/PLATFORM_SDK.md](../docs/PLATFORM_SDK.md) for bindings. Sections below document both current and target API.
 
@@ -65,7 +68,7 @@ let client = B4aeClient::new(SecurityProfile::Standard)?;
 let config = B4aeConfig::from_profile(SecurityProfile::High);
 let client = B4aeClient::with_config(config)?;
 
-// B4aeConfig fields: security_profile, crypto_config, protocol_config, handshake_config
+// B4aeConfig fields: security_profile, crypto_config, protocol_config, handshake_config, audit_sink
 ```
 
 #### Current Rust Handshake & Messaging (Implemented)

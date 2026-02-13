@@ -8,7 +8,7 @@
 
 ## 1. Ringkasan Eksekutif
 
-B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake, PFS+, sesi terenkripsi). Beberapa fitur lapisan atas (metadata protection terintegrasi, ZKAuth di handshake, audit terintegrasi, multi-device, identity) **ada di modul** tetapi **belum terintegrasi penuh** ke `B4aeClient`. Platform SDK menyediakan subset sederhana (generateKey, encrypt, decrypt) — bukan API handshake lengkap.
+B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake, PFS+, sesi terenkripsi). Metadata protection dan audit **terintegrasi** ke `B4aeClient`. Platform SDK menyediakan subset AES (default) dan full protocol via feature `full-protocol`.
 
 | Kategori | Status | Catatan |
 |----------|--------|---------|
@@ -17,7 +17,7 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 | **Metadata Protection** | ✅ Terintegrasi | Padding, timing, dummy via B4aeClient |
 | **Identity & Auth** | ⚠️ Parsial | ZKAuth ada, tidak dipakai di handshake |
 | **ELARA Transport** | ✅ Lengkap | UDP, chunking, NAT traversal |
-| **Platform SDK** | ⚠️ Subset | AES subset, bukan full protocol |
+| **Platform SDK** | ✅ Full (opsional) | Default: AES subset. `full-protocol`: handshake + encrypt/decrypt |
 | **Audit & Compliance** | ✅ Terintegrasi | B4aeConfig.audit_sink, wired ke client |
 | **HSM** | ✅ Trait ready | NoOp + PKCS#11 |
 | **Key Hierarchy (MIK/DMK)** | ✅ Placeholder | Modul key_hierarchy, Spec §4 roadmap |
@@ -172,16 +172,17 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 
 **Lokasi**: `audit.rs`. Modul lengkap, tetapi tidak ada wiring ke client/handshake/session.
 
-### 3.11 Platform SDK ⚠️ Subset
+### 3.11 Platform SDK ✅
 
 | Platform | Status | API |
 |----------|--------|-----|
 | Web (WASM) | ✅ | `generate_key`, `encrypt`, `decrypt` (AES subset) |
 | Android | ✅ | Idem |
 | iOS | ✅ | Idem |
-| C FFI | ✅ | Idem |
+| C FFI (default) | ✅ | Idem |
+| C FFI (`full-protocol`) | ✅ | `b4ae_client_new`, handshake, `encrypt_message`, `decrypt_message` |
 
-**Catatan**: SDK menyediakan **subset AES** (symmetric encryption saja), bukan full B4AE protocol (handshake, hybrid, PFS+). Berguna untuk demo/integrasi sederhana, bukan secure channel lengkap.
+**Catatan**: Default = subset AES. Build dengan `--features full-protocol` untuk full B4AE protocol (handshake, hybrid, PFS+).
 
 ### 3.12 Examples
 
@@ -199,11 +200,11 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 | Tujuan | Implementasi | Gap |
 |--------|---------------|-----|
 | Quantum resistance | ✅ Kyber + Dilithium + hybrid | — |
-| Metadata protection | ⚠️ Modul ada, tidak terintegrasi | Integrasi ke client |
+| Metadata protection | ✅ Terintegrasi di B4aeClient | — |
 | Perfect forward secrecy | ✅ PFS+ | — |
 | High performance | ✅ Benchmarks, perf module | — |
-| Cross-platform | ✅ SDK (subset), examples | Full protocol di SDK |
-| Enterprise compliance | ⚠️ Audit modul, belum terintegrasi | Wiring audit ke client |
+| Cross-platform | ✅ SDK (subset + full-protocol), examples | — |
+| Enterprise compliance | ✅ Audit terhubung ke client | — |
 | Multi-device sync | ❌ | Roadmap |
 | ZK authentication | ⚠️ Modul ada | Opsional di handshake |
 | Onion routing | ❌ | Roadmap |
@@ -212,26 +213,12 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 
 ## 5. Rekomendasi Prioritas
 
-### Prioritas Tinggi
+### Implementasi Selesai ✅
 
-1. **Integrasikan Metadata Protection ke B4aeClient**
-   - Sebelum `session.send()`, panggil `MetadataProtection::protect_message()` jika `protocol_config` mengaktifkan padding.
-   - Untuk dummy traffic: periksa `should_generate_dummy()` dan kirim dummy message sesuai config.
-   - Untuk timing: aplikasikan delay sebelum transmit (atau dokumentasikan bahwa ini aplikasi-layer).
-
-2. **Integrasikan Audit ke Client**
-   - Di `initiate_handshake`, `complete_handshake`, `finalize_initiator`, `close_session`, `perform_key_rotation`: log ke `AuditSink` (jika disediakan di config).
-   - Tambah `B4aeConfig::audit_sink: Option<Arc<dyn AuditSink>>`.
-
-### Prioritas Sedang
-
-3. **Perjelas Platform SDK scope**
-   - Dokumentasikan bahwa SDK saat ini = subset AES untuk demo.
-   - Roadmap: FFI/SDK untuk handshake + encrypt/decrypt penuh (opsional, effort besar).
-
-4. **Ekspos Metadata Protection sebagai opsi**
-   - Biarkan aplikasi memilih level (None/Basic/Standard/High/Maximum) via `B4aeConfig` / `SecurityProfile`.
-   - Saat ini `ProtocolConfig` sudah punya `padding_block_size`, `timing_obfuscation`, `dummy_traffic` — tetapi tidak dipakai di flow utama.
+1. **Metadata Protection** — Terintegrasi di `encrypt_message`/`decrypt_message`; `should_generate_dummy()`, `encrypt_dummy_message()`, `timing_delay_ms()`.
+2. **Audit** — `B4aeConfig::audit_sink` wired ke handshake, session, key rotation.
+3. **Platform SDK full protocol** — b4ae-ffi feature `full-protocol`.
+4. **Key hierarchy** — Placeholder module `key_hierarchy` (Spec §4 roadmap).
 
 ### Prioritas Rendah / Roadmap
 
@@ -243,13 +230,14 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 
 ## 6. Kesimpulan
 
-B4AE v1.0 **memenuhi tujuan inti**: protokol quantum-resistant dengan handshake tiga langkah, PFS+, session terenkripsi, dan integrasi ELARA. Gap utama:
+B4AE v1.0 **memenuhi tujuan inti**: protokol quantum-resistant dengan handshake tiga langkah, PFS+, session terenkripsi, dan integrasi ELARA. Per 13 Feb 2026:
 
-- **Metadata protection**: modul siap, belum terhubung ke alur `encrypt_message`/`session.send()`.
-- **Audit**: modul siap, belum dipanggil dari client.
-- **Platform SDK**: subset AES, bukan full B4AE protocol.
+- **Metadata protection**: terintegrasi di `encrypt_message`/`decrypt_message` ✅
+- **Audit**: terhubung ke client via `B4aeConfig::audit_sink` ✅
+- **Platform SDK**: full protocol tersedia via feature `full-protocol` ✅
+- **Key hierarchy**: placeholder module untuk MIK/DMK/STK ✅
 
-Semua perbaikan sebelumnya (HKDF, state naming, X25519/Ed25519, API design docs) sudah diterapkan. Dokumen spesifikasi dan README selaras dengan implementasi kriptografi dan protokol inti.
+Dokumen spesifikasi dan README selaras dengan implementasi terbaru.
 
 ---
 

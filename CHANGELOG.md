@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- (Future releases)
+- **Metadata protection integration** — Padding, timing obfuscation, dummy traffic terintegrasi di `B4aeClient::encrypt_message`/`decrypt_message`; helper `should_generate_dummy()`, `encrypt_dummy_message()`, `timing_delay_ms()`
+- **Audit sink** — `B4aeConfig::audit_sink` untuk compliance; log HandshakeInitiated/Completed, SessionCreated/Closed, KeyRotation
+- **Platform SDK full protocol** — b4ae-ffi feature `full-protocol` (b4ae_client_new, handshake, encrypt_message, decrypt_message)
+- **Key hierarchy placeholder** — modul `key_hierarchy` (MasterIdentityKey, DeviceMasterKey, StorageKey per Spec §4 roadmap)
 
 ## [1.0.0] - 2026-02-13
 

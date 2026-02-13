@@ -194,5 +194,38 @@ Sesuai—Platform SDK memang subset, tidak full handshake. ✅ Tidak ada ketidak
 
 ---
 
+---
+
+## 6. Perbaikan Tambahan (Post-13 Feb 2026)
+
+### 6.1 Metadata Protection — Terintegrasi ✅
+
+| Sebelum | Sesudah |
+|---------|---------|
+| Modul padding/timing/obfuscation ada, belum dipakai di client | `B4aeClient::encrypt_message` menerapkan padding via `MetadataProtection::protect_message` |
+| — | `decrypt_message` memanggil `unprotect_message` |
+| — | `should_generate_dummy()`, `encrypt_dummy_message()`, `timing_delay_ms()` tersedia |
+
+### 6.2 Audit — Terhubung ke Client ✅
+
+| Sebelum | Sesudah |
+|---------|---------|
+| Modul `audit` ada, tidak dipanggil dari client | `B4aeConfig::audit_sink: Option<Arc<dyn AuditSink>>` |
+| — | Handshake, Session, KeyRotation di-log ke sink |
+
+### 6.3 Platform SDK Full Protocol ✅
+
+| Sebelum | Sesudah |
+|---------|---------|
+| b4ae-ffi hanya AES subset (generate_key, encrypt, decrypt) | Feature `full-protocol`: handshake + encrypt/decrypt API C |
+
+### 6.4 Key Hierarchy Placeholder ✅
+
+| Sebelum | Sesudah |
+|---------|---------|
+| MIK/DMK tidak ada struktur | `src/key_hierarchy.rs` dengan placeholder types (Spec §4 roadmap) |
+
+---
+
 **Disusun oleh:** B4AE Codebase Audit  
 **Untuk pertanyaan:** Lihat CONTRIBUTING.md

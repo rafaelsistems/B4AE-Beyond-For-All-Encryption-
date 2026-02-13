@@ -232,6 +232,7 @@ B4AE provides bindings for mobile and web:
 | **Web** | `b4ae-wasm` | generate_key, encrypt, decrypt |
 | **Android** | `b4ae-android` | B4AE.generateKey(), encrypt(), decrypt() |
 | **iOS** | `b4ae-ffi` + Swift | B4AE.generateKey(), encrypt(), decrypt() |
+| **Full Protocol** | `b4ae-ffi --features full-protocol` | handshake + encrypt/decrypt (quantum-resistant) |
 
 See [docs/PLATFORM_SDK.md](docs/PLATFORM_SDK.md) for build and usage.
 
@@ -419,7 +420,8 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed progress.
 
 - **`src/crypto/`** - Cryptographic primitives (Kyber, Dilithium, Hybrid, PFS+, ZKAuth)
 - **`src/protocol/`** - Protocol implementation (Handshake, Message, Session)
-- **`src/metadata/`** - Metadata protection (Padding, Timing, Obfuscation)
+- **`src/metadata/`** - Metadata protection (Padding, Timing, Obfuscation) — terintegrasi di B4aeClient
+- **`src/key_hierarchy.rs`** - Key hierarchy placeholder (MIK, DMK, STK per Spec §4 roadmap)
 - **`src/transport/`** - Transport layer (ElaraTransport untuk UDP, feature `elara`)
 - **`src/elara_node.rs`** - B4aeElaraNode: B4AE + ELARA integration (feature `elara`)
 - **`specs/`** - Technical specifications
@@ -447,8 +449,9 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed progress.
 - [Performance Benchmarking Framework](research/04_Performance_Benchmarking_Framework.md)
 - [Competitive Analysis](research/05_Competitive_Analysis.md)
 
-### Status
+### Status & Audit
 - [ROADMAP](docs/ROADMAP.md) — development roadmap
+- [AUDIT_FEATURES_ANALYSIS](docs/AUDIT_FEATURES_ANALYSIS.md) — fitur vs implementasi
 
 ---
 
@@ -481,7 +484,8 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed progress.
 ✅ Hybrid cryptography (defense in depth)  
 ✅ Perfect Forward Secrecy Plus  
 ✅ Zero-knowledge authentication  
-✅ Metadata protection  
+✅ Metadata protection (padding, timing obfuscation, dummy traffic — terintegrasi di client)  
+✅ Audit logging (B4aeConfig.audit_sink untuk compliance)  
 ✅ Memory security (zeroization)  
 ✅ Replay attack prevention  
 
