@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Audit sink** — `B4aeConfig::audit_sink` untuk compliance; log HandshakeInitiated/Completed, SessionCreated/Closed, KeyRotation
 - **Platform SDK full protocol** — b4ae-ffi feature `full-protocol` (b4ae_client_new, handshake, encrypt_message, decrypt_message)
 - **Key hierarchy** — MIK, DMK, STK, BKS, export/import untuk multi-device sync (Spec §4)
+- **Encrypted storage** — `src/storage.rs` (EncryptedStorage dengan STK + AES-256-GCM, StorageBackend trait)
+- **Key store** — `src/key_store.rs` (persistent MIK encrypted dengan passphrase, HKDF + AES-GCM)
+- **Onion routing** — `src/crypto/onion.rs` (onion_encrypt, onion_decrypt_layer untuk relay paths)
+- **IP anonymization** — `ProtocolConfig::anonymization` (AnonymizationConfig: proxy_url, use_tor)
 
 ## [1.0.0] - 2026-02-13
 

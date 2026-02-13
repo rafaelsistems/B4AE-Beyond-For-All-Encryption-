@@ -69,12 +69,13 @@ B4AE addresses all these limitations:
 ├─────────────────────────────────────────────────────────────┤
 │ Layer 3: Network-Level Protection                          │
 │          - ELARA Transport (UDP, NAT traversal)             │
-│          - Onion Routing (Optional)                         │
-│          - IP Anonymization                                 │
+│          - Onion Routing (crypto/onion.rs)                  │
+│          - IP Anonymization (ProtocolConfig::anonymization) │
 ├─────────────────────────────────────────────────────────────┤
 │ Layer 2: Storage & Memory Security                         │
-│          - Encrypted Storage                                │
-│          - Secure Memory Handling                           │
+│          - Encrypted Storage (storage.rs, STK + AES-GCM)   │
+│          - Key Store (key_store.rs, MIK persist)            │
+│          - Secure Memory (zeroize)                          │
 ├─────────────────────────────────────────────────────────────┤
 │ Layer 1: Device Hardware Security                          │
 │          - Hardware Security Module Support                 │

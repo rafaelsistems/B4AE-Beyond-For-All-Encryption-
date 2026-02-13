@@ -15,6 +15,10 @@
 | **Audit** | Implemented | `B4aeConfig.audit_sink`, log ke handshake/session/key rotation |
 | **Key hierarchy** | Implemented | `key_hierarchy`: MIK, DMK, STK, BKS, `export_dmk_for_device`/`import_dmk_for_device` |
 | **Dummy/timing helpers** | Implemented | `should_generate_dummy()`, `encrypt_dummy_message()`, `timing_delay_ms()` (otomatis di encrypt_message) |
+| **Encrypted storage** | Implemented | `storage::EncryptedStorage` (STK + AES-GCM), `StorageBackend` trait |
+| **Key store** | Implemented | `key_store::KeyStore` (persistent MIK dengan passphrase) |
+| **Onion routing** | Implemented | `crypto::onion` (onion_encrypt, onion_decrypt_layer) |
+| **IP anonymization** | Implemented | `ProtocolConfig::anonymization` (proxy_url, use_tor) |
 | **connect() / session.send_text()** | Roadmap | Higher-level session API planned |
 | **generate_identity()** | Roadmap | Identity/backup features planned |
 | **Group chat, file transfer** | Examples | `b4ae_chat_demo`, `b4ae_file_transfer_demo` (custom apps) |

@@ -69,7 +69,8 @@ Panduan deployment B4AE untuk lingkungan enterprise (on-prem, hybrid, compliance
 ### 3.2 Key Management
 
 - Session keys di memory (B4AE default: zeroize)
-- Long-term keys: HSM via `hsm-pkcs11` feature
+- Long-term keys: HSM via `hsm-pkcs11` feature, atau `key_store::KeyStore` untuk persistent MIK (passphrase-encrypted)
+- Encrypted storage: `storage::EncryptedStorage` (STK + AES-GCM) untuk data at rest
 - Key rotation: manual atau policy-based
 
 ### 3.3 Audit & Compliance
@@ -114,7 +115,7 @@ Panduan deployment B4AE untuk lingkungan enterprise (on-prem, hybrid, compliance
 
 - [ ] **Encryption at rest**: disk encryption (LUKS, BitLocker)
 - [ ] **Encryption in transit**: B4AE provides; ensure no plaintext leakage
-- [ ] **Key management**: HSM atau secure key store
+- [ ] **Key management**: HSM (`hsm-pkcs11`) atau `KeyStore` (persistent MIK)
 - [ ] **Audit trail**: AuditEvent → SIEM
 - [ ] **Access control**: network ACL, principle of least privilege
 - [ ] **Data retention**: policy untuk session logs, audit logs

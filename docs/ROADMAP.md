@@ -20,6 +20,10 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 - [x] Protocol (Handshake, Message, Session)
 - [x] Metadata protection (Padding, Timing, Dummy, metadata_key MAC) — lengkap di `encrypt_message`/`decrypt_message`
 - [x] Key hierarchy (MIK, DMK, STK, BKS, export/import) — `src/key_hierarchy.rs`
+- [x] Encrypted storage — `src/storage.rs` (EncryptedStorage, STK + AES-GCM)
+- [x] Key store — `src/key_store.rs` (persistent MIK dengan passphrase)
+- [x] Onion routing — `src/crypto/onion.rs` (layered encryption)
+- [x] IP anonymization — `ProtocolConfig::anonymization` (proxy_url, use_tor)
 - [x] ELARA transport integration
 - [x] B4aeElaraNode
 - [x] CI/CD, Dependabot

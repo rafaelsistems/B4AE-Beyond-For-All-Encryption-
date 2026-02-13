@@ -16,6 +16,8 @@ pub mod client;
 pub mod prelude;
 pub mod audit;
 pub mod key_hierarchy;
+pub mod key_store;
+pub mod storage;
 
 #[cfg(feature = "hsm")]
 pub mod hsm;

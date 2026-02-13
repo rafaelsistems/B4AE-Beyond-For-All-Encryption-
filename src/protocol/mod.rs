@@ -52,6 +52,15 @@ impl MessageType {
     }
 }
 
+/// IP anonymization settings (proxy/Tor).
+#[derive(Debug, Clone, Default)]
+pub struct AnonymizationConfig {
+    /// Optional SOCKS5 proxy URL (e.g. "socks5://127.0.0.1:9050" for Tor).
+    pub proxy_url: Option<String>,
+    /// Use Tor for IP anonymization when proxy_url points to Tor.
+    pub use_tor: bool,
+}
+
 /// Protocol configuration
 #[derive(Debug, Clone)]
 pub struct ProtocolConfig {
@@ -67,6 +76,8 @@ pub struct ProtocolConfig {
     pub dummy_traffic: bool,
     /// Dummy traffic percentage (0-100)
     pub dummy_traffic_percent: u8,
+    /// IP anonymization (proxy, Tor)
+    pub anonymization: AnonymizationConfig,
 }
 
 impl Default for ProtocolConfig {
@@ -78,6 +89,7 @@ impl Default for ProtocolConfig {
             max_timing_delay_ms: 2000,
             dummy_traffic: false,
             dummy_traffic_percent: 10,
+            anonymization: AnonymizationConfig::default(),
         }
     }
 }
@@ -103,6 +115,7 @@ impl SecurityProfile {
                 max_timing_delay_ms: 2000,
                 dummy_traffic: false,
                 dummy_traffic_percent: 10,
+                anonymization: AnonymizationConfig::default(),
             },
             SecurityProfile::High => ProtocolConfig {
                 metadata_protection: true,
@@ -111,6 +124,7 @@ impl SecurityProfile {
                 max_timing_delay_ms: 5000,
                 dummy_traffic: true,
                 dummy_traffic_percent: 20,
+                anonymization: AnonymizationConfig::default(),
             },
             SecurityProfile::Maximum => ProtocolConfig {
                 metadata_protection: true,
@@ -119,6 +133,7 @@ impl SecurityProfile {
                 max_timing_delay_ms: 10000,
                 dummy_traffic: true,
                 dummy_traffic_percent: 30,
+                anonymization: AnonymizationConfig::default(),
             },
         }
     }

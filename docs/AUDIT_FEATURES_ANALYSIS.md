@@ -137,22 +137,22 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 
 **Lokasi**: `src/key_hierarchy.rs`. MIK→DMK→STK via HKDF. BKS 2-of-M XOR-based. Session keys (SK, MK, EK) tetap dari handshake+PFS+.
 
-### 3.7 Network-Level (Layer 3) ✅ / ⚠️
+### 3.7 Network-Level (Layer 3) ✅
 
 | Komponen | Status | Catatan |
 |----------|--------|---------|
 | ELARA transport | ✅ | `transport/elara.rs`, `elara_node.rs` |
 | UDP, chunking, NAT traversal | ✅ | ElaraTransport |
-| Onion routing | ❌ | README: "Optional" — belum ada |
-| IP anonymization | ❌ | Belum ada |
+| Onion routing | ✅ | `crypto/onion.rs` — layered encryption untuk relay paths |
+| IP anonymization | ✅ | `ProtocolConfig::anonymization` (proxy_url, use_tor) |
 
-### 3.8 Storage & Memory (Layer 2) ⚠️
+### 3.8 Storage & Memory (Layer 2) ✅
 
 | Komponen | Status | Catatan |
 |----------|--------|---------|
-| Encrypted storage | ❌ | Spec: Roadmap |
+| Encrypted storage | ✅ | `storage.rs` — EncryptedStorage (STK + AES-256-GCM) |
 | Secure memory (zeroize) | ✅ | `zeroize` crate digunakan untuk secrets |
-| Key storage | ❌ | Session keys di memory saja |
+| Key storage | ✅ | `key_store.rs` — KeyStore (MIK di-encrypt dengan passphrase) |
 
 ### 3.9 Device Hardware (Layer 1) ✅ Trait
 
@@ -209,7 +209,7 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 | Enterprise compliance | ✅ Audit terhubung ke client | — |
 | Multi-device sync | ✅ | Key hierarchy export/import DMK |
 | ZK authentication | ✅ | Terintegrasi di handshake (extensions) |
-| Onion routing | ❌ | Roadmap |
+| Onion routing | ✅ | crypto/onion.rs |
 
 ---
 
@@ -221,11 +221,14 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 2. **Audit** — `B4aeConfig::audit_sink` wired ke handshake, session, key rotation.
 3. **Platform SDK full protocol** — b4ae-ffi feature `full-protocol`.
 4. **Key hierarchy** — MIK, DMK, STK, BKS, export/import (`key_hierarchy` module).
+5. **Encrypted storage** — `storage.rs` (EncryptedStorage, STK + AES-GCM).
+6. **Key store** — `key_store.rs` (persistent MIK dengan passphrase).
+7. **Onion routing** — `crypto/onion.rs` (layered encryption).
+8. **IP anonymization** — `ProtocolConfig::anonymization`.
 
-### Prioritas Rendah / Roadmap
+### Prioritas Rendah / Opsional
 
-5. **ZKAuth di handshake** — Opsional, terintegrasi.
-6. **Onion routing** — Spec: "Optional".
+9. **ZKAuth di handshake** — Opsional, terintegrasi.
 
 ---
 
@@ -237,6 +240,8 @@ B4AE v1.0 **memenuhi tujuan inti**: protokol quantum-resistant dengan handshake 
 - **Audit**: terhubung ke client via `B4aeConfig::audit_sink` ✅
 - **Platform SDK**: full protocol tersedia via feature `full-protocol` ✅
 - **Key hierarchy**: MIK→DMK→STK, BKS, export/import diimplementasikan ✅
+- **Encrypted storage & Key store**: EncryptedStorage (STK + AES-GCM), KeyStore (MIK persist dengan passphrase) ✅
+- **Onion routing & IP anonymization**: crypto/onion.rs, ProtocolConfig::anonymization ✅
 
 Dokumen spesifikasi dan README selaras dengan implementasi terbaru.
 
