@@ -1,6 +1,7 @@
 # B4AE Formal Verification Plan
 
 Rencana verifikasi formal dan property-based testing untuk critical paths.
+Models align with [Protocol Specification v1.0](../specs/B4AE_Protocol_Specification_v1.0.md).
 
 ---
 

@@ -1,5 +1,6 @@
-// B4AE Message Protocol Implementation
-// Secure message encryption and decryption
+//! B4AE Message Protocol Implementation (Protocol Specification v1.0 §5, §7)
+//!
+//! Secure message encryption and decryption.
 
 use crate::crypto::{CryptoError, CryptoResult};
 use crate::crypto::aes_gcm::{self, AesKey};

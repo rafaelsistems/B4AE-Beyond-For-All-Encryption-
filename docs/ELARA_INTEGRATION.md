@@ -1,6 +1,6 @@
 # B4AE + ELARA Integration
 
-Dokumentasi integrasi B4AE (quantum-resistant crypto) dengan [ELARA Protocol](https://github.com/rafaelsistems/ELARA-Protocol) (UDP transport).
+Dokumentasi integrasi B4AE (quantum-resistant crypto, [Protocol Specification v1.0](../specs/B4AE_Protocol_Specification_v1.0.md)) dengan [ELARA Protocol](https://github.com/rafaelsistems/ELARA-Protocol) (UDP transport).
 
 ## Overview
 

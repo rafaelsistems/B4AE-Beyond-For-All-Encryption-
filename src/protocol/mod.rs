@@ -1,4 +1,7 @@
-// B4AE Protocol Implementation
+//! B4AE Protocol Implementation
+//!
+//! Implements [B4AE Protocol Specification v1.0](../../specs/B4AE_Protocol_Specification_v1.0.md):
+//! handshake, message format, session keys, key derivation.
 
 pub mod handshake;
 pub mod message;
@@ -7,7 +10,7 @@ pub mod session;
 use crate::error::{B4aeError, B4aeResult};
 use serde::{Deserialize, Serialize};
 
-/// B4AE Protocol Version
+/// Wire protocol version (Protocol Specification v1.0). Re-exported from crate root.
 pub const PROTOCOL_VERSION: u16 = 1;
 
 /// Protocol message types

@@ -93,6 +93,6 @@ acl:
 
 ## Referensi
 
-- [B4AE Protocol](B4AE_Protocol_Specification_v1.0.md)
+- [B4AE Protocol Specification v1.0](../specs/B4AE_Protocol_Specification_v1.0.md)
 - [ELARA Integration](ELARA_INTEGRATION.md)
 - [Production Deployment](PRODUCTION_DEPLOYMENT.md)

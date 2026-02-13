@@ -1,5 +1,6 @@
-// B4AE Handshake Protocol Implementation
-// Three-way handshake with quantum-resistant key exchange
+//! B4AE Handshake Protocol Implementation (Protocol Specification v1.0 §6)
+//!
+//! Three-way handshake with quantum-resistant key exchange.
 
 use crate::crypto::{CryptoError, CryptoResult};
 use crate::crypto::hybrid::{self, HybridKeyPair, HybridPublicKey, HybridCiphertext, HybridSignature};

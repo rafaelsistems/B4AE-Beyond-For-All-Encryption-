@@ -1,5 +1,7 @@
-// B4AE (Beyond For All Encryption) Protocol
-// Quantum-resistant secure communication protocol
+//! B4AE (Beyond For All Encryption) Protocol
+//!
+//! Implements [B4AE Protocol Specification v1.0](../specs/B4AE_Protocol_Specification_v1.0.md).
+//! Quantum-resistant secure communication protocol.
 
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
@@ -29,8 +31,11 @@ pub use crypto::{CryptoConfig, SecurityLevel};
 pub use client::{B4aeClient, B4aeConfig};
 pub use protocol::SecurityProfile;
 
-/// B4AE Protocol Version
+/// B4AE crate version (Cargo.toml)
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// B4AE wire protocol version (Protocol Specification v1.0).
+/// Used in handshake and message headers. Value 1 = spec v1.0.
 pub const PROTOCOL_VERSION: u16 = 1;
 
 /// B4AE Protocol Name

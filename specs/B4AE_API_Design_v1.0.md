@@ -2,7 +2,8 @@
 
 **Version:** 1.0  
 **Date:** February 2026  
-**Status:** Implemented (Core API) / Roadmap (Extended API)
+**Status:** Implemented (Core API) / Roadmap (Extended API)  
+**Protocol Spec:** [B4AE Protocol Specification v1.0](B4AE_Protocol_Specification_v1.0.md)
 
 ## Implementation Status
 
