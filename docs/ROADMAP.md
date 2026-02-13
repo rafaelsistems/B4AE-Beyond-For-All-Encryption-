@@ -52,8 +52,8 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 
 ### Publish
 - [x] Persiapan crates.io (metadata, exclude, CRATES_IO_PUBLISH_PREP.md)
-- [ ] elara-transport: publish ke crates.io dulu, lalu ganti path → version
-- [ ] Lihat [CRATES_IO_PUBLISH_PREP.md](CRATES_IO_PUBLISH_PREP.md)
+- [x] elara-transport: elara-core, elara-wire, elara-transport v0.1.0 dipublish ke crates.io; B4AE memakai `version = "0.1"`
+- [x] Lihat [CRATES_IO_PUBLISH_PREP.md](CRATES_IO_PUBLISH_PREP.md)
 
 ---
 

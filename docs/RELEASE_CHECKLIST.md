@@ -20,7 +20,7 @@ Checklist untuk General Availability (GA) release.
 
 - [ ] See [CRATES_IO_PUBLISH_PREP](CRATES_IO_PUBLISH_PREP.md)
 - [ ] `cargo publish --dry-run` succeeds
-- [ ] Resolve elara-transport dependency (path vs crates.io)
+- [x] Resolve elara-transport dependency — elara-transport v0.1 dari crates.io
 - [ ] Publish: `cargo publish`
 
 ### GitHub Release

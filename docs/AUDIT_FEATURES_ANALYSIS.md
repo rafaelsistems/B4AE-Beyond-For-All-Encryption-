@@ -17,7 +17,7 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 | **Handshake & Session** | ✅ Lengkap | Three-way, key derivation, session keys |
 | **Metadata Protection** | ✅ Lengkap | Padding, timing, dummy, metadata_key MAC via encrypt_message |
 | **Identity & Auth** | ✅ Terintegrasi | ZKAuth + pseudonymous (ZkIdentity.public_commitment) |
-| **ELARA Transport** | ✅ Lengkap | Feature `elara`; transport/elara_node (path dep, excluded dari crates.io) |
+| **ELARA Transport** | ✅ Lengkap | Feature `elara`; elara-transport v0.1 dari crates.io; ElaraTransport, B4aeElaraNode |
 | **Storage & Memory** | ✅ Lengkap | EncryptedStorage, KeyStore, zeroize |
 | **Platform SDK** | ✅ Full (opsional) | Default: AES subset. `full-protocol`: handshake + encrypt/decrypt |
 | **Audit & Compliance** | ✅ Terintegrasi | B4aeConfig.audit_sink, wired ke client |
@@ -217,7 +217,7 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 
 | Item | Status | Catatan |
 |------|--------|---------|
-| crates.io publish | ⚠️ | Workflow hapus elara-transport sebelum publish (belum di crates.io); clone --recursive untuk ELARA |
+| crates.io publish | ✅ | elara-transport v0.1 dari crates.io; B4AE publish tanpa modifikasi Cargo.toml |
 | Onion integrasi | ✅ | Terintegrasi: `ProtectionLevel::Maximum` → onion_encrypt di send; onion_decrypt_layer di recv (B4aeElaraNode) |
 | Proxy/IP anonymization | ✅ | `B4aeElaraNode::new_with_config` + `proxy_url` → ProxyElaraTransport (SOCKS5); feature `proxy` |
 | HSM di handshake | ✅ | `HandshakeConfig::hsm`, `hsm_key_id` (feature `hsm`); trait wired, PKCS#11 ready |
@@ -238,7 +238,7 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 | ZK authentication | ✅ | Terintegrasi di handshake (extensions) |
 | Onion routing | ✅ | crypto/onion.rs + integrasi B4aeElaraNode |
 | IP anonymization | ✅ | AnonymizationConfig + ProxyElaraTransport (feature proxy) |
-| ELARA di crates.io | ⚠️ | elara-transport path dep; publish exclude; pakai clone --recursive untuk ELARA penuh |
+| ELARA di crates.io | ✅ | elara-core, elara-wire, elara-transport v0.1.0 dipublish; B4AE memakai version "0.1" |
 
 ---
 
@@ -263,7 +263,7 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 
 ### Prioritas Rendah / Opsional
 
-12. **elara-transport ke crates.io** — Publikasi agar B4AE+ELARA berfungsi di crates.io.
+12. **elara-transport ke crates.io** — ✅ Selesai: elara-core, elara-wire, elara-transport v0.1.0 di crates.io.
 13. **ZKAuth di handshake** — Opsional, terintegrasi.
 
 ---
@@ -280,7 +280,7 @@ B4AE v1.0 **memenuhi tujuan inti**: protokol quantum-resistant dengan handshake 
 - **Onion routing**: crypto/onion.rs + integrasi B4aeElaraNode (Maximum profile) ✅
 - **IP anonymization**: AnonymizationConfig + ProxyElaraTransport via `new_with_config` (feature proxy) ✅
 - **HSM di handshake**: HandshakeConfig::hsm, hsm_key_id (feature hsm) ✅
-- **crates.io publish**: workflow hapus elara-transport; untuk ELARA penuh: `git clone --recursive`
+- **crates.io publish**: elara-transport dari crates.io v0.1; tidak perlu modifikasi Cargo.toml
 
 Dokumen spesifikasi dan README selaras dengan implementasi terbaru. Per 13 Feb 2026: onion, proxy, dan HSM wiring selesai dan berfungsi.
 

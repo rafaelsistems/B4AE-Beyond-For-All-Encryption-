@@ -20,7 +20,7 @@
 | **Key store** | Implemented | `key_store::KeyStore` (persistent MIK dengan passphrase) |
 | **Onion routing** | Implemented | `crypto::onion` (onion_encrypt, onion_decrypt_layer) |
 | **IP anonymization** | Implemented | `ProtocolConfig::anonymization.proxy_url`; B4aeElaraNode + feature `proxy` |
-| **ELARA transport** | Implemented | ElaraTransport, B4aeElaraNode; feature `elara` |
+| **ELARA transport** | Implemented | ElaraTransport, B4aeElaraNode; feature `elara`; elara-transport v0.1 dari crates.io |
 | **Proxy (SOCKS5)** | Implemented | ProxyElaraTransport; feature `proxy`; proxy_url di B4aeConfig |
 | **connect() / session.send_text()** | Roadmap | Higher-level session API planned |
 | **generate_identity()** | Roadmap | Identity/backup features planned |
