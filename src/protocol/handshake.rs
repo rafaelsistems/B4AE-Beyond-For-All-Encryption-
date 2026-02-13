@@ -10,17 +10,9 @@ use crate::crypto::zkauth::{self, ZkChallenge, ZkProof, EXTENSION_TYPE_ZK_CHALLE
 use crate::protocol::PROTOCOL_VERSION;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use crate::time;
 use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
-
-/// Safe timestamp (millis since epoch). Returns 0 if system time is before Unix epoch.
-fn current_time_millis() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or(Duration::ZERO)
-        .as_millis() as u64
-}
 
 /// Handshake state machine (matches TLA+/Coq spec: Initiation, WaitingResponse, etc.)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -213,7 +205,7 @@ impl HandshakeInitiator {
         let mut client_random = [0u8; 32];
         random::fill_random(&mut client_random)?;
         
-        let start_time = current_time_millis();
+        let start_time = time::current_time_millis();
 
         Ok(HandshakeInitiator {
             config,
@@ -442,7 +434,7 @@ impl HandshakeInitiator {
     }
 
     pub fn is_timed_out(&self) -> bool {
-        let current_time = current_time_millis();
+        let current_time = time::current_time_millis();
         current_time - self.start_time > self.config.timeout_ms
     }
 }
@@ -452,7 +444,7 @@ impl HandshakeResponder {
         let mut server_random = [0u8; 32];
         random::fill_random(&mut server_random)?;
 
-        let start_time = current_time_millis();
+        let start_time = time::current_time_millis();
 
         Ok(HandshakeResponder {
             config,
@@ -684,7 +676,7 @@ impl HandshakeResponder {
     }
 
     pub fn is_timed_out(&self) -> bool {
-        let current_time = current_time_millis();
+        let current_time = time::current_time_millis();
         current_time - self.start_time > self.config.timeout_ms
     }
 }
@@ -717,7 +709,9 @@ fn deserialize_ciphertext(bytes: &[u8]) -> CryptoResult<HybridCiphertext> {
         bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]
     ]) as usize;
     offset += 4;
-    
+    if ecdh_len > 256 {
+        return Err(CryptoError::InvalidInput("ECDH ephemeral key length exceeds limit".to_string()));
+    }
     if bytes.len() < offset + ecdh_len {
         return Err(CryptoError::InvalidInput("Insufficient data for ECDH key".to_string()));
     }
@@ -749,7 +743,9 @@ fn deserialize_signature(bytes: &[u8]) -> CryptoResult<HybridSignature> {
         bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]
     ]) as usize;
     offset += 4;
-    
+    if ecdsa_len > 128 {
+        return Err(CryptoError::InvalidInput("ECDSA signature length exceeds limit".to_string()));
+    }
     if bytes.len() < offset + ecdsa_len {
         return Err(CryptoError::InvalidInput("Insufficient data for ECDSA signature".to_string()));
     }

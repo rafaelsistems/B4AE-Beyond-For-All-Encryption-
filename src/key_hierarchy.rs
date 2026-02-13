@@ -14,9 +14,16 @@
 //! ```
 
 use crate::crypto::{CryptoError, CryptoResult};
+use crate::crypto::aes_gcm::{self, AesKey};
 use crate::crypto::hkdf;
 use crate::crypto::random;
+use ring::hmac;
 use zeroize::Zeroize;
+
+/// Shard with MAC: 65 bytes. Legacy (no MAC): 33 bytes.
+const BKS_SHARD_LEGACY_LEN: usize = 33;
+const BKS_SHARD_MAC_LEN: usize = 32;
+const BKS_SHARD_WITH_MAC_LEN: usize = BKS_SHARD_LEGACY_LEN + BKS_SHARD_MAC_LEN;
 
 /// Master Identity Key — root of key hierarchy (Protocol Spec §4.1).
 /// Lifetime: Permanent. Rotation: Manual only.
@@ -181,36 +188,59 @@ impl std::fmt::Debug for StorageKey {
 mod backup_keys {
     use super::*;
 
+    const BKS_MAC_INFO: &[u8] = b"B4AE-v1-BKS-shard-mac";
+
     /// Create M shards; need N to recover. Uses XOR-based scheme for N=2, polynomial for N>2.
+    /// 2-of-2 shards include HMAC-SHA256 for corruption detection (65 bytes each).
     pub fn create_shards(secret: &[u8; 32], n: u8, m: u8) -> CryptoResult<Vec<Vec<u8>>> {
         if n == 2 && m == 2 {
-            // Simple 2-of-2: shard1 = random, shard2 = secret ^ shard1
-            let mut shard1 = [0u8; 33];
-            random::fill_random(&mut shard1[1..])?;
-            shard1[0] = 1; // shard index
-            let mut shard2 = [0u8; 33];
-            shard2[0] = 2;
+            // 2-of-2: shard1 = random, shard2 = secret ^ shard1; each with MAC
+            let mac_key = hkdf::derive_key(&[secret], BKS_MAC_INFO, 32)?;
+            let key = hmac::Key::new(hmac::HMAC_SHA256, &mac_key);
+
+            let mut shard1_core = [0u8; 33];
+            random::fill_random(&mut shard1_core[1..])?;
+            shard1_core[0] = 1;
+            let tag1 = hmac::sign(&key, &shard1_core);
+            let mut shard1 = shard1_core.to_vec();
+            shard1.extend_from_slice(tag1.as_ref());
+
+            let mut shard2_core = [0u8; 33];
+            shard2_core[0] = 2;
             for i in 0..32 {
-                shard2[1 + i] = secret[i] ^ shard1[1 + i];
+                shard2_core[1 + i] = secret[i] ^ shard1_core[1 + i];
             }
-            return Ok(vec![shard1.to_vec(), shard2.to_vec()]);
+            let tag2 = hmac::sign(&key, &shard2_core);
+            let mut shard2 = shard2_core.to_vec();
+            shard2.extend_from_slice(tag2.as_ref());
+
+            return Ok(vec![shard1, shard2]);
         }
         if n == 2 && m >= 2 {
-            // 2-of-M: each pair of shards can recover. Use simple split.
+            // 2-of-M: each pair (2k-1, 2k) can recover. Shards unique to prevent redundancy.
+            // Pair 1: shard1=base1, shard2=secret^base1; Pair 2: shard3=base2, shard4=secret^base2; etc.
             let mut shards = Vec::with_capacity(m as usize);
-            let mut base = [0u8; 32];
-            random::fill_random(&mut base)?;
-            for idx in 1..=m {
-                let mut shard = vec![0u8; 33];
-                shard[0] = idx;
-                if idx == 1 {
-                    shard[1..].copy_from_slice(&base);
-                } else {
-                    for i in 0..32 {
-                        shard[1 + i] = secret[i] ^ base[i];
+            let pair_count = (m as usize + 1) / 2;
+            for pair_idx in 0..pair_count {
+                let mut base = [0u8; 32];
+                random::fill_random(&mut base)?;
+                let shard_idx_base = (pair_idx * 2) as u8;
+                for offset in 0..2 {
+                    let idx = shard_idx_base + offset + 1;
+                    if idx > m {
+                        break;
                     }
+                    let mut shard = vec![0u8; 33];
+                    shard[0] = idx;
+                    if offset == 0 {
+                        shard[1..].copy_from_slice(&base);
+                    } else {
+                        for i in 0..32 {
+                            shard[1 + i] = secret[i] ^ base[i];
+                        }
+                    }
+                    shards.push(shard);
                 }
-                shards.push(shard);
             }
             return Ok(shards);
         }
@@ -223,28 +253,61 @@ mod backup_keys {
         Err(CryptoError::InvalidInput("Invalid BKS parameters".to_string()))
     }
 
-    /// Recover secret from shards.
+    /// Recover secret from shards. Supports legacy 33-byte and authenticated 65-byte formats.
     pub fn recover_from_shards(shards: &[&[u8]]) -> CryptoResult<[u8; 32]> {
         if shards.len() < 2 {
             return Err(CryptoError::InvalidInput("Need at least 2 shards".to_string()));
         }
         for s in shards {
-            if s.len() != 33 {
-                return Err(CryptoError::InvalidInput("Invalid shard length".to_string()));
+            if s.len() != BKS_SHARD_LEGACY_LEN && s.len() != BKS_SHARD_WITH_MAC_LEN {
+                return Err(CryptoError::InvalidInput(
+                    "Invalid shard length (expected 33 or 65 bytes)".to_string(),
+                ));
             }
         }
-        // For 2-of-M: any two shards. shard_i[1..] = key part. Combine: part1 ^ (secret ^ part1) = secret.
-        let a = &shards[0][1..33];
-        let b = &shards[1][1..33];
+        // Both shards must use same format
+        let with_mac = shards[0].len() == BKS_SHARD_WITH_MAC_LEN;
+        if shards[1].len() != shards[0].len() {
+            return Err(CryptoError::InvalidInput(
+                "Shards must use same format (both legacy or both with MAC)".to_string(),
+            ));
+        }
+        // For 2-of-2 or 2-of-M: shards must be from same pair
+        let idx1 = shards[0][0];
+        let idx2 = shards[1][0];
+        if (idx1 as usize + 1) / 2 != (idx2 as usize + 1) / 2 {
+            return Err(CryptoError::InvalidInput(
+                "BKS recovery requires two shards from the same pair (consecutive indices 2k-1, 2k)".to_string(),
+            ));
+        }
+        let payload_len = 32;
+        let a = &shards[0][1..1 + payload_len];
+        let b = &shards[1][1..1 + payload_len];
         let mut secret = [0u8; 32];
         for i in 0..32 {
             secret[i] = a[i] ^ b[i];
+        }
+        // Verify MAC if present
+        if with_mac {
+            let mac_key = hkdf::derive_key(&[&secret], BKS_MAC_INFO, 32)?;
+            let key = hmac::Key::new(hmac::HMAC_SHA256, &mac_key);
+            for (i, s) in shards.iter().enumerate().take(2) {
+                let (core, tag) = s.split_at(BKS_SHARD_LEGACY_LEN);
+                hmac::verify(&key, core, tag)
+                    .map_err(|_| CryptoError::InvalidInput(
+                        format!("BKS shard {} MAC verification failed (possible corruption)", i + 1),
+                    ))?;
+            }
         }
         Ok(secret)
     }
 }
 
+/// AAD for DMK wrap (binds ciphertext to device_id)
+const DMK_WRAP_AAD_PREFIX: &[u8] = b"B4AE-v1-DMK-wrap";
+
 /// Secure key distribution: export DMK encrypted for transfer to new device.
+/// Uses AES-256-GCM (authenticated) instead of XOR.
 pub fn export_dmk_for_device(
     dmk: &DeviceMasterKey,
     mik: &MasterIdentityKey,
@@ -255,32 +318,40 @@ pub fn export_dmk_for_device(
         &[b"B4AE-v1-DMK-export", target_device_id].concat(),
         32,
     )?;
-    // Simple XOR wrap (in production use AES-KW or similar)
-    let mut out = vec![0u8; 32];
-    for i in 0..32 {
-        out[i] = dmk.to_bytes()[i] ^ wrapping_key[i];
-    }
+    let aes_key = AesKey::from_bytes(&wrapping_key)?;
+    let aad: Vec<u8> = [DMK_WRAP_AAD_PREFIX, target_device_id].concat();
+    let (nonce, ciphertext) = aes_gcm::encrypt(&aes_key, dmk.to_bytes().as_slice(), &aad)?;
+    let mut out = nonce;
+    out.extend_from_slice(&ciphertext);
     Ok(out)
 }
 
-/// Import DMK from transfer payload.
+/// Import DMK from transfer payload (AES-256-GCM wrapped).
+/// Format: [nonce 12][ciphertext+tag 48] = 60 bytes.
 pub fn import_dmk_for_device(
     wrapped: &[u8],
     mik: &MasterIdentityKey,
     device_id: &[u8],
 ) -> CryptoResult<DeviceMasterKey> {
-    if wrapped.len() != 32 {
-        return Err(CryptoError::InvalidInput("Invalid wrapped DMK length".to_string()));
+    const NONCE_SIZE: usize = 12;
+    const MIN_WRAPPED_LEN: usize = NONCE_SIZE + 32 + 16; // nonce + plaintext + tag
+
+    if wrapped.len() != MIN_WRAPPED_LEN {
+        return Err(CryptoError::InvalidInput(format!(
+            "Invalid wrapped DMK length: expected {}, got {}",
+            MIN_WRAPPED_LEN,
+            wrapped.len()
+        )));
     }
     let wrapping_key = hkdf::derive_key(
         &[&mik.to_bytes()],
         &[b"B4AE-v1-DMK-export", device_id].concat(),
         32,
     )?;
-    let mut key_material = [0u8; 32];
-    for i in 0..32 {
-        key_material[i] = wrapped[i] ^ wrapping_key[i];
-    }
+    let aes_key = AesKey::from_bytes(&wrapping_key)?;
+    let (nonce, ct) = wrapped.split_at(NONCE_SIZE);
+    let aad: Vec<u8> = [DMK_WRAP_AAD_PREFIX, device_id].concat();
+    let key_material = aes_gcm::decrypt(&aes_key, nonce, ct, &aad)?;
     DeviceMasterKey::from_bytes(&key_material)
 }
 
@@ -326,6 +397,20 @@ mod tests {
         assert_eq!(shards.len(), 2);
         let recovered = MasterIdentityKey::recover_from_shards(&[&shards[0], &shards[1]]).unwrap();
         assert_eq!(mik.to_bytes(), recovered.to_bytes());
+    }
+
+    #[test]
+    fn test_bks_2_of_4() {
+        let mik = MasterIdentityKey::generate().unwrap();
+        let shards = mik.create_backup_shards(2, 4).unwrap();
+        assert_eq!(shards.len(), 4);
+        // Pairs (1,2) and (3,4) can recover; all shards unique
+        let recovered_12 = MasterIdentityKey::recover_from_shards(&[&shards[0], &shards[1]]).unwrap();
+        let recovered_34 = MasterIdentityKey::recover_from_shards(&[&shards[2], &shards[3]]).unwrap();
+        assert_eq!(mik.to_bytes(), recovered_12.to_bytes());
+        assert_eq!(mik.to_bytes(), recovered_34.to_bytes());
+        // Cross-pair (1,3) should fail
+        assert!(MasterIdentityKey::recover_from_shards(&[&shards[0], &shards[2]]).is_err());
     }
 
     #[test]

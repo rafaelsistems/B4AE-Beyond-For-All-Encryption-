@@ -2,6 +2,9 @@
 //!
 //! Menggabungkan B4AE (quantum-resistant crypto) dengan ELARA (UDP transport).
 //! Handshake dan messaging berjalan melalui ELARA UDP.
+//!
+//! **Peer ID**: Session dikunci oleh alamat peer (`peer_addr`), sehingga `connect()`,
+//! `send_message()`, dan `recv_message()` harus memakai alamat yang sama (e.g. `"127.0.0.1:1234"`).
 
 use crate::client::{B4aeClient, B4aeConfig};
 use crate::crypto::onion;
@@ -9,11 +12,16 @@ use crate::error::{B4aeError, B4aeResult};
 use crate::protocol::message::EncryptedMessage;
 use crate::protocol::SecurityProfile;
 use crate::transport::elara::ElaraTransport;
+use bincode::config::DefaultOptions;
+use bincode::Options;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 #[cfg(feature = "proxy")]
 use crate::transport::proxy::ProxyElaraTransport;
+
+/// Batas ukuran untuk deserialize bincode (mitigasi DoS; selaras dengan MAX_REASSEMBLY_SIZE transport)
+const BINCODE_LIMIT: u64 = 128 * 1024;
 
 /// Message types untuk wire protocol B4AE-over-ELARA
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -143,11 +151,15 @@ impl B4aeElaraNode {
                 continue;
             }
 
-            let wire: B4aeWireMessage = bincode::deserialize(&data)
+            let wire: B4aeWireMessage = DefaultOptions::new()
+                .with_limit(BINCODE_LIMIT)
+                .deserialize(&data)
                 .map_err(|e| B4aeError::ProtocolError(e.to_string()))?;
 
             if let B4aeWireMessage::HandshakeResponse(resp_bytes) = wire {
-                let response = bincode::deserialize(&resp_bytes)
+                let response = DefaultOptions::new()
+                    .with_limit(BINCODE_LIMIT)
+                    .deserialize(&resp_bytes)
                     .map_err(|e| B4aeError::ProtocolError(e.to_string()))?;
 
                 let complete = self.client.process_response(&peer_id, response)?;
@@ -178,11 +190,15 @@ impl B4aeElaraNode {
             let peer = from.clone();
             let peer_id = peer.as_bytes().to_vec();
 
-            let wire: B4aeWireMessage = bincode::deserialize(&data)
+            let wire: B4aeWireMessage = DefaultOptions::new()
+                .with_limit(BINCODE_LIMIT)
+                .deserialize(&data)
                 .map_err(|e| B4aeError::ProtocolError(e.to_string()))?;
 
             if let B4aeWireMessage::HandshakeInit(init_bytes) = wire {
-                let init = bincode::deserialize(&init_bytes)
+                let init = DefaultOptions::new()
+                    .with_limit(BINCODE_LIMIT)
+                    .deserialize(&init_bytes)
                     .map_err(|e| B4aeError::ProtocolError(e.to_string()))?;
 
                 let response = self.client.respond_to_handshake(&peer_id, init)?;
@@ -211,11 +227,15 @@ impl B4aeElaraNode {
                     continue;
                 }
 
-                let wire2: B4aeWireMessage = bincode::deserialize(&data2)
+                let wire2: B4aeWireMessage = DefaultOptions::new()
+                    .with_limit(BINCODE_LIMIT)
+                    .deserialize(&data2)
                     .map_err(|e| B4aeError::ProtocolError(e.to_string()))?;
 
                 if let B4aeWireMessage::HandshakeComplete(c) = wire2 {
-                    let complete = bincode::deserialize(&c)
+                    let complete = DefaultOptions::new()
+                        .with_limit(BINCODE_LIMIT)
+                        .deserialize(&c)
                         .map_err(|e| B4aeError::ProtocolError(e.to_string()))?;
                     self.client.complete_handshake(&peer_id, complete)?;
                     return Ok(peer);
@@ -267,7 +287,10 @@ impl B4aeElaraNode {
         loop {
             let (data, from) = self.transport_recv_from().await?;
 
-            let wire: B4aeWireMessage = match bincode::deserialize(&data) {
+            let wire: B4aeWireMessage = match DefaultOptions::new()
+                .with_limit(BINCODE_LIMIT)
+                .deserialize(&data)
+            {
                 Ok(w) => w,
                 Err(_) => continue,
             };
@@ -287,7 +310,10 @@ impl B4aeElaraNode {
                 _ => continue,
             };
 
-            let encrypted: EncryptedMessage = match bincode::deserialize(&enc_bytes) {
+            let encrypted: EncryptedMessage = match DefaultOptions::new()
+                .with_limit(BINCODE_LIMIT)
+                .deserialize(&enc_bytes)
+            {
                 Ok(e) => e,
                 Err(_) => continue,
             };

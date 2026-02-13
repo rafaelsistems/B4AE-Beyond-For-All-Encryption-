@@ -3,7 +3,7 @@
 **Quantum-Resistant Secure Communication Protocol**
 
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
+[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
 
 ## Overview
 
@@ -101,8 +101,12 @@ Add B4AE to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-b4ae = "1.0"
+b4ae = { version = "1.0", features = ["elara"] }   # with ELARA UDP transport
+# or
+b4ae = { version = "1.0", features = ["elara", "proxy"] }  # + SOCKS5 proxy (Tor)
 ```
+
+**Features:** `elara` (UDP transport), `proxy` (SOCKS5, requires `elara`), `hsm`, `hsm-pkcs11`
 
 ### Basic Usage
 
@@ -143,6 +147,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     println!("Received: {}", String::from_utf8_lossy(&decrypted));
 
+    // Memory management: cleanup inactive sessions and stale handshakes
+    alice.cleanup_old_state();
+    bob.cleanup_old_state();
+
     Ok(())
 }
 ```
@@ -161,10 +169,9 @@ use b4ae::protocol::SecurityProfile;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut node = B4aeElaraNode::new("127.0.0.1:0", SecurityProfile::Standard).await?;
-    // Sebagai initiator: connect ke peer
+    // Peer ID = peer address (e.g. "127.0.0.1:8080") — sessions keyed by addr
     node.connect("127.0.0.1:8080").await?;
     node.send_message("127.0.0.1:8080", b"Hello via B4AE+ELARA!").await?;
-    // Sebagai responder: accept koneksi
     let _peer = node.accept().await?;
     let (_from, _plaintext) = node.recv_message().await?;
     Ok(())
@@ -172,6 +179,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 # #[cfg(not(feature = "elara"))]
 # fn main() {}
 ```
+
+**Proxy (SOCKS5/Tor):** `B4aeElaraNode::new_with_config()` dengan `config.protocol_config.anonymization.proxy_url = Some("socks5://127.0.0.1:9050".into())` — requires `--features elara,proxy`.
 
 Jalankan demo: `cargo run --example b4ae_elara_demo --features elara`
 
@@ -200,8 +209,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Prerequisites
 
-- Rust 1.70 or later
-- OpenSSL development libraries
+- Rust 1.75 or later (edition 2021)
+- OpenSSL development libraries (optional; ring uses system crypto)
 
 ### Build
 
@@ -425,14 +434,18 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed progress.
 
 ### Module Overview
 
-- **`src/crypto/`** - Cryptographic primitives (Kyber, Dilithium, Hybrid, PFS+, ZKAuth)
-- **`src/protocol/`** - Protocol implementation (Handshake, Message, Session)
-- **`src/metadata/`** - Metadata protection (Padding, Timing, Obfuscation) — terintegrasi di B4aeClient
-- **`src/key_hierarchy.rs`** - Key hierarchy (MIK, DMK, STK, BKS per Spec §4)
-- **`src/transport/`** - Transport layer (ElaraTransport untuk UDP, feature `elara`)
-- **`src/elara_node.rs`** - B4aeElaraNode: B4AE + ELARA integration (feature `elara`)
-- **`specs/`** - Technical specifications
-- **`research/`** - Research documents
+| Modul | Deskripsi | Feature |
+|-------|-----------|---------|
+| `src/crypto/` | Kyber, Dilithium, Hybrid, PFS+, ZKAuth, AES-GCM, HKDF | — |
+| `src/protocol/` | Handshake, Message, Session | — |
+| `src/metadata/` | Padding, Timing, Obfuscation — terintegrasi di B4aeClient | — |
+| `src/key_hierarchy.rs` | MIK, DMK, STK, BKS (Spec §4); BKS 2-of-2 dengan HMAC | — |
+| `src/transport/` | ElaraTransport (UDP, chunking), ProxyElaraTransport (SOCKS5) | `elara`, `proxy` |
+| `src/elara_node.rs` | B4aeElaraNode: handshake + messaging via ELARA | `elara` |
+| `src/client.rs` | B4aeClient: cleanup_inactive_sessions(), cleanup_old_state() | — |
+| `src/storage.rs` | EncryptedStorage (STK + AES-GCM) | — |
+| `src/audit.rs` | AuditSink, AuditEvent untuk compliance | — |
+| `src/lib.rs` | MAX_MESSAGE_SIZE = 1 MiB (DoS mitigation) | — |
 
 ---
 

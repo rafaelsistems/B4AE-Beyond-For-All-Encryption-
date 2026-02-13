@@ -106,7 +106,9 @@ impl HybridPublicKey {
         }
         let ecdh_len = u16::from_be_bytes([bytes[offset], bytes[offset + 1]]) as usize;
         offset += 2;
-        
+        if ecdh_len > 256 {
+            return Err(CryptoError::InvalidInput("ECDH public key length exceeds limit".to_string()));
+        }
         if bytes.len() < offset + ecdh_len {
             return Err(CryptoError::InvalidInput("Insufficient data for ECDH key".to_string()));
         }
@@ -126,7 +128,9 @@ impl HybridPublicKey {
         }
         let ecdsa_len = u16::from_be_bytes([bytes[offset], bytes[offset + 1]]) as usize;
         offset += 2;
-        
+        if ecdsa_len > 128 {
+            return Err(CryptoError::InvalidInput("ECDSA public key length exceeds limit".to_string()));
+        }
         if bytes.len() < offset + ecdsa_len {
             return Err(CryptoError::InvalidInput("Insufficient data for ECDSA key".to_string()));
         }
@@ -175,7 +179,9 @@ impl HybridSignature {
             bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]
         ]) as usize;
         offset += 4;
-        
+        if ecdsa_len > 128 {
+            return Err(CryptoError::InvalidInput("ECDSA signature length exceeds limit".to_string()));
+        }
         if bytes.len() < offset + ecdsa_len {
             return Err(CryptoError::InvalidInput("Insufficient data for ECDSA signature".to_string()));
         }
@@ -220,7 +226,9 @@ impl HybridCiphertext {
         }
         let ecdh_len = u16::from_be_bytes([bytes[offset], bytes[offset + 1]]) as usize;
         offset += 2;
-        
+        if ecdh_len > 256 {
+            return Err(CryptoError::InvalidInput("ECDH ephemeral key length exceeds limit".to_string()));
+        }
         if bytes.len() < offset + ecdh_len {
             return Err(CryptoError::InvalidInput("Insufficient data for ECDH key".to_string()));
         }

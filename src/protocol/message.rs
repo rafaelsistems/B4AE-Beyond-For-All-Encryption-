@@ -6,8 +6,9 @@ use crate::crypto::{CryptoError, CryptoResult};
 use crate::crypto::aes_gcm::{self, AesKey};
 use crate::crypto::pfs_plus::PfsSession;
 use crate::protocol::MessageType;
+use crate::time;
 use serde::{Deserialize, Serialize};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::collections::BTreeSet;
 
 /// Message priority levels
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -110,11 +111,7 @@ impl Message {
 
     /// Set expiration
     pub fn with_expiration(mut self, expires_in_secs: u64) -> Self {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        self.expires_at = Some(now + expires_in_secs);
+        self.expires_at = Some(time::current_time_secs().saturating_add(expires_in_secs));
         self
     }
 
@@ -126,36 +123,50 @@ impl Message {
 
     /// Check if message is expired
     pub fn is_expired(&self) -> bool {
-        if let Some(expires_at) = self.expires_at {
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
-            now > expires_at
-        } else {
-            false
-        }
+        self.expires_at
+            .map(|exp| time::current_time_secs() > exp)
+            .unwrap_or(false)
     }
 
     /// Serialize message to bytes
     pub fn to_bytes(&self) -> CryptoResult<Vec<u8>> {
-        bincode::serialize(self)
-            .map_err(|e| CryptoError::InvalidInput(e.to_string()))
+        let bytes = bincode::serialize(self)
+            .map_err(|e| CryptoError::InvalidInput(e.to_string()))?;
+        if bytes.len() > crate::MAX_MESSAGE_SIZE {
+            return Err(CryptoError::InvalidInput(format!(
+                "Serialized message too large: {} > {}",
+                bytes.len(),
+                crate::MAX_MESSAGE_SIZE
+            )));
+        }
+        Ok(bytes)
     }
 
     /// Deserialize message from bytes
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
+        if bytes.len() > crate::MAX_MESSAGE_SIZE {
+            return Err(CryptoError::InvalidInput(format!(
+                "Input too large for deserialize: {} > {}",
+                bytes.len(),
+                crate::MAX_MESSAGE_SIZE
+            )));
+        }
         bincode::deserialize(bytes)
             .map_err(|e| CryptoError::InvalidInput(e.to_string()))
     }
 }
 
-/// Message encryptor/decryptor
+/// Maximum number of sequences to track for replay protection
+const REPLAY_WINDOW_SIZE: usize = 4096;
+
+/// Message encryptor/decryptor with replay protection
 pub struct MessageCrypto {
     /// PFS+ session for key management
     pfs_session: PfsSession,
-    /// Sequence counter
+    /// Sequence counter (send side)
     sequence: u64,
+    /// Received sequence numbers (replay detection; bounded sliding window)
+    received_sequences: BTreeSet<u64>,
 }
 
 impl MessageCrypto {
@@ -164,6 +175,7 @@ impl MessageCrypto {
         MessageCrypto {
             pfs_session,
             sequence: 0,
+            received_sequences: BTreeSet::new(),
         }
     }
 
@@ -176,6 +188,13 @@ impl MessageCrypto {
 
         // Serialize message
         let plaintext = message.to_bytes()?;
+        if plaintext.len() > crate::MAX_MESSAGE_SIZE {
+            return Err(CryptoError::InvalidInput(format!(
+                "Message too large: {} > {}",
+                plaintext.len(),
+                crate::MAX_MESSAGE_SIZE
+            )));
+        }
 
         // Get next encryption key from PFS+
         let message_key = self.pfs_session.next_send_key()?;
@@ -184,11 +203,7 @@ impl MessageCrypto {
         // Encrypt with AES-256-GCM
         let (nonce, ciphertext) = aes_gcm::encrypt(&aes_key, &plaintext, b"")?;
 
-        // Get current timestamp
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let timestamp = time::current_time_secs();
 
         // Create encrypted message
         let encrypted = EncryptedMessage {
@@ -201,13 +216,18 @@ impl MessageCrypto {
             nonce,
         };
 
-        // Increment sequence
+        // Increment sequence; reject if at limit (caller should rotate session before u64::MAX)
+        if self.sequence == u64::MAX {
+            return Err(CryptoError::InvalidInput(
+                "Sequence limit reached; rotate session".to_string(),
+            ));
+        }
         self.sequence += 1;
 
         Ok(encrypted)
     }
 
-    /// Decrypt message
+    /// Decrypt message (with replay protection)
     pub fn decrypt(&mut self, encrypted: &EncryptedMessage) -> CryptoResult<Message> {
         // Verify version
         if encrypted.version != crate::PROTOCOL_VERSION {
@@ -217,6 +237,21 @@ impl MessageCrypto {
         // Check if encrypted flag is set
         if encrypted.flags & flags::ENCRYPTED == 0 {
             return Err(CryptoError::InvalidInput("Message not encrypted".to_string()));
+        }
+
+        // Replay protection: reject duplicate sequence
+        if self.received_sequences.contains(&encrypted.sequence) {
+            return Err(CryptoError::DecryptionFailed(
+                "Replay attack detected: duplicate sequence".to_string(),
+            ));
+        }
+
+        if encrypted.payload.len() > crate::MAX_MESSAGE_SIZE {
+            return Err(CryptoError::InvalidInput(format!(
+                "Payload too large: {} > {}",
+                encrypted.payload.len(),
+                crate::MAX_MESSAGE_SIZE
+            )));
         }
 
         // Get decryption key from PFS+
@@ -230,6 +265,7 @@ impl MessageCrypto {
 
         // If dummy traffic, return Dummy message (recipient discards)
         if encrypted.flags & flags::DUMMY_TRAFFIC != 0 {
+            self.record_sequence(encrypted.sequence);
             return Ok(Message::new(MessageContent::Dummy));
         }
 
@@ -241,7 +277,17 @@ impl MessageCrypto {
             return Err(CryptoError::InvalidInput("Message expired".to_string()));
         }
 
+        self.record_sequence(encrypted.sequence);
         Ok(message)
+    }
+
+    fn record_sequence(&mut self, seq: u64) {
+        self.received_sequences.insert(seq);
+        if self.received_sequences.len() > REPLAY_WINDOW_SIZE {
+            if let Some(&min) = self.received_sequences.iter().next() {
+                self.received_sequences.remove(&min);
+            }
+        }
     }
 
     /// Get current sequence number
@@ -298,11 +344,7 @@ impl MessageBuilder {
 
     /// Set expiration
     pub fn expires_in(mut self, seconds: u64) -> Self {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        self.message.expires_at = Some(now + seconds);
+        self.message.expires_at = Some(time::current_time_secs().saturating_add(seconds));
         self
     }
 
@@ -357,10 +399,7 @@ mod tests {
         message.expires_at = Some(0); // Already expired
         assert!(message.is_expired());
 
-        let future = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() + 3600;
+        let future = time::current_time_secs().saturating_add(3600);
         message.expires_at = Some(future);
         assert!(!message.is_expired());
     }

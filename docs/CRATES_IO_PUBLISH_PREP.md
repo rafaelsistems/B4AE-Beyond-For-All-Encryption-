@@ -17,15 +17,14 @@ Checklist dan tindakan untuk mempublish B4AE ke [crates.io](https://crates.io).
 - [x] `readme` — README.md
 
 ### 1.2 Dependencies
-- [x] **elara-transport**: Path untuk local dev. **Untuk publish**: jalankan `python3 scripts/prepare_publish.py` sebelum `cargo publish` — script menghapus dep karena elara-transport belum di crates.io
+- [x] **elara-transport**: `version = "0.1"` dari crates.io (elara-core, elara-wire, elara-transport sudah dipublish)
 - Feature `elara` optional; default build tanpa elara OK
 
 ---
 
-## 2. Publikasi elara-transport (wajib untuk elara feature)
+## 2. Publikasi elara-transport ✅ (sudah selesai)
 
-- ELARA-Protocol harus publish `elara-transport` ke crates.io dulu
-- Atau: B4AE publish tanpa feature elara (hapus elara-transport dep sementara)
+elara-core, elara-wire, elara-transport v0.1.0 sudah di crates.io. B4AE memakai `version = "0.1"`.
 
 ---
 

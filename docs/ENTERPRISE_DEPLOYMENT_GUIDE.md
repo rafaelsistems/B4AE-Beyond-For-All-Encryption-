@@ -17,7 +17,7 @@ Panduan deployment B4AE untuk lingkungan enterprise (on-prem, hybrid, compliance
 
 ### Software
 
-- Rust 1.70+ (untuk build) atau binary pre-built
+- Rust 1.75+ (untuk build) atau binary pre-built
 - TLS certificates (jika expose HTTPS)
 - HSM/PKCS#11 (opsional, feature `hsm-pkcs11`)
 
@@ -78,6 +78,11 @@ Panduan deployment B4AE untuk lingkungan enterprise (on-prem, hybrid, compliance
 - Set `B4aeConfig::audit_sink` dengan implementasi `AuditSink` (mis. `MemoryAuditSink` atau custom sink ke SIEM)
 - Events: HandshakeInitiated/Completed, SessionCreated/Closed, KeyRotation (peer/session di-hash untuk privacy)
 - Export ke SIEM (Syslog, Splunk, Elastic) via custom sink
+
+### 3.4 Memory Management (Long-Running Services)
+
+- Panggil `B4aeClient::cleanup_old_state()` secara periodik (mis. setiap jam) untuk menghapus session dan handshake yang tidak aktif
+- Atau `cleanup_inactive_sessions(max_inactive_secs)` dan `cleanup_stale_handshakes()` secara terpisah jika perlu kontrol granular
 - Retention policy sesuai regulasi (GDPR, SOC2, dll)
 
 ### 3.4 Container / Orchestration

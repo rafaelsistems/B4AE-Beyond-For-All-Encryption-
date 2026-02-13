@@ -148,6 +148,10 @@ impl HsmBackend for Pkcs11Hsm {
     }
 
     fn is_available(&self) -> bool {
-        self.pkcs11.read().map(|g| g.is_some()).unwrap_or(false)
+        self.pkcs11
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .as_ref()
+            .is_some()
     }
 }

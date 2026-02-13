@@ -321,7 +321,7 @@ Audit kode untuk menemukan bug, isu keamanan, dan gap implementasi.
 | **PFS counter cap** | ✅ Fixed | MAX_COUNTER_ADVANCE = 1000 |
 | **Chunk reassembly validation** | ✅ Fixed | total_len + chunk_id validation |
 | **remove_random_padding** | ✅ Fixed | Format unambiguous |
-| **Replay protection** | ⚠️ Catatan | Sequence untuk key lookup; duplikat decrypt dengan key sama — pertimbangkan replay window |
+| **Replay protection** | ✅ Fixed | MessageCrypto BTreeSet sliding window 4096 |
 
 ### 7.4 Rekomendasi Perbaikan (Semua Diterapkan 13 Feb 2026)
 
@@ -332,6 +332,269 @@ Audit kode untuk menemukan bug, isu keamanan, dan gap implementasi.
 5. **PFS+**: ✅ MAX_COUNTER_ADVANCE = 1000.
 6. **ChunkBuffer**: ✅ total_len + chunk_id validation.
 7. **remove_random_padding**: ✅ Format dengan length suffix.
+
+### 7.5 Audit Lanjutan (Feb 2026) — Semua Diperbaiki
+
+#### 7.5.1 SystemTime unwrap ✅ Fixed
+
+Modul `src/time.rs` menyediakan `current_time_secs()` dan `current_time_millis()` dengan `unwrap_or(Duration::ZERO)`. Digunakan di: zkauth, pfs_plus, obfuscation, message, handshake, session.
+
+#### 7.5.2 Potensi Panic ✅ Fixed
+
+| Item | Perbaikan |
+|------|------------|
+| `padded.last().unwrap()` | Diganti `ok_or_else` untuk error propagation yang benar |
+
+#### 7.5.3 Replay Protection ✅ Fixed
+
+| Item | Implementasi |
+|------|--------------|
+| Sequence reuse | `MessageCrypto` memakai `BTreeSet<u64>` (sliding window 4096); sequence duplikat ditolak dengan `DecryptionFailed("Replay attack detected")` |
+
+### 7.6 Audit Terkini (Feb 2026) — Temuan Tambahan
+
+#### 7.6.1 Item Ditemukan — Semua Diperbaiki (Feb 2026)
+
+| Prioritas | Item | Lokasi | Status |
+|-----------|------|--------|--------|
+| Sedang | DMK export/import pakai XOR | `key_hierarchy.rs` | ✅ Fixed — AES-256-GCM AEAD; format baru 60 byte (nonce 12 + ciphertext 32 + tag 16). |
+| Rendah | test_replay_attack_prevention | `tests/security_test.rs` | ✅ Fixed — Ditambah assert replay kedua gagal (`result2.is_err()`). |
+| Rendah | unwrap/expect di test | Berbagai file | Hanya di blok `#[cfg(test)]` — acceptable; test diharapkan panic pada setup failure. |
+
+#### 7.6.2 Verifikasi Sudah Benar
+
+| Item | Status |
+|------|--------|
+| Mutex/RwLock poison | handshake (map_err), proxy, elara, audit (unwrap_or_else), pkcs11 (map_err) — semua handle poison |
+| Panic di production | Hanya di test blocks |
+| Replay protection | MessageCrypto BTreeSet sliding window |
+
+#### 7.6.3 Rekomendasi Opsional — Diterapkan
+
+1. **DMK export**: ✅ Diganti XOR dengan AES-256-GCM AEAD (authenticated encryption); format `[nonce 12][ciphertext+tag 48]`, AAD `B4AE-v1-DMK-wrap` + device_id.
+2. **Test replay**: ✅ Ditambah `assert!(result2.is_err())` untuk memastikan pesan replay ditolak.
+
+### 7.7 Audit Februari 2026 — Temuan Baru (Semua Diperbaiki)
+
+#### 7.7.1 Temuan Prioritas Sedang — Fixed
+
+| Prioritas | Item | Lokasi | Status |
+|-----------|------|--------|--------|
+| **Sedang** | BKS 2-of-M shards redundant | `key_hierarchy.rs` | ✅ Fixed — Skema paired: shards (1,2), (3,4), ... tiap pasangan unik; recovery cek pair (2k-1, 2k). Test test_bks_2_of_4 ditambah. |
+| **Sedang** | Chunk reassembly CONT tanpa validasi | `elara.rs`, `proxy.rs` | ✅ Fixed — add_chunk validasi chunk_id ≤ max_chunk_id, payload ≤ MAX_CHUNK_PAYLOAD, buffer ≤ MAX_REASSEMBLY_SIZE; assemble() validasi result.len() == total_len. |
+| **Sedang** | Tidak ada batas max message size | `lib.rs`, `message.rs`, `client.rs` | ✅ Fixed — Konstanta `MAX_MESSAGE_SIZE = 1 MiB`; validasi di MessageCrypto::encrypt/decrypt dan client::encrypt_message. |
+
+#### 7.7.2 Temuan Prioritas Rendah
+
+| Prioritas | Item | Lokasi | Deskripsi |
+|-----------|------|--------|-----------|
+| **Rendah** | SharedSessionManager lock | `session.rs` | `SharedSessionManager` pakai `Mutex`; jika dipakai via `.lock()` tanpa `map_err`/`unwrap_or_else`, poison bisa panic. Saat ini tipe ini tidak dipakai di `B4aeClient` (client pakai `HashMap` langsung). | Pastikan semua pemanggil handle poison jika tipe ini dipakai. |
+| **Rendah** | ChunkBuffer.assemble() | `elara.rs`, `proxy.rs` | ✅ Fixed — assemble() kini validasi `result.len() == total_len`. |
+| **Rendah** | BKS XOR untuk 2-of-2 | `key_hierarchy.rs:185` | Skema XOR untuk 2-of-2 secara kriptografis OK (shard1 random, shard2=secret^shard1). Catatan: tidak terautentikasi; corrupt shard bisa silent corrupt secret. | Untuk paranoia: pertimbangkan MAC per shard. |
+
+#### 7.7.3 Verifikasi Sudah Benar (Audit ini)
+
+| Area | Status |
+|------|--------|
+| Constant-time comparison | Handshake `ct_eq` untuk confirmation; metadata tag pakai `ct_eq` |
+| Unwrap/expect di production | Semua di blok `#[cfg(test)]` atau test module |
+| Division by zero | `obfuscation.rs`, `timing.rs`: cek `is_empty()` sebelum bagi |
+| Padding parsing | `remove_random_padding`: validasi `padding_len <= len-2` |
+| Mutex/RwLock poison | audit, handshake, proxy, elara, pkcs11 — semua handle |
+| START chunk validation | total_len, chunk_id vs max_chunk_id sudah divalidasi |
+
+#### 7.7.4 Ringkasan Tindakan — Diterapkan
+
+1. **BKS 2-of-M**: ✅ Skema paired; shards (1,2), (3,4)... unik; recovery cek pair.
+2. **Chunk CONT**: ✅ add_chunk validasi chunk_id, payload size, buffer limit; assemble validasi total_len.
+3. **Max message size**: ✅ `crate::MAX_MESSAGE_SIZE = 1<<20`; validasi di encrypt/decrypt/client.
+4. **ChunkBuffer.assemble**: ✅ Validasi `result.len() == total_len` ditambah.
+
+### 7.8 Audit Tambahan (Feb 2026) — Temuan Baru
+
+#### 7.8.1 Temuan Prioritas Sedang
+
+| Prioritas | Item | Lokasi | Status |
+|-----------|------|--------|--------|
+| **Sedang** | Handshake deserialize DoS | `handshake.rs` | ✅ Fixed — Cap `ecdh_len <= 256`, `ecdsa_len <= 128` sebelum `.to_vec()`. |
+| **Sedang** | ZkProof sig_len DoS | `zkauth.rs` | ✅ Fixed — Cap `sig_len <= 5000` di `ZkProof::from_bytes`. |
+| **Rendah** | Message serialization size | `message.rs` | `Message::to_bytes()` tidak cek ukuran; `Message::binary(10MB).to_bytes()` sukses. Enkripsi ditolak via `MAX_MESSAGE_SIZE`, tapi serialization tetap bisa menghasilkan payload besar. | Opsional: validasi size di `to_bytes()`. |
+| **Rendah** | Bincode deserialize unbounded | `elara_node.rs` | `bincode::deserialize(&data)` tanpa limit; crafted payload bisa trigger alokasi besar. Data dari transport sudah di-chunk (MAX_REASSEMBLY_SIZE 90KB). | Opsional: `bincode::config()` dengan `limit`. |
+| **Sedang** | HybridPublicKey/HybridCiphertext DoS | `crypto/hybrid.rs` | ✅ Fixed — Cap `ecdh_len <= 256`, `ecdsa_len <= 128` di HybridPublicKey, HybridCiphertext, HybridSignature `from_bytes`. |
+| **Sedang** | onion_decrypt_layer next_hop DoS | `crypto/onion.rs` | ✅ Fixed — Cap `len <= MAX_HOP_ID_LEN` sebelum `.to_vec()` di `onion_decrypt_layer`. |
+| **Rendah** | Pkcs11 RwLock poison | `hsm/pkcs11.rs:151` | `is_available()` pakai `read().map(...).unwrap_or(false)` — poison di-swallow, return false. Bisa mask issue serius. | Opsional: `map_err` dan propagasi error. |
+| **Rendah** | recommended_dummy overflow | `metadata/obfuscation.rs:236,256` | `avg + (offset - variance)` bisa overflow jika avg besar (u64/usize). | Opsional: `saturating_add`. |
+| **Rendah** | Session cleanup underflow | `protocol/session.rs:479` | `now - session.info.last_activity` bisa underflow jika jam mundur (clock skew). | Gunakan `now.saturating_sub(...)`. |
+| **Rendah** | B4aeClient session growth | `client.rs` | `sessions`, `pending_*` HashMap tidak dibersihkan otomatis; banyak peer connect/disconnect bisa memakai memori. | Opsional: periodic cleanup atau LRU. |
+
+#### 7.8.2 Verifikasi Sudah Benar
+
+| Area | Status |
+|------|--------|
+| Unwrap/expect di production | Semua di `#[cfg(test)]` — panic hanya di test |
+| Integer overflow mitigasi | `saturating_add/sub` dipakai untuk time/expiry |
+| HybridPublicKey length | `ecdh_len` u16 (max 64KB); HybridCiphertext pakai u32 — handshake manual serialize |
+| DilithiumSignature | Validasi 4595-4700 bytes |
+| Padding remove | `saturating_sub(2)`, validasi `padding_len <= len-2` |
+
+#### 7.8.3 Ringkasan Tindakan — Diterapkan
+
+1. **Handshake**: ✅ Cap `ecdh_len <= 256`, `ecdsa_len <= 128` di `deserialize_ciphertext` / `deserialize_signature`.
+2. **ZkProof**: ✅ Cap `sig_len <= 5000` di `ZkProof::from_bytes`.
+3. **Message::to_bytes** (opsional): Validasi size sebelum serialisasi.
+4. **Bincode** (opsional): Batasi ukuran input atau pakai config dengan limit.
+
+#### 7.8.4 Rekomendasi Tindakan — Diterapkan
+
+1. **HybridPublicKey/HybridCiphertext/HybridSignature**: ✅ Cap `ecdh_len <= 256`, `ecdsa_len <= 128` di `from_bytes`.
+2. **onion_decrypt_layer**: ✅ Cap `len <= MAX_HOP_ID_LEN` sebelum `plaintext[2..2+len].to_vec()`.
+3. **Pkcs11 is_available** (opsional): Handle RwLock poison dengan `map_err` alih-alih `unwrap_or(false)`.
+4. **recommended_dummy** (opsional): Gunakan `saturating_add` untuk mencegah overflow.
+5. **SessionManager.cleanup_inactive** (opsional): Gunakan `saturating_sub` untuk clock skew.
+6. **B4aeClient** (opsional): Periodic cleanup session/pending handshakes.
+
+### 7.9 Audit Terkini (Feb 2026) — Temuan Tambahan
+
+#### 7.9.1 Ringkasan Status
+
+Semua temuan prioritas **sedang** dari audit sebelumnya telah diperbaiki:
+- Handshake deserialize, ZkProof, Hybrid*, onion_decrypt_layer — ✅ Fixed.
+
+#### 7.9.2 Item Rendah yang Masih Terbuka
+
+| Item | Lokasi | Rekomendasi |
+|------|--------|-------------|
+| Message::to_bytes unbounded | message.rs | Validasi size (opsional). |
+| Bincode unbounded | elara_node.rs | Config limit (opsional). |
+| Pkcs11 poison swallow | hsm/pkcs11.rs | map_err (opsional). |
+| recommended_dummy overflow | obfuscation.rs | saturating_add (opsional). |
+| cleanup_inactive underflow | session.rs | saturating_sub (opsional). |
+| Client session growth | client.rs | Cleanup/LRU (opsional). |
+
+#### 7.9.3 Kesimpulan
+
+Kodebase **siap produksi** untuk use case standar. Temuan tersisa bersifat **opsional/low** dan tidak memblokir deployment. Mitigasi DoS pada parsing/deserialize sudah diterapkan.
+
+### 7.10 Audit Kodebase Mendalam (Feb 2026)
+
+#### 7.10.1 Temuan Baru — Prioritas Sedang/Tinggi
+
+| Prioritas | Item | Lokasi | Status |
+|-----------|------|--------|--------|
+| **Sedang** | remove_padding ambigu PKCS#7 vs large | `metadata/padding.rs` | ✅ Fixed — Prioritas standard PKCS#7 saat valid; large path divalidasi (zeros + length). |
+| **Rendah** | needs_rotation underflow | `protocol/session.rs:360` | ✅ Fixed — `now.saturating_sub(established_at)`. |
+
+#### 7.10.2 Item Opsional — Diterapkan
+
+| Item | Lokasi | Status |
+|------|--------|--------|
+| Message::to_bytes unbounded | message.rs | ✅ Fixed — Validasi `bytes.len() <= MAX_MESSAGE_SIZE` di `to_bytes` dan `from_bytes`. |
+| Bincode unbounded | elara_node.rs | ✅ Fixed — `DefaultOptions::new().with_limit(128KB)` untuk semua `deserialize`. |
+| Pkcs11 is_available poison | hsm/pkcs11.rs | ✅ Fixed — `unwrap_or_else(PoisonError::into_inner)` untuk recovery. |
+| SharedSessionManager | session.rs | ✅ Fixed — Helper `with_session_manager()` dengan poison recovery. |
+| peer_id vs addr | elara_node.rs | ✅ Fixed — Dokumentasi modul: session dikunci oleh `peer_addr`. |
+
+#### 7.10.3 Verifikasi Sudah Benar
+
+| Area | Status |
+|------|--------|
+| unwrap/expect di production | Hanya di `#[cfg(test)]` |
+| Constant-time comparison | `ct_eq` untuk handshake confirmation dan metadata tag |
+| Division by zero | obfuscation, timing: cek `is_empty()` sebelum bagi |
+| Mutex poison | audit (unwrap_or_else), proxy, elara, handshake — handle |
+| recommended_dummy, cleanup_inactive, B4aeClient cleanup | ✅ Diterapkan (saturating_add/sub, cleanup methods) |
+| Replay protection | MessageCrypto BTreeSet sliding window 4096 |
+
+#### 7.10.4 Ringkasan Tindakan — Diterapkan
+
+1. **remove_padding** (sedang): ✅ Prioritas standard PKCS#7 saat valid; large path divalidasi.
+2. **needs_rotation** (rendah): ✅ `saturating_sub` untuk clock skew.
+
+### 7.11 Audit Lanjutan (Feb 2026)
+
+#### 7.11.1 Temuan — Diterapkan
+
+| Prioritas | Item | Lokasi | Status |
+|-----------|------|--------|--------|
+| **Rendah** | ChunkBuffer remove fallback | `elara.rs`, `proxy.rs` | ✅ Fixed — jika `remove` mengembalikan `None`, lanjut loop (bukan buffer dummy). |
+| **Rendah** | thread::sleep di encrypt_message | `client.rs` | ✅ Fixed — dokumentasi # Blocking behavior ditambah. |
+| **Rendah** | BKS 2-of-2 unauthenticated | `key_hierarchy.rs` | ✅ Fixed — shard 2-of-2 kini HMAC-SHA256 (65 byte); recovery verifikasi MAC; legacy 33-byte tetap didukung. |
+| **Rendah** | Sequence u64 overflow | `protocol/message.rs` | ✅ Fixed — cek `sequence == u64::MAX`, return error "Sequence limit reached; rotate session". |
+
+#### 7.11.2 Verifikasi Sudah Benar
+
+| Area | Status |
+|------|--------|
+| unwrap/expect/panic di production | Semua di `#[cfg(test)]` |
+| MessageContent variants | decrypt_message menangani Dummy, Binary, Text, File |
+| Nonce generation | `rand::thread_rng()` CSPRNG, cukup untuk nonce AES-GCM |
+| encrypt_message | Validasi `plaintext.len() <= MAX_MESSAGE_SIZE` |
+| Feature flags | lib `elara-transport`, transport `elara` — konsisten via Cargo |
+
+#### 7.11.3 Item — Semua Diterapkan
+
+### 7.12 Audit Final (Feb 2026)
+
+#### 7.12.1 Temuan — Diterapkan
+
+| Prioritas | Item | Lokasi | Status |
+|-----------|------|--------|--------|
+| **Rendah** | fill_random error diabaikan | `client.rs` encrypt_message, encrypt_dummy_message | ✅ Fixed — error dipropagasi ke B4aeError::CryptoError. |
+
+#### 7.12.2 Verifikasi Akhir
+
+| Area | Status |
+|------|--------|
+| fill_random/random_range | obfuscation.rs, padding.rs, key_hierarchy.rs, handshake.rs, onion.rs, key_store.rs — semua propagasi error |
+| proxy.rs send_to | `let _ =` best-effort; kegagalan jaringan di level transport |
+| pkcs11 logout | `let _ =` cleanup best-effort; minor |
+| array indexing | hkdf keys[0..3], audit test entries[0] (assert len==1), onion plaintext (len>=2) — semuanya aman |
+
+#### 7.12.3 Kesimpulan
+
+**Kodebase siap produksi.** Semua temuan audit prioritas sedang/tinggi telah diperbaiki. Item rendah (fill_random, ChunkBuffer, dokumentasi, dll.) telah diterapkan. 91 library tests lulus.
+
+### 7.13 Audit Kodebase Penuh (Feb 2026)
+
+#### 7.13.1 Verifikasi — Tidak Ada Bug Baru
+
+| Area | Verifikasi |
+|------|------------|
+| **unwrap/expect/panic** | Semua di `#[cfg(test)]`; production path aman |
+| **Division by zero** | timing.rs, obfuscation.rs: cek `is_empty()` sebelum `/ len` |
+| **Array bounds** | elara/proxy: `data.len() < 7` sebelum `data[1..7]`; onion: `plaintext.len() >= 2` sebelum `plaintext[0..2]` |
+| **Message size DoS** | `MessageCrypto::decrypt` cek `payload.len() > MAX_MESSAGE_SIZE` sebelum decrypt |
+| **ChunkBuffer** | total_len validasi 0..MAX_REASSEMBLY_SIZE; add_chunk cek buffer growth; assemble pakai keys dari chunks |
+| **Mutex poison** | session.rs `unwrap_or_else(Into::into)`; transport, audit handle dengan map_err |
+| **Integer cast** | `as usize` dari u16/u32 — bounded; `bytes_sent += len as u64` aman (message bounded) |
+
+#### 7.13.2 Gap / Item Opsional (Non-Blocking)
+
+| Item | Prioritas | Catatan |
+|------|-----------|---------|
+| bytes_sent/bytes_received overflow | Sangat rendah | u64; perlu ~2^44 message 1MB untuk overflow — tidak praktis |
+| proxy send_to `let _ =` | Rendah | Best-effort; transport layer wajar mengabaikan send error |
+| ChunkBuffer.assemble `unwrap_or_default` | Informasi | Defensive; keys selalu ada dari iterasi chunks — aman |
+
+#### 7.13.3 Kesimpulan Audit 7.13
+
+**Tidak ada bug kritis atau sedang ditemukan.** Kodebase konsisten dengan mitigasi keamanan yang ada. Semua path produksi memvalidasi input, menangani error, dan menghindari panic.
+
+### 7.14 Audit Post-ELARA Publish (Feb 2026)
+
+#### 7.14.1 Temuan — Diperbaiki
+
+| Prioritas | Item | Lokasi | Status |
+|-----------|------|--------|--------|
+| **Kritis** | publish.yml sed merusak Cargo.toml | `.github/workflows/publish.yml` | ✅ Fixed — Step "Prepare Cargo.toml" dihapus; elara-transport kini dari crates.io, tidak perlu modifikasi |
+
+#### 7.14.2 Verifikasi
+
+| Area | Status |
+|------|--------|
+| unwrap/expect/panic | Semua di `#[cfg(test)]` |
+| unsafe | Tidak ada di src/ |
+| publish workflow | Sesuai Cargo.toml saat ini (elara-transport version) |
 
 ---
 

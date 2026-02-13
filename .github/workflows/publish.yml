@@ -40,14 +40,7 @@ jobs:
     - name: Run tests before publish
       run: cargo test --release --all-features
 
-    - name: Prepare Cargo.toml for publish
-      run: |
-        # Hapus elara-transport (path dep, belum di crates.io) agar cargo publish berhasil
-        sed -i '/# ELARA Transport/d' Cargo.toml
-        sed -i '/# Path untuk local dev/d' Cargo.toml
-        sed -i '/elara-transport = { path = "elara\/crates\/elara-transport", optional = true }/d' Cargo.toml
-        sed -i 's/elara = \["elara-transport", "tokio"\]/elara = ["tokio"]\nelara-transport = []/' Cargo.toml
-        grep 'path.*elara-transport' Cargo.toml && exit 1 || true
+    # elara-transport kini dari crates.io (version "0.1") — tidak perlu modifikasi Cargo.toml
 
     - name: Verify package
       run: cargo publish --dry-run

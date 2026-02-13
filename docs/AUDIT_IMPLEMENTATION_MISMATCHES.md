@@ -223,6 +223,20 @@ Sesuai—Platform SDK memang subset, tidak full handshake. ✅ Tidak ada ketidak
 |---------|---------|
 | MIK/DMK tidak ada struktur | `src/key_hierarchy.rs`: MIK, DMK, STK, BKS (2-of-M), `export_dmk_for_device`/`import_dmk_for_device` |
 
+### 6.5 Audit & Hardening (Feb 2026) ✅
+
+| Area | Perbaikan |
+|------|-----------|
+| fill_random | client.rs: error dipropagasi di encrypt_message, encrypt_dummy_message |
+| SessionManager | cleanup_inactive pakai saturating_sub; with_session_manager() poison recovery |
+| remove_padding | Prioritas PKCS#7 standar; large padding path divalidasi |
+| BKS 2-of-2 | Shard dengan HMAC-SHA256 (65 byte); recovery verifikasi MAC |
+| Message | Validasi MAX_MESSAGE_SIZE; cek sequence overflow |
+| elara_node | Bincode deserialize limit 128KB; peer_id = peer_addr terdokumentasi |
+| B4aeClient | cleanup_inactive_sessions(), cleanup_stale_handshakes(), cleanup_old_state() |
+
+**Status:** Semua item audit prioritas sedang/tinggi diperbaiki. Kodebase siap produksi. Lihat [AUDIT_FEATURES_ANALYSIS.md](AUDIT_FEATURES_ANALYSIS.md) §7.10–7.13.
+
 ---
 
 **Disusun oleh:** B4AE Codebase Audit  

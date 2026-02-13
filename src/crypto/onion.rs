@@ -66,6 +66,9 @@ pub fn onion_decrypt_layer(
     if len == 0 {
         return Ok((None, plaintext[2..].to_vec()));
     }
+    if len > MAX_HOP_ID_LEN {
+        return Err(CryptoError::DecryptionFailed("Next hop ID exceeds limit".to_string()));
+    }
     if plaintext.len() < 2 + len {
         return Err(CryptoError::DecryptionFailed("Truncated next hop".to_string()));
     }

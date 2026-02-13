@@ -11,6 +11,7 @@
 pub mod crypto;
 pub mod protocol;
 pub mod metadata;
+pub mod time;
 pub mod error;
 pub mod client;
 pub mod prelude;
@@ -46,6 +47,9 @@ pub const PROTOCOL_NAME: &str = "B4AE";
 
 /// B4AE Protocol Full Name
 pub const PROTOCOL_FULL_NAME: &str = "Beyond For All Encryption";
+
+/// Maximum message size (plaintext or ciphertext) — DoS mitigation.
+pub const MAX_MESSAGE_SIZE: usize = 1 << 20; // 1 MiB
 
 #[cfg(test)]
 mod tests {

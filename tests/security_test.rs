@@ -43,10 +43,14 @@ fn test_replay_attack_prevention() {
     
     // First receive should succeed
     let result1 = server_session.receive(&encrypted);
-    assert!(result1.is_ok());
-    
-    // Replay should fail (sequence number already used)
-    // PFS+ maintains message counters that prevent replay
+    assert!(result1.is_ok(), "First receive should succeed");
+
+    // Replay attack: same encrypted message received twice
+    let result2 = server_session.receive(&encrypted);
+    assert!(
+        result2.is_err(),
+        "Replay should be rejected: duplicate sequence must fail"
+    );
 }
 
 #[test]

@@ -48,34 +48,45 @@ pub fn remove_padding(padded: &[u8]) -> B4aeResult<Vec<u8>> {
         return Err(B4aeError::InvalidInput("Padded message too short".to_string()));
     }
 
-    // Check if this is large padding (stored in last 2 bytes)
-    let last_byte = *padded.last().unwrap();
+    let last_byte = *padded
+        .last()
+        .ok_or_else(|| B4aeError::InvalidInput("Padded message empty".to_string()))?;
     let second_last = padded[padded.len() - 2];
     
-    // Try to parse as 2-byte padding length
-    let potential_large_padding = u16::from_be_bytes([second_last, last_byte]) as usize;
+    // Try standard PKCS#7 first when last_byte in 1..255 (avoids ambiguity with large format)
+    let padding_len = last_byte as usize;
+    if padding_len >= 1 && padding_len <= 255 && padding_len <= padded.len() {
+        let start = padded.len() - padding_len;
+        if padded[start..].iter().all(|&b| b == padding_len as u8) {
+            return Ok(padded[..start].to_vec());
+        }
+    }
     
-    // If potential padding length is > 255 and valid, it's large padding
+    // Large padding: length in last 2 bytes; padding region is zeros + length
+    let potential_large_padding = u16::from_be_bytes([second_last, last_byte]) as usize;
     if potential_large_padding > 255 && potential_large_padding <= padded.len() {
         let message_len = padded.len() - potential_large_padding;
-        return Ok(padded[..message_len].to_vec());
+        let padding_region = &padded[message_len..];
+        // Verify format: last 2 bytes = length, rest zeros
+        if padding_region.len() >= 2
+            && padding_region[padding_region.len() - 2..] == (potential_large_padding as u16).to_be_bytes()
+            && padding_region[..padding_region.len() - 2].iter().all(|&b| b == 0)
+        {
+            return Ok(padded[..message_len].to_vec());
+        }
     }
 
-    // Otherwise, standard PKCS#7 padding
+    // Fallback: standard PKCS#7
     let padding_len = last_byte as usize;
-
     if padding_len == 0 || padding_len > padded.len() {
         return Err(B4aeError::InvalidInput("Invalid padding length".to_string()));
     }
-
-    // Verify all padding bytes are correct
     let start = padded.len() - padding_len;
     for &byte in &padded[start..] {
         if byte != padding_len as u8 {
             return Err(B4aeError::InvalidInput("Invalid padding bytes".to_string()));
         }
     }
-
     Ok(padded[..start].to_vec())
 }
 

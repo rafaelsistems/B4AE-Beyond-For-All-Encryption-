@@ -3,7 +3,7 @@
 
 use crate::crypto::random::{fill_random, random_range};
 use crate::error::{B4aeError, B4aeResult};
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::time;
 #[cfg(test)]
 use std::time::Duration;
 
@@ -63,11 +63,7 @@ impl DummyTrafficGenerator {
             return false;
         }
 
-        // Check minimum interval
-        let current_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        let current_time = time::current_time_millis();
 
         if current_time - self.last_generated < self.min_interval_ms {
             return false;
@@ -145,11 +141,7 @@ impl DummyTrafficGenerator {
         fill_random(&mut dummy)
             .map_err(|e| B4aeError::CryptoError(format!("Random generation failed: {}", e)))?;
 
-        // Add timestamp to make it look like real message
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let timestamp = time::current_time_secs();
         
         if size >= 8 {
             dummy[0..8].copy_from_slice(&timestamp.to_be_bytes());
@@ -194,10 +186,7 @@ impl TrafficPattern {
 
     /// Record message
     pub fn record_message(&mut self, size: usize) {
-        let current_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        let current_time = time::current_time_millis();
 
         if self.last_message_time > 0 {
             let interval = current_time - self.last_message_time;
@@ -244,7 +233,7 @@ impl TrafficPattern {
         let offset = random_range(variance as u64 * 2) as usize;
         
         if offset > variance {
-            avg + (offset - variance)
+            avg.saturating_add(offset - variance)
         } else {
             avg.saturating_sub(variance - offset)
         }
@@ -262,7 +251,7 @@ impl TrafficPattern {
         let offset = random_range(variance * 2);
         
         if offset > variance {
-            avg + (offset - variance)
+            avg.saturating_add(offset - variance)
         } else {
             avg.saturating_sub(variance - offset)
         }

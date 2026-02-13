@@ -13,6 +13,7 @@ use crate::protocol::handshake::{
 use crate::protocol::session::Session;
 use crate::protocol::message::{Message, MessageContent, EncryptedMessage};
 use crate::error::{B4aeError, B4aeResult};
+use crate::time;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -263,7 +264,18 @@ impl B4aeClient {
 
     /// Encrypt message for peer (with full metadata protection: padding, timing, dummy).
     /// Returns messages to send in order: may be [dummy, real] or [real] when dummy traffic enabled.
+    ///
+    /// # Blocking behavior
+    /// When timing obfuscation is enabled, this method blocks the current thread for a random delay
+    /// (via `std::thread::sleep`). Do not call from an async executor without spawning a blocking task.
     pub fn encrypt_message(&mut self, peer_id: &[u8], plaintext: &[u8]) -> B4aeResult<Vec<EncryptedMessage>> {
+        if plaintext.len() > crate::MAX_MESSAGE_SIZE {
+            return Err(B4aeError::InvalidInput(format!(
+                "Message too large: {} > {}",
+                plaintext.len(),
+                crate::MAX_MESSAGE_SIZE
+            )));
+        }
         let level = self.protection_level();
         let protocol_config = self.config.protocol_config.clone();
         
@@ -291,7 +303,8 @@ impl B4aeClient {
         // Generate dummy first if enabled and randomly triggered
         if level.dummy_traffic_enabled() && protection.should_generate_dummy() {
             let mut dummy = vec![0u8; 64];
-            let _ = crate::crypto::random::fill_random(&mut dummy);
+            crate::crypto::random::fill_random(&mut dummy)
+                .map_err(|e| B4aeError::CryptoError(format!("Random generation failed: {}", e)))?;
             let dummy_msg = Message::binary(dummy);
             let enc_dummy = session.send_dummy(&dummy_msg)
                 .map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))?;
@@ -349,7 +362,8 @@ impl B4aeClient {
             .ok_or_else(|| B4aeError::ProtocolError("No session with peer".to_string()))?;
         
         let mut dummy = vec![0u8; 64];
-        let _ = crate::crypto::random::fill_random(&mut dummy);
+        crate::crypto::random::fill_random(&mut dummy)
+            .map_err(|e| B4aeError::CryptoError(format!("Random generation failed: {}", e)))?;
         let message = Message::binary(dummy);
         session.send_dummy(&message)
             .map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))
@@ -385,6 +399,28 @@ impl B4aeClient {
     /// Get configuration
     pub fn config(&self) -> &B4aeConfig {
         &self.config
+    }
+
+    /// Remove inactive sessions (last activity older than max_inactive_secs).
+    /// Uses saturating_sub for clock skew safety. Call periodically to limit memory growth.
+    pub fn cleanup_inactive_sessions(&mut self, max_inactive_secs: u64) {
+        let now = time::current_time_secs();
+        self.sessions.retain(|_, session| {
+            let inactive = now.saturating_sub(session.info().last_activity);
+            inactive < max_inactive_secs
+        });
+    }
+
+    /// Remove stale pending handshakes (timed out). Call periodically to limit memory growth.
+    pub fn cleanup_stale_handshakes(&mut self) {
+        self.pending_initiators.retain(|_, init| !init.is_timed_out());
+        self.pending_responders.retain(|_, resp| !resp.is_timed_out());
+    }
+
+    /// Combined cleanup: inactive sessions and stale handshakes. Uses 1 hour for session timeout.
+    pub fn cleanup_old_state(&mut self) {
+        self.cleanup_inactive_sessions(3600);
+        self.cleanup_stale_handshakes();
     }
 }
 

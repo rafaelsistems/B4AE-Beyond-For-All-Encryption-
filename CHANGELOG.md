@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **B4aeClient cleanup** — `cleanup_inactive_sessions(max_inactive_secs)`, `cleanup_stale_handshakes()`, `cleanup_old_state()` untuk membatasi pertumbuhan memori
 - **Metadata protection integration** — Padding, timing, dummy, metadata_key MAC di `encrypt_message`/`decrypt_message`; return `Vec<EncryptedMessage>`; helper `should_generate_dummy()`, `encrypt_dummy_message()`, `timing_delay_ms()`
 - **Audit sink** — `B4aeConfig::audit_sink` untuk compliance; log HandshakeInitiated/Completed, SessionCreated/Closed, KeyRotation
 - **Platform SDK full protocol** — b4ae-ffi feature `full-protocol` (b4ae_client_new, handshake, encrypt_message, decrypt_message)
@@ -17,6 +18,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Key store** — `src/key_store.rs` (persistent MIK encrypted dengan passphrase, HKDF + AES-GCM)
 - **Onion routing** — `src/crypto/onion.rs` (onion_encrypt, onion_decrypt_layer untuk relay paths)
 - **IP anonymization** — `ProtocolConfig::anonymization` (AnonymizationConfig: proxy_url, use_tor)
+
+### Changed
+
+- **fill_random** — client.rs: error dipropagasi di `encrypt_message` dan `encrypt_dummy_message`
+- **SessionManager** — `cleanup_inactive` pakai `saturating_sub`; helper `with_session_manager()` untuk poison recovery
+- **remove_padding** — prioritas PKCS#7 standar; large padding path divalidasi
+- **BKS 2-of-2** — shard dengan HMAC-SHA256 (65 byte); recovery verifikasi MAC
+- **Message** — validasi `MAX_MESSAGE_SIZE` di `to_bytes`/`from_bytes`; cek sequence overflow
+- **elara_node** — bincode deserialize limit 128KB; dokumentasi peer_id = peer_addr
+
+- **fill_random error handling** — client.rs: propagasi error di `encrypt_message` dan `encrypt_dummy_message`
+- **SessionManager** — `cleanup_inactive` pakai `saturating_sub`; helper `with_session_manager()` untuk poison recovery
+- **remove_padding** — prioritas PKCS#7 standar; large padding path divalidasi
+- **BKS 2-of-2** — shard dengan HMAC-SHA256 (65 byte); recovery verifikasi MAC
+- **Message** — validasi `MAX_MESSAGE_SIZE` di `to_bytes`/`from_bytes`; cek sequence overflow
+- **elara_node** — bincode deserialize limit 128KB; dokumentasi peer_id = peer_addr
 
 ## [1.0.0] - 2026-02-13
 

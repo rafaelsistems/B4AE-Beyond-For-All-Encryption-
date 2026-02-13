@@ -4,6 +4,7 @@
 use crate::crypto::{CryptoError, CryptoResult};
 use crate::crypto::aes_gcm::{self, AesKey};
 use crate::crypto::hkdf;
+use crate::time;
 use crate::crypto::random;
 use crate::crypto::dilithium::{self, DilithiumKeyPair, DilithiumSignature};
 use sha3::{Sha3_256, Digest};
@@ -85,6 +86,9 @@ impl ZkProof {
         let mut response = [0u8; 32];
         response.copy_from_slice(&bytes[32..64]);
         let sig_len = u32::from_be_bytes(bytes[64..68].try_into().map_err(|_| CryptoError::InvalidInput("Invalid sig len".to_string()))?) as usize;
+        if sig_len > 5000 {
+            return Err(CryptoError::InvalidInput("ZkProof signature length exceeds limit".to_string()));
+        }
         if bytes.len() < 68 + sig_len + 8 {
             return Err(CryptoError::InvalidInput("ZkProof truncated".to_string()));
         }
@@ -311,10 +315,7 @@ impl ZkVerifier {
             commitment,
             public_key,
             auth_level,
-            created_at: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
+            created_at: time::current_time_secs(),
         };
         self.valid_commitments.insert(commitment, info);
     }
@@ -329,10 +330,7 @@ impl ZkVerifier {
         let mut id_bytes = [0u8; 16];
         id_bytes.copy_from_slice(&challenge_id);
 
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let timestamp = time::current_time_secs();
 
         let challenge = ZkChallenge {
             nonce: nonce_bytes,
@@ -355,10 +353,7 @@ impl ZkVerifier {
             .ok_or_else(|| CryptoError::AuthenticationFailed)?;
 
         // Check challenge timeout
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = time::current_time_secs();
         
         if now - challenge.timestamp > self.challenge_timeout {
             self.active_challenges.remove(challenge_id);
@@ -445,10 +440,7 @@ impl ZkVerifier {
 
     /// Clean up expired challenges
     pub fn cleanup_expired_challenges(&mut self) {
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = time::current_time_secs();
 
         self.active_challenges.retain(|_, challenge| {
             now - challenge.timestamp <= self.challenge_timeout

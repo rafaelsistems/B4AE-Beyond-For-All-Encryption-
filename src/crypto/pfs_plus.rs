@@ -4,8 +4,8 @@
 use crate::crypto::{CryptoError, CryptoResult};
 use crate::crypto::hkdf;
 use crate::crypto::random;
+use crate::time;
 use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 /// PFS+ Key Chain for enhanced forward secrecy
 pub struct PfsKeyChain {
@@ -190,17 +190,12 @@ impl PfsSession {
     ) -> CryptoResult<Self> {
         let send_chain = PfsKeyChain::new(send_key)?;
         let receive_chain = PfsKeyChain::new(receive_key)?;
-        
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
 
         Ok(PfsSession {
             send_chain,
             receive_chain,
             session_id,
-            last_rotation: now,
+            last_rotation: time::current_time_secs(),
             rotation_interval: 3600, // 1 hour default
         })
     }
@@ -217,12 +212,7 @@ impl PfsSession {
 
     /// Check if session needs key rotation
     pub fn needs_rotation(&self) -> bool {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        
-        now - self.last_rotation > self.rotation_interval
+        time::current_time_secs().saturating_sub(self.last_rotation) > self.rotation_interval
     }
 
     /// Perform key rotation (generates new chain keys)
@@ -235,11 +225,7 @@ impl PfsSession {
         self.send_chain = PfsKeyChain::new(&new_send_key)?;
         self.receive_chain = PfsKeyChain::new(&new_receive_key)?;
 
-        // Update rotation time
-        self.last_rotation = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        self.last_rotation = time::current_time_secs();
 
         let mut send_key = [0u8; 32];
         let mut receive_key = [0u8; 32];

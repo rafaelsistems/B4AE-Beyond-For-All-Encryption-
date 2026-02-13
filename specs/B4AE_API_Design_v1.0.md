@@ -10,15 +10,18 @@
 | API Area | Status | Notes |
 |----------|--------|-------|
 | **B4aeClient** (handshake, encrypt/decrypt) | Implemented | Manual handshake flow + `encrypt_message` / `decrypt_message` |
+| **B4aeClient cleanup** | Implemented | `cleanup_inactive_sessions(secs)`, `cleanup_stale_handshakes()`, `cleanup_old_state()` |
 | **B4aeConfig** | Implemented | `security_profile`, `crypto_config`, `protocol_config`, `handshake_config`, `audit_sink` |
 | **Metadata protection** | Implemented | Padding, timing, dummy, metadata_key MAC di `encrypt_message` (return `Vec<EncryptedMessage>`) |
 | **Audit** | Implemented | `B4aeConfig.audit_sink`, log ke handshake/session/key rotation |
-| **Key hierarchy** | Implemented | `key_hierarchy`: MIK, DMK, STK, BKS, `export_dmk_for_device`/`import_dmk_for_device` |
-| **Dummy/timing helpers** | Implemented | `should_generate_dummy()`, `encrypt_dummy_message()`, `timing_delay_ms()` (otomatis di encrypt_message) |
+| **Key hierarchy** | Implemented | MIK, DMK, STK, BKS; BKS 2-of-2 dengan HMAC-SHA256; export/import |
+| **Dummy/timing helpers** | Implemented | `should_generate_dummy()`, `encrypt_dummy_message()`, `timing_delay_ms()` |
 | **Encrypted storage** | Implemented | `storage::EncryptedStorage` (STK + AES-GCM), `StorageBackend` trait |
 | **Key store** | Implemented | `key_store::KeyStore` (persistent MIK dengan passphrase) |
 | **Onion routing** | Implemented | `crypto::onion` (onion_encrypt, onion_decrypt_layer) |
-| **IP anonymization** | Implemented | `ProtocolConfig::anonymization` (proxy_url, use_tor) |
+| **IP anonymization** | Implemented | `ProtocolConfig::anonymization.proxy_url`; B4aeElaraNode + feature `proxy` |
+| **ELARA transport** | Implemented | ElaraTransport, B4aeElaraNode; feature `elara` |
+| **Proxy (SOCKS5)** | Implemented | ProxyElaraTransport; feature `proxy`; proxy_url di B4aeConfig |
 | **connect() / session.send_text()** | Roadmap | Higher-level session API planned |
 | **generate_identity()** | Roadmap | Identity/backup features planned |
 | **Group chat, file transfer** | Examples | `b4ae_chat_demo`, `b4ae_file_transfer_demo` (custom apps) |

@@ -40,10 +40,34 @@ impl ChunkBuffer {
 }
 
 impl ChunkBuffer {
-    fn add_chunk(&mut self, chunk_id: u16, data: Vec<u8>) -> bool {
+    /// Max payload per chunk (7-byte START or 3-byte CONT header)
+    const MAX_CHUNK_PAYLOAD: usize = MAX_PACKET_SIZE - 3;
+
+    fn add_chunk(&mut self, chunk_id: u16, data: Vec<u8>) -> B4aeResult<bool> {
+        let max_chunk_id = ((self.total_len + (MAX_PACKET_SIZE - 7) - 1) / (MAX_PACKET_SIZE - 7))
+            .min(u16::MAX as usize) as u16;
+        if chunk_id > max_chunk_id {
+            return Err(B4aeError::InvalidInput(format!(
+                "chunk_id {} exceeds max_chunk_id {}",
+                chunk_id, max_chunk_id
+            )));
+        }
+        if data.len() > Self::MAX_CHUNK_PAYLOAD {
+            return Err(B4aeError::InvalidInput(format!(
+                "Chunk payload too large: {} > {}",
+                data.len(),
+                Self::MAX_CHUNK_PAYLOAD
+            )));
+        }
+        let current_total: usize = self.chunks.values().map(|c| c.len()).sum();
+        if current_total + data.len() > MAX_REASSEMBLY_SIZE {
+            return Err(B4aeError::InvalidInput(
+                "Reassembly buffer would exceed limit".to_string(),
+            ));
+        }
         self.chunks.insert(chunk_id, data);
         let received: usize = self.chunks.values().map(|c| c.len()).sum();
-        received >= self.total_len
+        Ok(received >= self.total_len)
     }
 
     fn assemble(mut self) -> B4aeResult<Vec<u8>> {
@@ -53,6 +77,13 @@ impl ChunkBuffer {
             .into_iter()
             .flat_map(|k| self.chunks.remove(&k).unwrap_or_default())
             .collect();
+        if result.len() != self.total_len {
+            return Err(B4aeError::InvalidInput(format!(
+                "Assembled length {} != expected {}",
+                result.len(),
+                self.total_len
+            )));
+        }
         Ok(result)
     }
 }
@@ -185,7 +216,7 @@ impl ElaraTransport {
                         if buffer.created.elapsed() > REASSEMBLY_TIMEOUT {
                             *buffer = ChunkBuffer::new(total_len);
                         }
-                        buffer.add_chunk(chunk_id, chunk_data)
+                        buffer.add_chunk(chunk_id, chunk_data).unwrap_or(false)
                     };
 
                     if complete {
@@ -193,7 +224,10 @@ impl ElaraTransport {
                             let mut reassembly = self.reassembly.lock().map_err(|e| {
                                 B4aeError::InternalError(format!("Mutex poisoned: {}", e))
                             })?;
-                            reassembly.remove(&addr_str).unwrap_or_else(|| ChunkBuffer::new(0))
+                            match reassembly.remove(&addr_str) {
+                                Some(b) => b,
+                                None => continue, // Buffer gone (e.g. timeout); wait for next packet
+                            }
                         };
                         let result = buffer.assemble()?;
                         return Ok((result, addr_str));
@@ -215,7 +249,7 @@ impl ElaraTransport {
                                 reassembly.remove(&addr_str);
                                 false
                             } else {
-                                buffer.add_chunk(chunk_id, chunk_data)
+                                buffer.add_chunk(chunk_id, chunk_data).unwrap_or(false)
                             }
                         } else {
                             false
@@ -227,9 +261,10 @@ impl ElaraTransport {
                             let mut reassembly = self.reassembly.lock().map_err(|e| {
                                 B4aeError::InternalError(format!("Mutex poisoned: {}", e))
                             })?;
-                            reassembly.remove(&addr_str).unwrap_or_else(|| {
-                                ChunkBuffer::new(0)
-                            })
+                            match reassembly.remove(&addr_str) {
+                                Some(b) => b,
+                                None => continue, // Buffer gone (e.g. timeout); wait for next packet
+                            }
                         };
                         let result = buffer.assemble()?;
                         return Ok((result, addr_str));

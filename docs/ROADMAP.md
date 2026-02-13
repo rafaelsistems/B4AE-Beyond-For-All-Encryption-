@@ -68,6 +68,7 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 
 ### Production-Ready
 - [x] **Audit logging** — modul `audit` (AuditEvent, AuditSink) + terhubung ke B4aeClient (audit_sink)
+- [x] **Codebase audit & hardening** — fill_random error propagation; SessionManager poison recovery; remove_padding PKCS#7; BKS 2-of-2 HMAC; Message/sequence validation; elara_node bincode limit; B4aeClient cleanup_inactive_sessions
 - [x] **Proptest invariants** — AES roundtrip, handshake completeness (lihat [FORMAL_VERIFICATION.md](FORMAL_VERIFICATION.md))
 - [x] **Fuzzing CI** — job Proptest Invariants di GitHub Actions
 - [x] **HSM trait** — `HsmBackend` + `NoOpHsm` + `Pkcs11Hsm` (feature `hsm-pkcs11`)
