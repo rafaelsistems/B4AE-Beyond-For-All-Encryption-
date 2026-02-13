@@ -25,7 +25,7 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 - [x] Basic integration & security tests
 
 ### Sisa
-- [ ] Platform SDK (iOS, Android, Web) — in progress
+- [x] Platform SDK (iOS Swift, Android Kotlin, Web WASM) — bindings implemented
 
 ---
 
@@ -51,18 +51,18 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 ## Jangka Panjang (6–24 Bulan)
 
 ### Platform SDK
-- [ ] **iOS**: Swift/ObjC bindings, XCFramework — Lihat [PLATFORM_SDK.md](PLATFORM_SDK.md)
-- [ ] **Android**: Kotlin/Java JNI atau Rust via jni-rs
-- [ ] **Web**: WebAssembly (wasm-bindgen), target `wasm32-unknown-unknown`
+- [x] **iOS**: Swift bindings (b4ae-ffi C API + bindings/swift)
+- [x] **Android**: Kotlin JNI (b4ae-android crate)
+- [x] **Web**: WebAssembly (b4ae-wasm + wasm-demo)
 - [ ] Contoh aplikasi (chat, file transfer)
 
 ### Production-Ready
 - [x] **Audit logging** — modul `audit` (AuditEvent, AuditSink)
 - [x] **Proptest invariants** — AES roundtrip, handshake completeness (lihat [FORMAL_VERIFICATION.md](FORMAL_VERIFICATION.md))
 - [x] **Fuzzing CI** — job Proptest Invariants di GitHub Actions
-- [x] **HSM trait** — `HsmBackend` + `NoOpHsm` (feature `hsm`)
-- [ ] Formal verification (TLA+/Coq)
-- [ ] OSS-Fuzz / libfuzzer integration
+- [x] **HSM trait** — `HsmBackend` + `NoOpHsm` + `Pkcs11Hsm` (feature `hsm-pkcs11`)
+- [x] Formal verification (TLA+ spec + TLC CI)
+- [x] cargo-fuzz / libfuzzer (fuzz targets + CI)
 - [ ] Performance tuning (AES-NI, SIMD)
 
 ### Ekosistem

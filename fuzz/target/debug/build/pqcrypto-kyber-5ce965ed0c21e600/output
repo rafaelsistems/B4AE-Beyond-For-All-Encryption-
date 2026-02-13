@@ -1,0 +1,240 @@
+OUT_DIR = Some(R:\B4AE\B4AE-Beyond-For-All-Encryption-\fuzz\target\debug\build\pqcrypto-kyber-5ce965ed0c21e600\out)
+OPT_LEVEL = Some(0)
+TARGET = Some(x86_64-pc-windows-msvc)
+CARGO_ENCODED_RUSTFLAGS = Some()
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(R:\B4AE\B4AE-Beyond-For-All-Encryption-\fuzz\target\debug\deps;R:\B4AE\B4AE-Beyond-For-All-Encryption-\fuzz\target\debug;C:\Users\l3unu\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Program Files\PowerShell\7;C:\Program Files\Google\Chrome\Application;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files\Eclipse Adoptium\jdk-17.0.14.7-hotspot\bin;C:\Program Files\Microsoft\jdk-11.0.28.6-hotspot\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\Program Files\Git\cmd;C:\Program Files\Go\bin;C:\Program Files\PuTTY\;C:\Program Files\OpenSSL-Win64\bin;C:\Program Files\OpenSSL\bin;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\GitHub CLI\;C:\Program Files\PowerShell\7\;C:\Program Files\cursor\resources\app\bin;C:\Program Files\dotnet\;C:\Users\l3unu\.local\share\solana\install\active_release\bin;.\solana-install\active_release\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\Program Files\PowerShell\7\;C:\Program Files\Git\cmd;C:\Program Files\Go\bin;C:\Program Files\PuTTY\;C:\Program Files\OpenSSL-Win64\bin;C:\Program Files\OpenSSL\bin;C:\Strawberry\c\bin;C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Program Files\Docker\Docker\resources\bin;C:\Users\l3unu\AppData\Local\Programs\Python\Python311\Scripts\;C:\Users\l3unu\AppData\Local\Programs\Python\Python311\;C:\Users\l3unu\.cargo\bin;C:\Users\l3unu\AppData\Local\Programs\Python\Python313\Scripts\;C:\Users\l3unu\AppData\Local\Programs\Python\Python313\;C:\Users\l3unu\AppData\Local\Microsoft\WindowsApps;C:\Users\l3unu\AppData\Roaming\npm;C:\Users\l3unu\.lmstudio\bin;C:\Program Files\heroku\bin;C:\Users\l3unu\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\l3unu\go\bin;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Links;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\DigitalOcean.Doctl_Microsoft.Winget.Source_8wekyb3d8bbwe;;C:\Users\l3unu\.fly\bin;c:\\Users\\l3unu\\.trae\\sdks\\workspaces\\3b898b90\\versions\\node\\current;c:\\Users\\l3unu\\.trae\\sdks\\versions\\node\\current;C:\flutter\bin\cache\dart-sdk\bin\;c:\Users\l3unu\.trae\sdks\workspaces\3b898b90\versions\node\current;c:\Users\l3unu\.trae\sdks\versions\node\current;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\Program Files\PowerShell\7\;C:\Program Files\Git\cmd;C:\Program Files\Go\bin;C:\Program Files\PuTTY\;C:\Program Files\OpenSSL-Win64\bin;C:\Program Files\OpenSSL\bin;C:\Strawberry\c\bin;C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;c:\Users\l3unu\.trae\extensions\ms-python.debugpy-2025.6.0-win32-x64\bundled\scripts\noConfigScripts;C:\Users\l3unu\bin;C:\Users\l3unu\AppData\Roaming\Python\Python311\Scripts;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\zig.zig_Microsoft.Winget.Source_8wekyb3d8bbwe\zig-x86_64-windows-0.14.1;C:\Users\l3unu\.dotnet\tools;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\Google.DartSDK_Microsoft.Winget.Source_8wekyb3d8bbwe\dart-sdk\bin;;C:\tools\flutter\bin;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\mingw64\bin;;;C:\Users\l3unu\AppData\Local\Programs\WinLibs\mingw64\bin;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\MartinStorsjo.LLVM-MinGW.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\llvm-mingw-20251104-ucrt-x86_64\bin;C:\Users\l3unu\AppData\Local\Programs\Windsurf\bin;C:\Users\l3unu\.dotnet\tools;C:\Users\l3unu\AppData\Local\Programs\Antigravity\bin;C:\Users\l3unu\AppData\Local\Programs\cursor\resources\app\bin;C:\Users\l3unu\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+HOST = Some(x86_64-pc-windows-msvc)
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+CARGO_CFG_TARGET_FEATURE = Some(cmpxchg16b,fxsr,sse,sse2,sse3)
+DEBUG = Some(true)
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
+cbd.c
+indcpa.c
+kem.c
+ntt.c
+poly.c
+polyvec.c
+reduce.c
+symmetric-shake.c
+verify.c
+pqclean\crypto_kem\kyber512\clean\verify.c(24): warning C4146: unary minus operator applied to unsigned type, result still unsigned
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+cargo:rerun-if-env-changed=AR_x86_64-pc-windows-msvc
+AR_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=AR_x86_64_pc_windows_msvc
+AR_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_AR
+HOST_AR = None
+cargo:rerun-if-env-changed=AR
+AR = None
+cargo:rerun-if-env-changed=ARFLAGS
+ARFLAGS = None
+cargo:rerun-if-env-changed=HOST_ARFLAGS
+HOST_ARFLAGS = None
+cargo:rerun-if-env-changed=ARFLAGS_x86_64_pc_windows_msvc
+ARFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=ARFLAGS_x86_64-pc-windows-msvc
+ARFLAGS_x86_64-pc-windows-msvc = None
+cargo:rustc-link-lib=static=kyber512_clean
+cargo:rustc-link-search=native=R:\B4AE\B4AE-Beyond-For-All-Encryption-\fuzz\target\debug\build\pqcrypto-kyber-5ce965ed0c21e600\out
+OUT_DIR = Some(R:\B4AE\B4AE-Beyond-For-All-Encryption-\fuzz\target\debug\build\pqcrypto-kyber-5ce965ed0c21e600\out)
+OPT_LEVEL = Some(0)
+TARGET = Some(x86_64-pc-windows-msvc)
+CARGO_ENCODED_RUSTFLAGS = Some()
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(R:\B4AE\B4AE-Beyond-For-All-Encryption-\fuzz\target\debug\deps;R:\B4AE\B4AE-Beyond-For-All-Encryption-\fuzz\target\debug;C:\Users\l3unu\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Program Files\PowerShell\7;C:\Program Files\Google\Chrome\Application;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files\Eclipse Adoptium\jdk-17.0.14.7-hotspot\bin;C:\Program Files\Microsoft\jdk-11.0.28.6-hotspot\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\Program Files\Git\cmd;C:\Program Files\Go\bin;C:\Program Files\PuTTY\;C:\Program Files\OpenSSL-Win64\bin;C:\Program Files\OpenSSL\bin;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\GitHub CLI\;C:\Program Files\PowerShell\7\;C:\Program Files\cursor\resources\app\bin;C:\Program Files\dotnet\;C:\Users\l3unu\.local\share\solana\install\active_release\bin;.\solana-install\active_release\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\Program Files\PowerShell\7\;C:\Program Files\Git\cmd;C:\Program Files\Go\bin;C:\Program Files\PuTTY\;C:\Program Files\OpenSSL-Win64\bin;C:\Program Files\OpenSSL\bin;C:\Strawberry\c\bin;C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Program Files\Docker\Docker\resources\bin;C:\Users\l3unu\AppData\Local\Programs\Python\Python311\Scripts\;C:\Users\l3unu\AppData\Local\Programs\Python\Python311\;C:\Users\l3unu\.cargo\bin;C:\Users\l3unu\AppData\Local\Programs\Python\Python313\Scripts\;C:\Users\l3unu\AppData\Local\Programs\Python\Python313\;C:\Users\l3unu\AppData\Local\Microsoft\WindowsApps;C:\Users\l3unu\AppData\Roaming\npm;C:\Users\l3unu\.lmstudio\bin;C:\Program Files\heroku\bin;C:\Users\l3unu\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\l3unu\go\bin;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Links;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\DigitalOcean.Doctl_Microsoft.Winget.Source_8wekyb3d8bbwe;;C:\Users\l3unu\.fly\bin;c:\\Users\\l3unu\\.trae\\sdks\\workspaces\\3b898b90\\versions\\node\\current;c:\\Users\\l3unu\\.trae\\sdks\\versions\\node\\current;C:\flutter\bin\cache\dart-sdk\bin\;c:\Users\l3unu\.trae\sdks\workspaces\3b898b90\versions\node\current;c:\Users\l3unu\.trae\sdks\versions\node\current;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\Program Files\PowerShell\7\;C:\Program Files\Git\cmd;C:\Program Files\Go\bin;C:\Program Files\PuTTY\;C:\Program Files\OpenSSL-Win64\bin;C:\Program Files\OpenSSL\bin;C:\Strawberry\c\bin;C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;c:\Users\l3unu\.trae\extensions\ms-python.debugpy-2025.6.0-win32-x64\bundled\scripts\noConfigScripts;C:\Users\l3unu\bin;C:\Users\l3unu\AppData\Roaming\Python\Python311\Scripts;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\zig.zig_Microsoft.Winget.Source_8wekyb3d8bbwe\zig-x86_64-windows-0.14.1;C:\Users\l3unu\.dotnet\tools;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\Google.DartSDK_Microsoft.Winget.Source_8wekyb3d8bbwe\dart-sdk\bin;;C:\tools\flutter\bin;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\mingw64\bin;;;C:\Users\l3unu\AppData\Local\Programs\WinLibs\mingw64\bin;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\MartinStorsjo.LLVM-MinGW.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\llvm-mingw-20251104-ucrt-x86_64\bin;C:\Users\l3unu\AppData\Local\Programs\Windsurf\bin;C:\Users\l3unu\.dotnet\tools;C:\Users\l3unu\AppData\Local\Programs\Antigravity\bin;C:\Users\l3unu\AppData\Local\Programs\cursor\resources\app\bin;C:\Users\l3unu\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+HOST = Some(x86_64-pc-windows-msvc)
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+CARGO_CFG_TARGET_FEATURE = Some(cmpxchg16b,fxsr,sse,sse2,sse3)
+DEBUG = Some(true)
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
+cbd.c
+indcpa.c
+kem.c
+ntt.c
+poly.c
+polyvec.c
+reduce.c
+symmetric-shake.c
+verify.c
+pqclean\crypto_kem\kyber768\clean\verify.c(24): warning C4146: unary minus operator applied to unsigned type, result still unsigned
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+cargo:rerun-if-env-changed=AR_x86_64-pc-windows-msvc
+AR_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=AR_x86_64_pc_windows_msvc
+AR_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_AR
+HOST_AR = None
+cargo:rerun-if-env-changed=AR
+AR = None
+cargo:rerun-if-env-changed=ARFLAGS
+ARFLAGS = None
+cargo:rerun-if-env-changed=HOST_ARFLAGS
+HOST_ARFLAGS = None
+cargo:rerun-if-env-changed=ARFLAGS_x86_64_pc_windows_msvc
+ARFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=ARFLAGS_x86_64-pc-windows-msvc
+ARFLAGS_x86_64-pc-windows-msvc = None
+cargo:rustc-link-lib=static=kyber768_clean
+cargo:rustc-link-search=native=R:\B4AE\B4AE-Beyond-For-All-Encryption-\fuzz\target\debug\build\pqcrypto-kyber-5ce965ed0c21e600\out
+OUT_DIR = Some(R:\B4AE\B4AE-Beyond-For-All-Encryption-\fuzz\target\debug\build\pqcrypto-kyber-5ce965ed0c21e600\out)
+OPT_LEVEL = Some(0)
+TARGET = Some(x86_64-pc-windows-msvc)
+CARGO_ENCODED_RUSTFLAGS = Some()
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(R:\B4AE\B4AE-Beyond-For-All-Encryption-\fuzz\target\debug\deps;R:\B4AE\B4AE-Beyond-For-All-Encryption-\fuzz\target\debug;C:\Users\l3unu\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Program Files\PowerShell\7;C:\Program Files\Google\Chrome\Application;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files\Eclipse Adoptium\jdk-17.0.14.7-hotspot\bin;C:\Program Files\Microsoft\jdk-11.0.28.6-hotspot\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\Program Files\Git\cmd;C:\Program Files\Go\bin;C:\Program Files\PuTTY\;C:\Program Files\OpenSSL-Win64\bin;C:\Program Files\OpenSSL\bin;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\GitHub CLI\;C:\Program Files\PowerShell\7\;C:\Program Files\cursor\resources\app\bin;C:\Program Files\dotnet\;C:\Users\l3unu\.local\share\solana\install\active_release\bin;.\solana-install\active_release\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\Program Files\PowerShell\7\;C:\Program Files\Git\cmd;C:\Program Files\Go\bin;C:\Program Files\PuTTY\;C:\Program Files\OpenSSL-Win64\bin;C:\Program Files\OpenSSL\bin;C:\Strawberry\c\bin;C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Program Files\Docker\Docker\resources\bin;C:\Users\l3unu\AppData\Local\Programs\Python\Python311\Scripts\;C:\Users\l3unu\AppData\Local\Programs\Python\Python311\;C:\Users\l3unu\.cargo\bin;C:\Users\l3unu\AppData\Local\Programs\Python\Python313\Scripts\;C:\Users\l3unu\AppData\Local\Programs\Python\Python313\;C:\Users\l3unu\AppData\Local\Microsoft\WindowsApps;C:\Users\l3unu\AppData\Roaming\npm;C:\Users\l3unu\.lmstudio\bin;C:\Program Files\heroku\bin;C:\Users\l3unu\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\l3unu\go\bin;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Links;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\DigitalOcean.Doctl_Microsoft.Winget.Source_8wekyb3d8bbwe;;C:\Users\l3unu\.fly\bin;c:\\Users\\l3unu\\.trae\\sdks\\workspaces\\3b898b90\\versions\\node\\current;c:\\Users\\l3unu\\.trae\\sdks\\versions\\node\\current;C:\flutter\bin\cache\dart-sdk\bin\;c:\Users\l3unu\.trae\sdks\workspaces\3b898b90\versions\node\current;c:\Users\l3unu\.trae\sdks\versions\node\current;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\Program Files\PowerShell\7\;C:\Program Files\Git\cmd;C:\Program Files\Go\bin;C:\Program Files\PuTTY\;C:\Program Files\OpenSSL-Win64\bin;C:\Program Files\OpenSSL\bin;C:\Strawberry\c\bin;C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;c:\Users\l3unu\.trae\extensions\ms-python.debugpy-2025.6.0-win32-x64\bundled\scripts\noConfigScripts;C:\Users\l3unu\bin;C:\Users\l3unu\AppData\Roaming\Python\Python311\Scripts;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\zig.zig_Microsoft.Winget.Source_8wekyb3d8bbwe\zig-x86_64-windows-0.14.1;C:\Users\l3unu\.dotnet\tools;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\Google.DartSDK_Microsoft.Winget.Source_8wekyb3d8bbwe\dart-sdk\bin;;C:\tools\flutter\bin;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\mingw64\bin;;;C:\Users\l3unu\AppData\Local\Programs\WinLibs\mingw64\bin;C:\Users\l3unu\AppData\Local\Microsoft\WinGet\Packages\MartinStorsjo.LLVM-MinGW.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\llvm-mingw-20251104-ucrt-x86_64\bin;C:\Users\l3unu\AppData\Local\Programs\Windsurf\bin;C:\Users\l3unu\.dotnet\tools;C:\Users\l3unu\AppData\Local\Programs\Antigravity\bin;C:\Users\l3unu\AppData\Local\Programs\cursor\resources\app\bin;C:\Users\l3unu\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+HOST = Some(x86_64-pc-windows-msvc)
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+CARGO_CFG_TARGET_FEATURE = Some(cmpxchg16b,fxsr,sse,sse2,sse3)
+DEBUG = Some(true)
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
+cbd.c
+indcpa.c
+kem.c
+ntt.c
+poly.c
+polyvec.c
+reduce.c
+symmetric-shake.c
+verify.c
+pqclean\crypto_kem\kyber1024\clean\verify.c(24): warning C4146: unary minus operator applied to unsigned type, result still unsigned
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+cargo:rerun-if-env-changed=AR_x86_64-pc-windows-msvc
+AR_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=AR_x86_64_pc_windows_msvc
+AR_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_AR
+HOST_AR = None
+cargo:rerun-if-env-changed=AR
+AR = None
+cargo:rerun-if-env-changed=ARFLAGS
+ARFLAGS = None
+cargo:rerun-if-env-changed=HOST_ARFLAGS
+HOST_ARFLAGS = None
+cargo:rerun-if-env-changed=ARFLAGS_x86_64_pc_windows_msvc
+ARFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=ARFLAGS_x86_64-pc-windows-msvc
+ARFLAGS_x86_64-pc-windows-msvc = None
+cargo:rustc-link-lib=static=kyber1024_clean
+cargo:rustc-link-search=native=R:\B4AE\B4AE-Beyond-For-All-Encryption-\fuzz\target\debug\build\pqcrypto-kyber-5ce965ed0c21e600\out

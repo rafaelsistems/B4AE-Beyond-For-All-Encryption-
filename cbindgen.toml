@@ -1,0 +1,16 @@
+[language]
+language = "C"
+
+[parse]
+parse_deps = true
+
+[export]
+include = ["b4ae_ffi_alloc", "b4ae_ffi_free", "b4ae_ffi_generate_key", "b4ae_ffi_encrypt", "b4ae_ffi_decrypt"]
+prefix = "b4ae"
+
+[rename]
+"b4ae_ffi_alloc" = "alloc"
+"b4ae_ffi_free" = "free"
+"b4ae_ffi_generate_key" = "generate_key"
+"b4ae_ffi_encrypt" = "encrypt"
+"b4ae_ffi_decrypt" = "decrypt"

@@ -1,0 +1,13 @@
+[package]
+name = "b4ae-ffi"
+version = "0.1.0"
+edition = "2021"
+description = "B4AE C FFI - AES-GCM bindings for Swift/Kotlin"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+aes-gcm = "0.10"
+getrandom = "0.2"
+libc = "0.2"

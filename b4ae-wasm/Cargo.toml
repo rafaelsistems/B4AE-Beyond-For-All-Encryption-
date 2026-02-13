@@ -1,0 +1,18 @@
+[package]
+name = "b4ae-wasm"
+version = "0.1.0"
+edition = "2021"
+description = "B4AE WebAssembly bindings - subset API for browser"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+aes-gcm = "0.10"
+sha3 = "0.10"
+hkdf = "0.12"
+zeroize = { version = "1.7", features = ["derive"] }
+wasm-bindgen = "0.2"
+getrandom = { version = "0.2", features = ["js"] }
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.6"

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>B4AE WASM Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    textarea { width: 100%; min-height: 80px; font-family: monospace; }
+    button { padding: 0.5rem 1rem; margin: 0.25rem; cursor: pointer; }
+    .result { background: #f0f0f0; padding: 1rem; margin-top: 1rem; word-break: break-all; font-family: monospace; }
+    .error { background: #ffe0e0; }
+  </style>
+</head>
+<body>
+  <h1>B4AE WASM Demo</h1>
+  <p>AES-256-GCM encryption in the browser via WebAssembly.</p>
+
+  <h2>Plaintext</h2>
+  <textarea id="plaintext" placeholder="Enter text to encrypt...">Hello B4AE!</textarea>
+
+  <div>
+    <button id="genKey">Generate Key</button>
+    <button id="encrypt">Encrypt</button>
+    <button id="decrypt">Decrypt</button>
+  </div>
+
+  <div id="keyInfo" class="result" style="display:none;">Key (hex): <span id="keyHex"></span></div>
+  <div id="encryptedInfo" class="result" style="display:none;">Encrypted (base64): <span id="encHex"></span></div>
+  <div id="decryptedInfo" class="result" style="display:none;">Decrypted: <span id="decText"></span></div>
+  <div id="error" class="result error" style="display:none;"></div>
+
+  <script type="module">
+    const init = async () => {
+      const { generate_key, encrypt, decrypt } = await import('./pkg/b4ae_wasm.js');
+      window.b4ae = { generate_key, encrypt, decrypt };
+      document.getElementById('error').style.display = 'none';
+    };
+    init().catch(e => {
+      document.getElementById('error').textContent = 'Load failed: ' + e.message;
+      document.getElementById('error').style.display = 'block';
+    });
+
+    document.getElementById('genKey').onclick = () => {
+      if (!window.b4ae) return;
+      try {
+        const key = new Uint8Array(window.b4ae.generate_key());
+        window.b4aeKey = key;
+        document.getElementById('keyHex').textContent = Array.from(key).map(b => b.toString(16).padStart(2,'0')).join('');
+        document.getElementById('keyInfo').style.display = 'block';
+      } catch (e) {
+        document.getElementById('error').textContent = e.message;
+        document.getElementById('error').style.display = 'block';
+      }
+    };
+
+    document.getElementById('encrypt').onclick = () => {
+      if (!window.b4ae || !window.b4aeKey) {
+        alert('Generate key first');
+        return;
+      }
+      try {
+        const plain = new TextEncoder().encode(document.getElementById('plaintext').value);
+        const enc = window.b4ae.encrypt(window.b4aeKey, plain);
+        window.b4aeEncrypted = new Uint8Array(enc);
+        document.getElementById('encHex').textContent = btoa(String.fromCharCode(...window.b4aeEncrypted));
+        document.getElementById('encryptedInfo').style.display = 'block';
+      } catch (e) {
+        document.getElementById('error').textContent = e.message;
+        document.getElementById('error').style.display = 'block';
+      }
+    };
+
+    document.getElementById('decrypt').onclick = () => {
+      if (!window.b4ae || !window.b4aeKey || !window.b4aeEncrypted) {
+        alert('Encrypt first');
+        return;
+      }
+      try {
+        const dec = window.b4ae.decrypt(window.b4aeKey, window.b4aeEncrypted);
+        document.getElementById('decText').textContent = new TextDecoder().decode(new Uint8Array(dec));
+        document.getElementById('decryptedInfo').style.display = 'block';
+      } catch (e) {
+        document.getElementById('error').textContent = e.message;
+        document.getElementById('error').style.display = 'block';
+      }
+    };
+  </script>
+</body>
+</html>

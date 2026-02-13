@@ -47,6 +47,9 @@ elara-transport = { path = "elara/crates/elara-transport", optional = true }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 
+# HSM (PKCS#11)
+cryptoki = { version = "0.11", optional = true }
+
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
 proptest = "1.4"
@@ -60,6 +63,7 @@ async = ["tokio"]
 networking = ["quinn", "tokio"]
 elara = ["elara-transport", "tokio"]
 hsm = []
+hsm-pkcs11 = ["hsm", "cryptoki"]
 
 [profile.release]
 opt-level = 3
