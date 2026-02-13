@@ -41,7 +41,14 @@ jobs:
       run: cargo test --release --all-features
 
     - name: Prepare Cargo.toml for publish
-      run: python3 scripts/prepare_publish.py
+      run: |
+        # Remove elara-transport dep (not on crates.io) - required for cargo publish
+        sed -i '/# ELARA Transport/d' Cargo.toml
+        sed -i '/# Path untuk local dev/d' Cargo.toml
+        sed -i '/elara-transport = { path = "elara\/crates\/elara-transport", optional = true }/d' Cargo.toml
+        sed -i 's/elara = \["elara-transport", "tokio"\]/elara = ["tokio"]\nelara-transport = []/' Cargo.toml
+        # Verify dep removed (fail if path still present)
+        grep 'path.*elara-transport' Cargo.toml && exit 1 || true
 
     - name: Verify package
       run: cargo publish --dry-run
