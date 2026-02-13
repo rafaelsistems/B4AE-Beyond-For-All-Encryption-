@@ -4,7 +4,13 @@
 //! untuk audit trail tanpa menyimpan data sensitif.
 
 use serde::{Deserialize, Serialize};
+use sha3::{Digest, Sha3_256};
 use std::time::SystemTime;
+
+/// Hash data for audit (privacy-preserving, no raw IDs in logs)
+pub fn hash_for_audit(data: &[u8]) -> String {
+    hex::encode(&Sha3_256::digest(data)[..8])
+}
 
 /// Audit event types
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

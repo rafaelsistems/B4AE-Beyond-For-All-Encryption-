@@ -64,11 +64,13 @@ fn test_end_to_end_message_flow() {
     let mut client_session = Session::from_handshake(
         client_result,
         b"server".to_vec(),
+        None,
     ).unwrap();
     
     let mut server_session = Session::from_handshake(
         server_result,
         b"client".to_vec(),
+        None,
     ).unwrap();
     
     // Send message from client to server
@@ -108,11 +110,13 @@ fn test_multiple_message_exchange() {
     let mut client_session = Session::from_handshake(
         client_result,
         b"server".to_vec(),
+        None,
     ).unwrap();
     
     let mut server_session = Session::from_handshake(
         server_result,
         b"client".to_vec(),
+        None,
     ).unwrap();
     
     // Exchange multiple messages
@@ -151,11 +155,13 @@ fn test_session_statistics() {
     let mut client_session = Session::from_handshake(
         client_result,
         b"server".to_vec(),
+        None,
     ).unwrap();
     
     let mut server_session = Session::from_handshake(
         server_result,
         b"client".to_vec(),
+        None,
     ).unwrap();
     
     // Send messages and check statistics

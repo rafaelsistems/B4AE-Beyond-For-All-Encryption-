@@ -1,6 +1,7 @@
-//! B4AE C FFI - Minimal AES-GCM API for Swift/Kotlin bindings
+//! B4AE C FFI - AES-GCM + full protocol for Swift/Kotlin bindings
 //!
-//! Exposes generate_key, encrypt, decrypt via C ABI.
+//! Default: generate_key, encrypt, decrypt (AES subset).
+//! With `full-protocol` feature: handshake, quantum-resistant encrypt/decrypt.
 
 use aes_gcm::{
     aead::{Aead, KeyInit, Payload},
@@ -153,3 +154,6 @@ pub extern "C" fn b4ae_decrypt(
     }
     ptr
 }
+
+#[cfg(feature = "full-protocol")]
+pub mod full_protocol;

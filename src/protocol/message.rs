@@ -31,6 +31,8 @@ pub enum MessageContent {
         mime_type: String,
         data: Vec<u8>,
     },
+    /// Dummy traffic (metadata obfuscation — discard by recipient)
+    Dummy,
 }
 
 /// B4AE encrypted message
@@ -225,6 +227,11 @@ impl MessageCrypto {
 
         // Decrypt with AES-256-GCM
         let plaintext = aes_gcm::decrypt(&aes_key, &encrypted.nonce, &encrypted.payload, b"")?;
+
+        // If dummy traffic, return Dummy message (recipient discards)
+        if encrypted.flags & flags::DUMMY_TRAFFIC != 0 {
+            return Ok(Message::new(MessageContent::Dummy));
+        }
 
         // Deserialize message
         let message = Message::from_bytes(&plaintext)?;

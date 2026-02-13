@@ -15,6 +15,7 @@ pub mod error;
 pub mod client;
 pub mod prelude;
 pub mod audit;
+pub mod key_hierarchy;
 
 #[cfg(feature = "hsm")]
 pub mod hsm;

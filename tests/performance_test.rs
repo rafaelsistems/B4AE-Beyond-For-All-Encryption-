@@ -138,11 +138,13 @@ fn test_message_throughput() {
     let mut client_session = Session::from_handshake(
         client_result,
         b"server".to_vec(),
+        None,
     ).unwrap();
     
     let mut server_session = Session::from_handshake(
         server_result,
         b"client".to_vec(),
+        None,
     ).unwrap();
     
     // Test throughput
@@ -183,11 +185,13 @@ fn test_end_to_end_latency() {
     let mut client_session = Session::from_handshake(
         client_result,
         b"server".to_vec(),
+        None,
     ).unwrap();
     
     let mut server_session = Session::from_handshake(
         server_result,
         b"client".to_vec(),
+        None,
     ).unwrap();
     
     // Measure latency
@@ -232,11 +236,13 @@ fn test_memory_usage() {
     let _client_session = Session::from_handshake(
         client_result,
         b"server".to_vec(),
+        None,
     ).unwrap();
     
     let _server_session = Session::from_handshake(
         server_result,
         b"client".to_vec(),
+        None,
     ).unwrap();
     
     // Memory usage should be reasonable
@@ -388,11 +394,13 @@ fn test_network_bandwidth_overhead() {
     let mut client_session = Session::from_handshake(
         client_result,
         b"server".to_vec(),
+        None,
     ).unwrap();
     
     let _server_session = Session::from_handshake(
         server_result,
         b"client".to_vec(),
+        None,
     ).unwrap();
     
     // Test message overhead
@@ -526,11 +534,13 @@ fn test_sustained_load() {
     let mut client_session = Session::from_handshake(
         client_result,
         b"server".to_vec(),
+        None,
     ).unwrap();
     
     let mut server_session = Session::from_handshake(
         server_result,
         b"client".to_vec(),
+        None,
     ).unwrap();
     
     // Disable automatic key rotation for this test

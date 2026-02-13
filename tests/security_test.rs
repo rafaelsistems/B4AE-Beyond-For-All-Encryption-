@@ -28,11 +28,13 @@ fn test_replay_attack_prevention() {
     let mut client_session = Session::from_handshake(
         client_result,
         b"server".to_vec(),
+        None,
     ).unwrap();
     
     let mut server_session = Session::from_handshake(
         server_result,
         b"client".to_vec(),
+        None,
     ).unwrap();
     
     // Send message
@@ -314,6 +316,7 @@ fn test_session_key_rotation() {
     let mut session = Session::from_handshake(
         client_result,
         b"server".to_vec(),
+        None,
     ).unwrap();
     
     // Initial rotation count should be 0

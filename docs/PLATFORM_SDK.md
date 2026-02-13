@@ -1,6 +1,9 @@
 # B4AE Platform SDK
 
-Bindings B4AE untuk iOS, Android, dan Web. Subset API AES-256-GCM (generateKey, encrypt, decrypt).
+Bindings B4AE untuk iOS, Android, dan Web.
+
+- **Default**: Subset AES-256-GCM (generateKey, encrypt, decrypt).
+- **Full protocol**: Build dengan `--features full-protocol` untuk handshake + quantum-resistant encrypt/decrypt.
 
 ---
 
@@ -59,6 +62,12 @@ const dec = decrypt(key, enc);
 
 ### Build
 ```bash
+# AES subset (default)
+cargo build -p b4ae-ffi
+
+# Full B4AE protocol (handshake, hybrid, PFS+)
+cargo build -p b4ae-ffi --features full-protocol
+
 # Automated (builds all targets, copies to b4ae-android-app)
 ./scripts/build_android.sh   # Linux/macOS
 ./scripts/build_android.ps1   # Windows

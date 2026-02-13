@@ -286,11 +286,13 @@ fn test_replay_window_limit() {
     let mut client_session = Session::from_handshake(
         client_result,
         b"server".to_vec(),
+        None,
     ).unwrap();
     
     let mut server_session = Session::from_handshake(
         server_result,
         b"client".to_vec(),
+        None,
     ).unwrap();
     
     // Send multiple messages

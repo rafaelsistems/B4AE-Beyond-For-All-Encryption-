@@ -1,16 +1,18 @@
 // B4AE Session Management Implementation
 // Manages secure communication sessions
 
+use crate::audit::{AuditEntry, AuditEvent, AuditSink, hash_for_audit};
 use crate::crypto::{CryptoError, CryptoResult};
 use crate::crypto::pfs_plus::{PfsSession, PfsManager};
 use crate::crypto::hybrid::HybridPublicKey;
 use crate::crypto::hkdf;
 use crate::protocol::message::{Message, MessageCrypto, EncryptedMessage};
 use crate::protocol::handshake::{HandshakeResult, SessionKeys};
+use crate::protocol::message::flags;
 use crate::error::B4aeResult;
 use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
 use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{info, warn};
 
 /// Session state
@@ -71,6 +73,8 @@ pub struct Session {
     rotation_count: u64,
     /// Last rotation timestamp
     last_rotation_time: u64,
+    /// Optional audit sink for key rotation events
+    audit_sink: Option<Arc<dyn AuditSink>>,
 }
 
 /// Key rotation message untuk komunikasi dengan peer
@@ -110,6 +114,7 @@ impl Session {
     pub fn from_handshake(
         handshake_result: HandshakeResult,
         peer_id: Vec<u8>,
+        audit_sink: Option<Arc<dyn AuditSink>>,
     ) -> CryptoResult<Self> {
         // Create PFS+ session
         let pfs_session = PfsSession::new(
@@ -148,6 +153,7 @@ impl Session {
             rotation_policy: KeyRotationPolicy::default(),
             rotation_count: 0,
             last_rotation_time: now,
+            audit_sink,
         })
     }
 
@@ -172,6 +178,20 @@ impl Session {
             }
         }
 
+        Ok(encrypted)
+    }
+
+    /// Send dummy message (metadata obfuscation). Same as send but sets DUMMY_TRAFFIC flag.
+    pub fn send_dummy(&mut self, message: &Message) -> CryptoResult<EncryptedMessage> {
+        if self.state != SessionState::Active {
+            return Err(CryptoError::InvalidInput("Session not active".to_string()));
+        }
+
+        let mut encrypted = self.message_crypto.encrypt(message)?;
+        encrypted.flags |= flags::DUMMY_TRAFFIC;
+        self.info.messages_sent += 1;
+        self.info.bytes_sent += encrypted.payload.len() as u64;
+        self.update_activity();
         Ok(encrypted)
     }
 
@@ -233,6 +253,15 @@ impl Session {
         self.info.messages_sent = 0;
         self.info.bytes_sent = 0;
         self.info.established_at = now;
+        
+        if let Some(sink) = &self.audit_sink {
+            sink.log(AuditEntry::new(
+                AuditEvent::KeyRotation {
+                    session_id_hash: hash_for_audit(&self.session_id),
+                },
+                None,
+            ));
+        }
         
         info!("Key rotation #{} completed successfully", self.rotation_count);
         
@@ -369,6 +398,11 @@ impl Session {
     /// Get session info
     pub fn info(&self) -> &SessionInfo {
         &self.info
+    }
+
+    /// Get mutable session info (for tests / rotation policy simulation)
+    pub fn info_mut(&mut self) -> &mut SessionInfo {
+        &mut self.info
     }
 
     /// Get session ID
@@ -534,7 +568,7 @@ mod tests {
         let handshake_result = create_test_handshake_result();
         let peer_id = vec![0x47; 32];
         
-        let session = Session::from_handshake(handshake_result, peer_id).unwrap();
+        let session = Session::from_handshake(handshake_result, peer_id, None).unwrap();
         assert!(session.is_active());
     }
 
@@ -545,7 +579,7 @@ mod tests {
 
         let handshake_result = create_test_handshake_result();
         let peer_id = vec![0x47; 32];
-        let session = Session::from_handshake(handshake_result, peer_id).unwrap();
+        let session = Session::from_handshake(handshake_result, peer_id, None).unwrap();
         let session_id = *session.session_id();
 
         manager.add_session(session).unwrap();
@@ -562,11 +596,11 @@ mod tests {
 
         let handshake_result = create_test_handshake_result();
         let peer_id = vec![0x47; 32];
-        let mut session = Session::from_handshake(handshake_result, peer_id).unwrap();
+        let mut session = Session::from_handshake(handshake_result, peer_id, None).unwrap();
         session.set_rotation_policy(policy);
 
         // Simulate sending messages
-        session.info.messages_sent = 101;
+        session.info_mut().messages_sent = 101;
         assert!(session.needs_rotation());
     }
 
@@ -577,10 +611,10 @@ mod tests {
 
         let handshake_result = create_test_handshake_result();
         let peer_id = vec![0x47; 32];
-        let mut session = Session::from_handshake(handshake_result, peer_id).unwrap();
+        let mut session = Session::from_handshake(handshake_result, peer_id, None).unwrap();
         
         // Set old activity time
-        session.info.last_activity = 0;
+        session.info_mut().last_activity = 0;
         manager.add_session(session).unwrap();
 
         assert_eq!(manager.session_count(), 1);

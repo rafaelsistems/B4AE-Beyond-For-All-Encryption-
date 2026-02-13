@@ -2,7 +2,7 @@
 name = "b4ae-ffi"
 version = "1.0.0"
 edition = "2021"
-description = "B4AE C FFI - AES-GCM bindings for Swift/Kotlin"
+description = "B4AE C FFI - AES-GCM + full protocol bindings for Swift/Kotlin/Web"
 
 [lib]
 crate-type = ["cdylib", "staticlib"]
@@ -11,3 +11,17 @@ crate-type = ["cdylib", "staticlib"]
 aes-gcm = "0.10"
 getrandom = "0.2"
 libc = "0.2"
+
+[features]
+default = []
+# Full B4AE protocol (handshake, quantum-resistant, PFS+)
+full-protocol = ["b4ae", "bincode"]
+
+[dependencies.b4ae]
+package = "b4ae"
+path = ".."
+optional = true
+
+[dependencies.bincode]
+version = "1.3"
+optional = true

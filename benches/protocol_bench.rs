@@ -47,11 +47,13 @@ fn bench_message_send_receive(c: &mut Criterion) {
     let mut client_session = Session::from_handshake(
         client_result,
         b"server".to_vec(),
+        None,
     ).unwrap();
     
     let mut server_session = Session::from_handshake(
         server_result,
         b"client".to_vec(),
+        None,
     ).unwrap();
     
     for size in [64, 256, 1024, 4096, 16384].iter() {
@@ -89,6 +91,7 @@ fn bench_session_creation(c: &mut Criterion) {
             black_box(Session::from_handshake(
                 client_result.clone(),
                 b"server".to_vec(),
+                None,
             ).unwrap())
         })
     });

@@ -1,7 +1,9 @@
 // B4AE High-Level Client API
 // Provides a simplified interface for common operations
 
+use crate::audit::{AuditEntry, AuditEvent, AuditSink, hash_for_audit};
 use crate::crypto::{CryptoConfig, SecurityLevel, CryptoError};
+use crate::metadata::{MetadataProtection, ProtectionLevel};
 use crate::protocol::{SecurityProfile, ProtocolConfig};
 use crate::protocol::handshake::{
     HandshakeConfig, HandshakeInitiator, HandshakeResponder,
@@ -11,9 +13,10 @@ use crate::protocol::session::Session;
 use crate::protocol::message::{Message, MessageContent, EncryptedMessage};
 use crate::error::{B4aeError, B4aeResult};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// B4AE Client Configuration
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct B4aeConfig {
     /// Security profile preset
     pub security_profile: SecurityProfile,
@@ -23,6 +26,20 @@ pub struct B4aeConfig {
     pub protocol_config: ProtocolConfig,
     /// Handshake configuration
     pub handshake_config: HandshakeConfig,
+    /// Optional audit sink for compliance logging
+    pub audit_sink: Option<Arc<dyn AuditSink>>,
+}
+
+impl std::fmt::Debug for B4aeConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("B4aeConfig")
+            .field("security_profile", &self.security_profile)
+            .field("crypto_config", &self.crypto_config)
+            .field("protocol_config", &self.protocol_config)
+            .field("handshake_config", &self.handshake_config)
+            .field("audit_sink", &self.audit_sink.as_ref().map(|_| "Some(..)"))
+            .finish()
+    }
 }
 
 impl Default for B4aeConfig {
@@ -32,6 +49,7 @@ impl Default for B4aeConfig {
             crypto_config: CryptoConfig::default(),
             protocol_config: ProtocolConfig::default(),
             handshake_config: HandshakeConfig::default(),
+            audit_sink: None,
         }
     }
 }
@@ -53,6 +71,7 @@ impl B4aeConfig {
             },
             protocol_config: profile.to_config(),
             handshake_config: HandshakeConfig::default(),
+            audit_sink: None,
         }
     }
 }
@@ -95,6 +114,14 @@ impl B4aeClient {
     /// Initiate handshake with peer
     /// Returns HandshakeInit message to send to peer
     pub fn initiate_handshake(&mut self, peer_id: &[u8]) -> B4aeResult<HandshakeInit> {
+        if let Some(sink) = &self.config.audit_sink {
+            sink.log(AuditEntry::new(
+                AuditEvent::HandshakeInitiated {
+                    peer_id_hash: hash_for_audit(peer_id),
+                },
+                None,
+            ));
+        }
         let mut initiator = HandshakeInitiator::new(self.config.handshake_config.clone())
             .map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))?;
         
@@ -141,9 +168,23 @@ impl B4aeClient {
         let result = initiator.finalize()
             .map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))?;
         
-        let session = Session::from_handshake(result, peer_id.to_vec())
+        let session = Session::from_handshake(result, peer_id.to_vec(), self.config.audit_sink.clone())
             .map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))?;
         
+        if let Some(sink) = &self.config.audit_sink {
+            sink.log(AuditEntry::new(
+                AuditEvent::HandshakeCompleted {
+                    peer_id_hash: hash_for_audit(peer_id),
+                },
+                None,
+            ));
+            sink.log(AuditEntry::new(
+                AuditEvent::SessionCreated {
+                    session_id_hash: hash_for_audit(session.session_id()),
+                },
+                None,
+            ));
+        }
         self.sessions.insert(peer_id.to_vec(), session);
         Ok(())
     }
@@ -159,36 +200,113 @@ impl B4aeClient {
         let result = responder.finalize()
             .map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))?;
         
-        let session = Session::from_handshake(result, peer_id.to_vec())
+        let session = Session::from_handshake(result, peer_id.to_vec(), self.config.audit_sink.clone())
             .map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))?;
         
+        if let Some(sink) = &self.config.audit_sink {
+            sink.log(AuditEntry::new(
+                AuditEvent::HandshakeCompleted {
+                    peer_id_hash: hash_for_audit(peer_id),
+                },
+                None,
+            ));
+            sink.log(AuditEntry::new(
+                AuditEvent::SessionCreated {
+                    session_id_hash: hash_for_audit(session.session_id()),
+                },
+                None,
+            ));
+        }
         self.sessions.insert(peer_id.to_vec(), session);
         Ok(())
     }
 
-    /// Encrypt message for peer
+    fn protection_level(&self) -> ProtectionLevel {
+        let pc = &self.config.protocol_config;
+        if !pc.metadata_protection {
+            ProtectionLevel::None
+        } else if !pc.timing_obfuscation && !pc.dummy_traffic {
+            ProtectionLevel::Basic
+        } else if pc.timing_obfuscation && !pc.dummy_traffic {
+            ProtectionLevel::Standard
+        } else {
+            ProtectionLevel::High
+        }
+    }
+
+    /// Encrypt message for peer (with metadata protection: padding, etc.)
     pub fn encrypt_message(&mut self, peer_id: &[u8], plaintext: &[u8]) -> B4aeResult<EncryptedMessage> {
+        let level = self.protection_level();
+        let protocol_config = self.config.protocol_config.clone();
+        
         let session = self.sessions.get_mut(peer_id)
             .ok_or_else(|| B4aeError::ProtocolError("No session with peer".to_string()))?;
         
-        let message = Message::binary(plaintext.to_vec());
+        let protection = MetadataProtection::new(protocol_config, level);
+        let data = if level.padding_enabled() {
+            protection.protect_message(plaintext)?
+        } else {
+            plaintext.to_vec()
+        };
+        
+        let message = Message::binary(data);
         session.send(&message)
             .map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))
     }
 
-    /// Decrypt message from peer
+    /// Decrypt message from peer (removes metadata protection)
     pub fn decrypt_message(&mut self, peer_id: &[u8], encrypted: &EncryptedMessage) -> B4aeResult<Vec<u8>> {
+        let level = self.protection_level();
+        let protocol_config = self.config.protocol_config.clone();
+        
         let session = self.sessions.get_mut(peer_id)
             .ok_or_else(|| B4aeError::ProtocolError("No session with peer".to_string()))?;
         
         let message = session.receive(encrypted)
             .map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))?;
         
-        match message.content {
-            MessageContent::Binary(data) => Ok(data),
-            MessageContent::Text(text) => Ok(text.into_bytes()),
-            MessageContent::File { data, .. } => Ok(data),
+        let data = match &message.content {
+            MessageContent::Dummy => return Ok(vec![]), // Discard dummy traffic
+            MessageContent::Binary(d) => d.clone(),
+            MessageContent::Text(t) => t.clone().into_bytes(),
+            MessageContent::File { data, .. } => data.clone(),
+        };
+        
+        let protection = MetadataProtection::new(protocol_config, level);
+        if level.padding_enabled() {
+            protection.unprotect_message(&data)
+        } else {
+            Ok(data)
         }
+    }
+
+    /// Whether dummy traffic should be generated (for transport to inject).
+    pub fn should_generate_dummy(&self) -> bool {
+        let level = self.protection_level();
+        if !level.dummy_traffic_enabled() {
+            return false;
+        }
+        let protection = MetadataProtection::new(self.config.protocol_config.clone(), level);
+        protection.should_generate_dummy()
+    }
+
+    /// Generate dummy encrypted message (for metadata obfuscation). Call when `should_generate_dummy()` is true.
+    pub fn encrypt_dummy_message(&mut self, peer_id: &[u8]) -> B4aeResult<EncryptedMessage> {
+        let session = self.sessions.get_mut(peer_id)
+            .ok_or_else(|| B4aeError::ProtocolError("No session with peer".to_string()))?;
+        
+        let mut dummy = vec![0u8; 64];
+        let _ = crate::crypto::random::fill_random(&mut dummy);
+        let message = Message::binary(dummy);
+        session.send_dummy(&message)
+            .map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))
+    }
+
+    /// Recommended timing delay (ms) before transmit. Use for timing obfuscation.
+    pub fn timing_delay_ms(&self) -> u64 {
+        let level = self.protection_level();
+        let protection = MetadataProtection::new(self.config.protocol_config.clone(), level);
+        protection.get_timing_delay_ms()
     }
 
     /// Check if session exists with peer
@@ -199,6 +317,14 @@ impl B4aeClient {
     /// Close session with peer
     pub fn close_session(&mut self, peer_id: &[u8]) {
         if let Some(mut session) = self.sessions.remove(peer_id) {
+            if let Some(sink) = &self.config.audit_sink {
+                sink.log(AuditEntry::new(
+                    AuditEvent::SessionClosed {
+                        session_id_hash: hash_for_audit(session.session_id()),
+                    },
+                    None,
+                ));
+            }
             session.close();
         }
     }
