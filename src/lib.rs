@@ -12,6 +12,12 @@ pub mod error;
 pub mod client;
 pub mod prelude;
 
+#[cfg(feature = "elara")]
+pub mod transport;
+
+#[cfg(feature = "elara")]
+pub mod elara_node;
+
 // Re-export commonly used types
 pub use error::{B4aeError, B4aeResult};
 pub use crypto::{CryptoConfig, SecurityLevel};

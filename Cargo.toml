@@ -39,6 +39,9 @@ async-trait = "0.1"
 # Networking
 quinn = { version = "0.10", optional = true }
 
+# ELARA Transport (UDP, NAT traversal)
+elara-transport = { path = "elara/crates/elara-transport", optional = true }
+
 # Logging
 tracing = "0.1"
 tracing-subscriber = "0.3"
@@ -54,6 +57,7 @@ full-crypto = ["pqcrypto-kyber", "pqcrypto-dilithium"]
 pqcrypto-alt = ["pqcrypto-kyber", "pqcrypto-dilithium"]
 async = ["tokio"]
 networking = ["quinn", "tokio"]
+elara = ["elara-transport", "tokio"]
 
 [profile.release]
 opt-level = 3
@@ -96,3 +100,8 @@ path = "tests/fuzzing_test.rs"
 [[test]]
 name = "penetration_test"
 path = "tests/penetration_test.rs"
+
+[[example]]
+name = "b4ae_elara_demo"
+path = "examples/b4ae_elara_demo.rs"
+required-features = ["elara"]

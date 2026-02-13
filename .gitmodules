@@ -1,0 +1,3 @@
+[submodule "elara"]
+	path = elara
+	url = https://github.com/rafaelsistems/ELARA-Protocol
