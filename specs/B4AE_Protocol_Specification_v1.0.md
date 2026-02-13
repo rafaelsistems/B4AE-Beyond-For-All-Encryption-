@@ -125,16 +125,16 @@ Output: 32 bytes (256 bits)
 
 ### 4.1 Key Types
 ```
-Master Identity Key (MIK)           [Roadmap - not yet implemented]
-├── Device Master Key (DMK)        [Roadmap]
+Master Identity Key (MIK)           [Implemented]
+├── Device Master Key (DMK)        [Implemented - derived per device_id]
 │   ├── Session Key (SK)          [Implemented - from handshake]
 │   │   ├── Message Key (MK)      [Implemented - PFS+ per-message]
 │   │   └── Ephemeral Key (EK)    [Implemented]
-│   └── Storage Key (STK)          [Roadmap]
-└── Backup Key Shards (BKS)        [Roadmap]
+│   └── Storage Key (STK)          [Implemented - for encrypted storage]
+└── Backup Key Shards (BKS)         [Implemented - 2-of-M recovery]
 ```
 
-**Implementation Status:** Session-level keys (SK, MK, EK) are fully implemented via handshake + PFS+. MIK/DMK/STK/BKS are planned for future versions.
+**Implementation Status:** MIK/DMK/STK/BKS in `src/key_hierarchy.rs`. MIK generates from CSPRNG; DMK derived via HKDF(MIK, device_id); STK from DMK; BKS 2-of-M XOR-based. export_dmk_for_device/import_dmk_for_device for multi-device sync.
 
 ### 4.2 Key Lifetimes
 ```

@@ -210,11 +210,11 @@ pub extern "C" fn b4ae_encrypt_message(
     let client = unsafe { &mut *handle };
     let peer = unsafe { std::slice::from_raw_parts(peer_id, peer_id_len) };
     let plain = unsafe { std::slice::from_raw_parts(plaintext, plaintext_len) };
-    let enc = match client.client.encrypt_message(peer, plain) {
+    let enc_list = match client.client.encrypt_message(peer, plain) {
         Ok(e) => e,
         Err(_) => return -1,
     };
-    let bytes = match bincode::serialize(&enc) {
+    let bytes = match bincode::serialize(&enc_list) {
         Ok(b) => b,
         Err(_) => return -1,
     };

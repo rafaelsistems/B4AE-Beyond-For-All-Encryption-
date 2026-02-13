@@ -39,8 +39,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     bob.complete_handshake(&alice_id, complete)?;
     alice.finalize_initiator(&bob_id)?;
 
-    let encrypted = alice.encrypt_message(&bob_id, b"Hello, B4AE!")?;
-    let decrypted = bob.decrypt_message(&alice_id, &encrypted)?;
+    let encrypted_list = alice.encrypt_message(&bob_id, b"Hello, B4AE!")?;
+    let mut decrypted = vec![];
+    for enc in &encrypted_list {
+        let d = bob.decrypt_message(&alice_id, enc)?;
+        if !d.is_empty() { decrypted = d; }
+    }
     Ok(())
 }
 ```
@@ -51,7 +55,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 - Master secret derivation per spec (HKDF with salt)
 - HKDF info strings aligned (B4AE-v1-encryption-key, etc.)
 - Handshake state `Initiation` (was `Initial`)
-- Specs: X25519/Ed25519, key sizes, key hierarchy status
+- Specs: X25519/Ed25519, key sizes
+- Key hierarchy (MIK, DMK, STK, BKS, export/import) implemented
+- Metadata protection full: padding, timing, dummy, metadata_key MAC
+- ZKAuth integrated in handshake
 - All docs reference Protocol Spec v1.0
 
 ## Links

@@ -176,15 +176,18 @@ impl B4aeElaraNode {
         let peer = peer_addr.as_ref();
         let peer_id = peer.as_bytes().to_vec();
 
-        let encrypted = self.client.encrypt_message(&peer_id, plaintext)?;
-        let enc_bytes = bincode::serialize(&encrypted)
-            .map_err(|e| B4aeError::ProtocolError(e.to_string()))?;
+        let encrypted_list = self.client.encrypt_message(&peer_id, plaintext)?;
+        for encrypted in encrypted_list {
+            let enc_bytes = bincode::serialize(&encrypted)
+                .map_err(|e| B4aeError::ProtocolError(e.to_string()))?;
 
-        let wire = B4aeWireMessage::EncryptedMessage(enc_bytes);
-        let wire_bytes = bincode::serialize(&wire)
-            .map_err(|e| B4aeError::ProtocolError(e.to_string()))?;
+            let wire = B4aeWireMessage::EncryptedMessage(enc_bytes);
+            let wire_bytes = bincode::serialize(&wire)
+                .map_err(|e| B4aeError::ProtocolError(e.to_string()))?;
 
-        self.transport.send_to(peer, &wire_bytes).await
+            self.transport.send_to(peer, &wire_bytes).await?;
+        }
+        Ok(())
     }
 
     /// Terima pesan (blocking). Abaikan non-EncryptedMessage.
@@ -204,7 +207,10 @@ impl B4aeElaraNode {
                 let peer_id = from.as_bytes().to_vec();
                 let plaintext = self.client.decrypt_message(&peer_id, &encrypted)?;
 
-                return Ok((from, plaintext));
+                // Skip dummy traffic (empty plaintext)
+                if !plaintext.is_empty() {
+                    return Ok((from, plaintext));
+                }
             }
         }
     }

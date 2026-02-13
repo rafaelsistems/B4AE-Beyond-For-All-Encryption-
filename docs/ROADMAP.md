@@ -18,7 +18,8 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 ### Selesai
 - [x] Cryptographic core (Kyber, Dilithium, Hybrid, PFS+, ZKAuth)
 - [x] Protocol (Handshake, Message, Session)
-- [x] Metadata protection (Padding, Timing, Obfuscation) — terintegrasi di B4aeClient (encrypt/decrypt)
+- [x] Metadata protection (Padding, Timing, Dummy, metadata_key MAC) — lengkap di `encrypt_message`/`decrypt_message`
+- [x] Key hierarchy (MIK, DMK, STK, BKS, export/import) — `src/key_hierarchy.rs`
 - [x] ELARA transport integration
 - [x] B4aeElaraNode
 - [x] CI/CD, Dependabot

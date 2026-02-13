@@ -14,13 +14,13 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 |----------|--------|---------|
 | **Cryptographic Core** | ✅ Lengkap | Kyber, Dilithium, hybrid, PFS+, HKDF sesuai spec |
 | **Handshake & Session** | ✅ Lengkap | Three-way, key derivation, session keys |
-| **Metadata Protection** | ✅ Terintegrasi | Padding, timing, dummy via B4aeClient |
-| **Identity & Auth** | ⚠️ Parsial | ZKAuth ada, tidak dipakai di handshake |
+| **Metadata Protection** | ✅ Lengkap | Padding, timing, dummy, metadata_key MAC via encrypt_message |
+| **Identity & Auth** | ✅ Terintegrasi | ZKAuth terhubung ke handshake (challenge/proof via extensions) |
 | **ELARA Transport** | ✅ Lengkap | UDP, chunking, NAT traversal |
 | **Platform SDK** | ✅ Full (opsional) | Default: AES subset. `full-protocol`: handshake + encrypt/decrypt |
 | **Audit & Compliance** | ✅ Terintegrasi | B4aeConfig.audit_sink, wired ke client |
 | **HSM** | ✅ Trait ready | NoOp + PKCS#11 |
-| **Key Hierarchy (MIK/DMK)** | ✅ Placeholder | Modul key_hierarchy, Spec §4 roadmap |
+| **Key Hierarchy (MIK/DMK/STK/BKS)** | ✅ Implementasi | MIK→DMK→STK, BKS, export/import |
 
 ---
 
@@ -100,40 +100,42 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 
 **Sesuai Protocol Spec v1.0 §5, §7**: Ya.
 
-### 3.4 Metadata Protection ⚠️ Parsial
+### 3.4 Metadata Protection ✅ Lengkap
 
 | Komponen | Status | Integrasi ke B4aeClient |
 |----------|--------|--------------------------|
-| Padding (PKCS#7, block sizes) | ✅ Modul | ❌ Tidak dipakai di `session.send()` |
-| Timing obfuscation | ✅ Modul | ❌ Tidak dipakai |
-| Dummy traffic generator | ✅ Modul | ❌ Tidak dipakai |
-| metadata_key (dari handshake) | ✅ Di session keys | ❌ Tidak dipakai untuk obfuscation |
-| ProtocolConfig (padding_block_size, timing_obfuscation, dummy_traffic) | ✅ Ada | ❌ Tidak diteruskan ke MetadataProtection di flow encrypt |
+| Padding (PKCS#7, block sizes) | ✅ Modul | ✅ `protect_message`/`unprotect_message` di `encrypt_message` |
+| Timing obfuscation | ✅ Modul | ✅ Delay otomatis sebelum encrypt saat `timing_obfuscation` enabled |
+| Dummy traffic generator | ✅ Modul | ✅ Dummy otomatis di `encrypt_message` (return `[dummy?, real]`) |
+| metadata_key (dari handshake) | ✅ Di session keys | ✅ MAC tag via `Session::metadata_key()` untuk padding auth |
+| ProtocolConfig | ✅ Ada | ✅ Diteruskan ke MetadataProtection, level dari security profile |
 
-**Lokasi modul**: `metadata/padding.rs`, `metadata/timing.rs`, `metadata/obfuscation.rs`, `metadata/mod.rs`.
+**Lokasi modul**: `metadata/padding.rs`, `metadata/timing.rs`, `metadata/obfuscation.rs`, `metadata/mod.rs`, `client.rs`.
 
-**Gap**: `Session::send()` → `MessageCrypto::encrypt()` hanya mengenkripsi payload. Tidak ada pemanggilan `MetadataProtection::protect_message()` atau `DummyTrafficGenerator::generate_dummy()` dalam alur client.
+**Flow**: `B4aeClient::encrypt_message` → `MetadataProtection::protect_message` (padding + MAC) → `Session::send` / `Session::send_dummy` → timing delay otomatis; return `Vec<EncryptedMessage>` (dummy + real bila dummy enabled).
 
-### 3.5 Identity & Authentication (Layer 5) ⚠️ Parsial
+### 3.5 Identity & Authentication (Layer 5) ✅ Terintegrasi
 
 | Komponen | Status | Integrasi |
 |----------|--------|-----------|
-| ZkIdentity, ZkProof, ZkChallenge, ZkVerifier | ✅ Modul | ❌ Tidak dipakai di handshake |
+| ZkIdentity, ZkProof, ZkChallenge, ZkVerifier | ✅ Modul | ✅ Dipakai di handshake (extensions) |
 | Handshake authentication | ✅ Hybrid signature (Dilithium+Ed25519) | ✅ |
+| ZK auth flow | ✅ Responder kirim challenge → Initiator proof → Responder verifikasi | ✅ |
 | Pseudonymous identities | ❌ Roadmap | — |
 
-**Lokasi**: `crypto/zkauth.rs`. Handshake menggunakan `peer_id: Vec<u8>` sebagai identitas, bukan ZK proofs.
+**Lokasi**: `crypto/zkauth.rs`, `protocol/handshake.rs`. HandshakeConfig mendukung `zk_identity` (initiator) dan `zk_verifier` (responder). Challenge/proof via handshake extensions.
 
-### 3.6 Multi-Device Synchronization (Layer 4) ❌ Roadmap
+### 3.6 Multi-Device Synchronization (Layer 4) ✅ Implementasi
 
 | Komponen | Status |
 |----------|--------|
-| Master Identity Key (MIK) | ❌ Spec §4.1: Roadmap |
-| Device Master Key (DMK) | ❌ Idem |
-| Secure key distribution | ❌ |
-| Automatic sync | ❌ |
+| Master Identity Key (MIK) | ✅ `MasterIdentityKey::generate()`, `derive_dmk()` |
+| Device Master Key (DMK) | ✅ `DeviceMasterKey` dari MIK + device_id |
+| Storage Key (STK) | ✅ `DeviceMasterKey::derive_stk()` |
+| Backup Key Shards (BKS) | ✅ `create_backup_shards()`, `recover_from_shards()` (2-of-M) |
+| Secure key distribution | ✅ `export_dmk_for_device()`, `import_dmk_for_device()` |
 
-**Catatan**: Spec §4.1 menyatakan MIK/DMK/STK/BKS sebagai roadmap. Saat ini hanya session-level keys (SK, MK, EK) yang diimplementasikan.
+**Lokasi**: `src/key_hierarchy.rs`. MIK→DMK→STK via HKDF. BKS 2-of-M XOR-based. Session keys (SK, MK, EK) tetap dari handshake+PFS+.
 
 ### 3.7 Network-Level (Layer 3) ✅ / ⚠️
 
@@ -162,15 +164,15 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 
 **Catatan**: HSM tidak dipakai di handshake/default flow. Trait siap untuk integrasi.
 
-### 3.10 Audit & Compliance ⚠️ Parsial
+### 3.10 Audit & Compliance ✅ Terintegrasi
 
 | Komponen | Status | Integrasi |
 |----------|--------|-----------|
-| AuditEvent, AuditEntry, AuditSink | ✅ Modul | ❌ B4aeClient tidak memanggil audit |
+| AuditEvent, AuditEntry, AuditSink | ✅ Modul | ✅ `B4aeConfig::audit_sink` |
 | MemoryAuditSink, NoOpAuditSink | ✅ | — |
-| Handshake/Session/KeyRotation events | ❌ | Belum di-log ke sink |
+| Handshake/Session/KeyRotation events | ✅ | Di-log ke sink saat handshake, session, key rotation |
 
-**Lokasi**: `audit.rs`. Modul lengkap, tetapi tidak ada wiring ke client/handshake/session.
+**Lokasi**: `audit.rs`, `client.rs`, `protocol/session.rs`. Wiring ke B4aeClient (handshake, session created/closed, key rotation).
 
 ### 3.11 Platform SDK ✅
 
@@ -205,8 +207,8 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 | High performance | ✅ Benchmarks, perf module | — |
 | Cross-platform | ✅ SDK (subset + full-protocol), examples | — |
 | Enterprise compliance | ✅ Audit terhubung ke client | — |
-| Multi-device sync | ❌ | Roadmap |
-| ZK authentication | ⚠️ Modul ada | Opsional di handshake |
+| Multi-device sync | ✅ | Key hierarchy export/import DMK |
+| ZK authentication | ✅ | Terintegrasi di handshake (extensions) |
 | Onion routing | ❌ | Roadmap |
 
 ---
@@ -218,13 +220,12 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 1. **Metadata Protection** — Terintegrasi di `encrypt_message`/`decrypt_message`; `should_generate_dummy()`, `encrypt_dummy_message()`, `timing_delay_ms()`.
 2. **Audit** — `B4aeConfig::audit_sink` wired ke handshake, session, key rotation.
 3. **Platform SDK full protocol** — b4ae-ffi feature `full-protocol`.
-4. **Key hierarchy** — Placeholder module `key_hierarchy` (Spec §4 roadmap).
+4. **Key hierarchy** — MIK, DMK, STK, BKS, export/import (`key_hierarchy` module).
 
 ### Prioritas Rendah / Roadmap
 
-5. **ZKAuth di handshake** — Opsional, untuk use-case anonymitas.
+5. **ZKAuth di handshake** — Opsional, terintegrasi.
 6. **Onion routing** — Spec: "Optional".
-7. **MIK/DMK/STK** — Sesuai spec §4.1, roadmap.
 
 ---
 
@@ -235,7 +236,7 @@ B4AE v1.0 **memenuhi tujuan inti**: protokol quantum-resistant dengan handshake 
 - **Metadata protection**: terintegrasi di `encrypt_message`/`decrypt_message` ✅
 - **Audit**: terhubung ke client via `B4aeConfig::audit_sink` ✅
 - **Platform SDK**: full protocol tersedia via feature `full-protocol` ✅
-- **Key hierarchy**: placeholder module untuk MIK/DMK/STK ✅
+- **Key hierarchy**: MIK→DMK→STK, BKS, export/import diimplementasikan ✅
 
 Dokumen spesifikasi dan README selaras dengan implementasi terbaru.
 

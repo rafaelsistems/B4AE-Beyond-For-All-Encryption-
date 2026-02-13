@@ -120,14 +120,12 @@ master_secret = HKDF(ikm=shared_secret, salt=client_random||server_random, info=
 
 ## 3. Medium
 
-### 3.1 Key Hierarchy (MIK, DMK, SK)
+### 3.1 Key Hierarchy (MIK, DMK, SK) ✅
 
 | Spec §4.1 | Implementasi |
 |-----------|--------------|
-| Master Identity Key (MIK) → Device Master Key (DMK) → Session Key (SK) → Message Key (MK) | ❌ Hierarchy tidak diimplementasikan |
-| Key lifetimes & rotation policy | PFS+ dan Session ada, tapi tanpa MIK/DMK |
-
-**Rekomendasi:** Entah implementasikan hierarchy sesuai spec, atau tandai di spec bahwa ini roadmap/fase lanjut.
+| Master Identity Key (MIK) → Device Master Key (DMK) → Session Key (SK) → Message Key (MK) | ✅ `src/key_hierarchy.rs`: MIK, DMK, STK, BKS, export/import |
+| Key lifetimes & rotation policy | PFS+ dan Session ada; MIK/DMK/STK terimplementasi |
 
 ---
 
@@ -178,7 +176,7 @@ Sesuai—Platform SDK memang subset, tidak full handshake. ✅ Tidak ada ketidak
 | P0 | Align key derivation (master_secret + HKDF info) | Code | Security consistency |
 | P1 | Rename Initial → Initiation | Code | Formal spec alignment |
 | P1 | Update API Design doc vs actual API | Dokumen | Developer experience |
-| P2 | Key hierarchy (MIK/DMK) status di spec | Dokumen | Clarify roadmap |
+| — | Key hierarchy (MIK/DMK) | ✅ Implementasi lengkap | — |
 | P2 | Consolidate README status/duplicates | Dokumen | Maintenance |
 
 ---
@@ -198,13 +196,13 @@ Sesuai—Platform SDK memang subset, tidak full handshake. ✅ Tidak ada ketidak
 
 ## 6. Perbaikan Tambahan (Post-13 Feb 2026)
 
-### 6.1 Metadata Protection — Terintegrasi ✅
+### 6.1 Metadata Protection — Terintegrasi Lengkap ✅
 
 | Sebelum | Sesudah |
 |---------|---------|
-| Modul padding/timing/obfuscation ada, belum dipakai di client | `B4aeClient::encrypt_message` menerapkan padding via `MetadataProtection::protect_message` |
-| — | `decrypt_message` memanggil `unprotect_message` |
-| — | `should_generate_dummy()`, `encrypt_dummy_message()`, `timing_delay_ms()` tersedia |
+| Modul padding/timing/obfuscation ada, belum dipakai di client | `B4aeClient::encrypt_message` menerapkan padding + metadata_key MAC via `MetadataProtection` |
+| — | Timing delay otomatis, dummy otomatis (return `Vec<EncryptedMessage>`: [dummy?, real]) |
+| — | `decrypt_message` memanggil `unprotect_message`; `should_generate_dummy()`, `encrypt_dummy_message()`, `timing_delay_ms()` |
 
 ### 6.2 Audit — Terhubung ke Client ✅
 
@@ -219,11 +217,11 @@ Sesuai—Platform SDK memang subset, tidak full handshake. ✅ Tidak ada ketidak
 |---------|---------|
 | b4ae-ffi hanya AES subset (generate_key, encrypt, decrypt) | Feature `full-protocol`: handshake + encrypt/decrypt API C |
 
-### 6.4 Key Hierarchy Placeholder ✅
+### 6.4 Key Hierarchy — Implementasi Lengkap ✅
 
 | Sebelum | Sesudah |
 |---------|---------|
-| MIK/DMK tidak ada struktur | `src/key_hierarchy.rs` dengan placeholder types (Spec §4 roadmap) |
+| MIK/DMK tidak ada struktur | `src/key_hierarchy.rs`: MIK, DMK, STK, BKS (2-of-M), `export_dmk_for_device`/`import_dmk_for_device` |
 
 ---
 

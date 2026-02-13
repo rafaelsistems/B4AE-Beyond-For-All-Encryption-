@@ -415,6 +415,11 @@ impl Session {
         &self.peer_public_key
     }
 
+    /// Get metadata key for metadata protection (padding auth, etc.)
+    pub fn metadata_key(&self) -> &[u8] {
+        &self.session_keys.metadata_key
+    }
+
     /// Check if session is active
     pub fn is_active(&self) -> bool {
         self.state == SessionState::Active

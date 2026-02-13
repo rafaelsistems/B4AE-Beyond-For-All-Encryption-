@@ -234,24 +234,49 @@ impl B4aeClient {
         }
     }
 
-    /// Encrypt message for peer (with metadata protection: padding, etc.)
-    pub fn encrypt_message(&mut self, peer_id: &[u8], plaintext: &[u8]) -> B4aeResult<EncryptedMessage> {
+    /// Encrypt message for peer (with full metadata protection: padding, timing, dummy).
+    /// Returns messages to send in order: may be [dummy, real] or [real] when dummy traffic enabled.
+    pub fn encrypt_message(&mut self, peer_id: &[u8], plaintext: &[u8]) -> B4aeResult<Vec<EncryptedMessage>> {
         let level = self.protection_level();
         let protocol_config = self.config.protocol_config.clone();
         
         let session = self.sessions.get_mut(peer_id)
             .ok_or_else(|| B4aeError::ProtocolError("No session with peer".to_string()))?;
         
-        let protection = MetadataProtection::new(protocol_config, level);
+        let protection = MetadataProtection::new(protocol_config.clone(), level)
+            .with_metadata_key(session.metadata_key());
         let data = if level.padding_enabled() {
             protection.protect_message(plaintext)?
         } else {
             plaintext.to_vec()
         };
         
+        // Apply timing obfuscation (blocking delay)
+        if level.timing_enabled() && self.config.protocol_config.timing_obfuscation {
+            let delay_ms = protection.get_timing_delay_ms();
+            if delay_ms > 0 {
+                std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+            }
+        }
+
+        let mut messages = Vec::new();
+
+        // Generate dummy first if enabled and randomly triggered
+        if level.dummy_traffic_enabled() && protection.should_generate_dummy() {
+            let mut dummy = vec![0u8; 64];
+            let _ = crate::crypto::random::fill_random(&mut dummy);
+            let dummy_msg = Message::binary(dummy);
+            let enc_dummy = session.send_dummy(&dummy_msg)
+                .map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))?;
+            messages.push(enc_dummy);
+        }
+
         let message = Message::binary(data);
-        session.send(&message)
-            .map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))
+        let enc = session.send(&message)
+            .map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))?;
+        messages.push(enc);
+
+        Ok(messages)
     }
 
     /// Decrypt message from peer (removes metadata protection)
@@ -272,7 +297,8 @@ impl B4aeClient {
             MessageContent::File { data, .. } => data.clone(),
         };
         
-        let protection = MetadataProtection::new(protocol_config, level);
+        let protection = MetadataProtection::new(protocol_config, level)
+            .with_metadata_key(session.metadata_key());
         if level.padding_enabled() {
             protection.unprotect_message(&data)
         } else {
@@ -379,12 +405,18 @@ mod tests {
         assert!(alice.has_session(&bob_id));
         assert!(bob.has_session(&alice_id));
 
-        // Alice sends message to Bob
+        // Alice sends message to Bob (may include dummy + real)
         let plaintext = b"Hello, Bob!";
-        let encrypted = alice.encrypt_message(&bob_id, plaintext).unwrap();
+        let encrypted_list = alice.encrypt_message(&bob_id, plaintext).unwrap();
 
-        // Bob decrypts
-        let decrypted = bob.decrypt_message(&alice_id, &encrypted).unwrap();
+        // Bob decrypts each; last non-empty is the real message
+        let mut decrypted = vec![];
+        for enc in &encrypted_list {
+            let d = bob.decrypt_message(&alice_id, enc).unwrap();
+            if !d.is_empty() {
+                decrypted = d;
+            }
+        }
         assert_eq!(decrypted, plaintext);
     }
 }

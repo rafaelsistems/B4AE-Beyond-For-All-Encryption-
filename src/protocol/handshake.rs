@@ -6,8 +6,10 @@ use crate::crypto::{CryptoError, CryptoResult};
 use crate::crypto::hybrid::{self, HybridKeyPair, HybridPublicKey, HybridCiphertext, HybridSignature};
 use crate::crypto::hkdf;
 use crate::crypto::random;
+use crate::crypto::zkauth::{self, ZkChallenge, ZkProof, EXTENSION_TYPE_ZK_CHALLENGE, EXTENSION_TYPE_ZK_PROOF};
 use crate::protocol::PROTOCOL_VERSION;
 use serde::{Deserialize, Serialize};
+use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use subtle::ConstantTimeEq;
 
@@ -68,15 +70,35 @@ pub struct HandshakeResponse {
 pub struct HandshakeComplete {
     pub confirmation: [u8; 32],
     pub signature: Vec<u8>,
+    /// Optional extensions (e.g. ZK proof)
+    #[serde(default)]
+    pub extensions: Vec<Extension>,
 }
 
 /// Handshake configuration
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct HandshakeConfig {
     pub timeout_ms: u64,
     pub supported_algorithms: Vec<AlgorithmId>,
     pub required_algorithms: Vec<AlgorithmId>,
     pub extensions: Vec<Extension>,
+    /// Optional ZK identity for initiator (anonymous auth)
+    pub zk_identity: Option<Arc<zkauth::ZkIdentity>>,
+    /// Optional ZK verifier for responder (verifies initiator's proof)
+    pub zk_verifier: Option<Arc<Mutex<zkauth::ZkVerifier>>>,
+}
+
+impl std::fmt::Debug for HandshakeConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HandshakeConfig")
+            .field("timeout_ms", &self.timeout_ms)
+            .field("supported_algorithms", &self.supported_algorithms)
+            .field("required_algorithms", &self.required_algorithms)
+            .field("extensions", &self.extensions)
+            .field("zk_identity", &self.zk_identity.as_ref().map(|_| "Some"))
+            .field("zk_verifier", &self.zk_verifier.as_ref().map(|_| "Some"))
+            .finish()
+    }
 }
 
 impl Default for HandshakeConfig {
@@ -97,6 +119,8 @@ impl Default for HandshakeConfig {
                 AlgorithmId::Aes256Gcm,
             ],
             extensions: Vec::new(),
+            zk_identity: None,
+            zk_verifier: None,
         }
     }
 }
@@ -128,6 +152,8 @@ pub struct HandshakeInitiator {
     shared_secret: Option<Vec<u8>>,
     peer_public_key: Option<HybridPublicKey>,
     start_time: u64,
+    /// ZK challenge from responder (when using ZK auth)
+    pending_zk_challenge: Option<ZkChallenge>,
 }
 
 /// Handshake responder (server)
@@ -140,6 +166,8 @@ pub struct HandshakeResponder {
     shared_secret: Option<Vec<u8>>,
     peer_public_key: Option<HybridPublicKey>,
     start_time: u64,
+    /// ZK challenge ID (when ZK verifier is used)
+    pending_zk_challenge_id: Option<[u8; 16]>,
 }
 
 impl HandshakeInitiator {
@@ -162,6 +190,7 @@ impl HandshakeInitiator {
             shared_secret: None,
             peer_public_key: None,
             start_time,
+            pending_zk_challenge: None,
         })
     }
 
@@ -237,6 +266,17 @@ impl HandshakeInitiator {
         self.server_random = Some(response.server_random);
         self.shared_secret = Some(shared_secret);
         self.peer_public_key = Some(peer_public_key);
+
+        // Extract ZK challenge if present and we have zk_identity
+        if self.config.zk_identity.is_some() {
+            for ext in &response.extensions {
+                if ext.extension_type == EXTENSION_TYPE_ZK_CHALLENGE {
+                    self.pending_zk_challenge = Some(ZkChallenge::from_bytes(&ext.data)?);
+                    break;
+                }
+            }
+        }
+
         self.state = HandshakeState::WaitingComplete;
 
         Ok(())
@@ -258,11 +298,22 @@ impl HandshakeInitiator {
         signature_bytes.extend_from_slice(&signature.ecdsa_signature);
         signature_bytes.extend_from_slice(signature.dilithium_signature.as_bytes());
 
+        // Add ZK proof extension if we have challenge and identity
+        let mut extensions = self.config.extensions.clone();
+        if let (Some(identity), Some(challenge)) = (&self.config.zk_identity, self.pending_zk_challenge.take()) {
+            let proof = identity.generate_proof(&challenge)?;
+            extensions.push(Extension {
+                extension_type: EXTENSION_TYPE_ZK_PROOF,
+                data: proof.to_bytes(),
+            });
+        }
+
         self.state = HandshakeState::Completed;
 
         Ok(HandshakeComplete {
             confirmation,
             signature: signature_bytes,
+            extensions,
         })
     }
 
@@ -385,6 +436,7 @@ impl HandshakeResponder {
             shared_secret: None,
             peer_public_key: None,
             start_time,
+            pending_zk_challenge_id: None,
         })
     }
 
@@ -442,6 +494,17 @@ impl HandshakeResponder {
 
         let selected_algorithms = self.config.supported_algorithms.clone();
 
+        // Add ZK challenge extension if zk_verifier is configured
+        let mut extensions = self.config.extensions.clone();
+        if let Some(ref verifier) = self.config.zk_verifier {
+            let challenge = verifier.lock().map_err(|e| CryptoError::InvalidInput(e.to_string()))?.generate_challenge();
+            extensions.push(Extension {
+                extension_type: EXTENSION_TYPE_ZK_CHALLENGE,
+                data: challenge.to_bytes(),
+            });
+            self.pending_zk_challenge_id = Some(challenge.challenge_id);
+        }
+
         self.client_random = Some(init.client_random);
         self.shared_secret = Some(shared_secret);
         self.peer_public_key = Some(peer_public_key);
@@ -453,7 +516,7 @@ impl HandshakeResponder {
             hybrid_public_key,
             encrypted_shared_secret,
             selected_algorithms,
-            extensions: self.config.extensions.clone(),
+            extensions,
             signature: signature_bytes,
         })
     }
@@ -465,6 +528,21 @@ impl HandshakeResponder {
 
         let peer_public_key = self.peer_public_key.as_ref()
             .ok_or_else(|| CryptoError::InvalidInput("No peer public key".to_string()))?;
+
+        // Verify ZK proof if we sent a challenge
+        if let (Some(ref verifier), Some(challenge_id)) = (&self.config.zk_verifier, self.pending_zk_challenge_id) {
+            let proof_ext = complete.extensions.iter()
+                .find(|e| e.extension_type == EXTENSION_TYPE_ZK_PROOF)
+                .ok_or_else(|| CryptoError::AuthenticationFailed)?;
+            let proof = ZkProof::from_bytes(&proof_ext.data)?;
+            let auth = verifier.lock().map_err(|e| CryptoError::InvalidInput(e.to_string()))?
+                .verify_proof(&proof, &challenge_id)
+                .map_err(|_| CryptoError::AuthenticationFailed)?;
+            if auth.is_none() {
+                return Err(CryptoError::AuthenticationFailed);
+            }
+            self.pending_zk_challenge_id = None;
+        }
 
         // Deserialize signature manually
         let signature = deserialize_signature(&complete.signature)?;

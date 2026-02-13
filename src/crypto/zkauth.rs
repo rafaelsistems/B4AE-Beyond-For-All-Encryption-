@@ -8,6 +8,11 @@ use crate::crypto::dilithium::{self, DilithiumKeyPair, DilithiumSignature};
 use sha3::{Sha3_256, Digest};
 use std::collections::HashMap;
 
+/// Extension type for ZK challenge in handshake
+pub const EXTENSION_TYPE_ZK_CHALLENGE: u16 = 0x0100;
+/// Extension type for ZK proof in handshake
+pub const EXTENSION_TYPE_ZK_PROOF: u16 = 0x0101;
+
 /// Zero-knowledge proof for authentication
 #[derive(Clone)]
 pub struct ZkProof {
@@ -30,6 +35,62 @@ pub struct ZkChallenge {
     pub timestamp: u64,
     /// Challenge ID
     pub challenge_id: [u8; 16],
+}
+
+impl ZkChallenge {
+    /// Serialize for handshake extension
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut out = Vec::with_capacity(56);
+        out.extend_from_slice(&self.nonce);
+        out.extend_from_slice(&self.timestamp.to_be_bytes());
+        out.extend_from_slice(&self.challenge_id);
+        out
+    }
+
+    /// Deserialize from handshake extension
+    pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
+        if bytes.len() < 56 {
+            return Err(CryptoError::InvalidInput("ZkChallenge too short".to_string()));
+        }
+        let mut nonce = [0u8; 32];
+        nonce.copy_from_slice(&bytes[0..32]);
+        let timestamp = u64::from_be_bytes(bytes[32..40].try_into().map_err(|_| CryptoError::InvalidInput("Invalid timestamp".to_string()))?);
+        let mut challenge_id = [0u8; 16];
+        challenge_id.copy_from_slice(&bytes[40..56]);
+        Ok(ZkChallenge { nonce, timestamp, challenge_id })
+    }
+}
+
+impl ZkProof {
+    /// Serialize for handshake extension
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let sig_bytes = self.signature.as_bytes();
+        let mut out = Vec::with_capacity(32 + 32 + 4 + sig_bytes.len() + 8);
+        out.extend_from_slice(&self.commitment);
+        out.extend_from_slice(&self.response);
+        out.extend_from_slice(&(sig_bytes.len() as u32).to_be_bytes());
+        out.extend_from_slice(sig_bytes);
+        out.extend_from_slice(&self.timestamp.to_be_bytes());
+        out
+    }
+
+    /// Deserialize from handshake extension
+    pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
+        if bytes.len() < 76 {
+            return Err(CryptoError::InvalidInput("ZkProof too short".to_string()));
+        }
+        let mut commitment = [0u8; 32];
+        commitment.copy_from_slice(&bytes[0..32]);
+        let mut response = [0u8; 32];
+        response.copy_from_slice(&bytes[32..64]);
+        let sig_len = u32::from_be_bytes(bytes[64..68].try_into().map_err(|_| CryptoError::InvalidInput("Invalid sig len".to_string()))?) as usize;
+        if bytes.len() < 68 + sig_len + 8 {
+            return Err(CryptoError::InvalidInput("ZkProof truncated".to_string()));
+        }
+        let signature = DilithiumSignature::from_bytes(&bytes[68..68 + sig_len])?;
+        let timestamp = u64::from_be_bytes(bytes[68 + sig_len..76 + sig_len].try_into().map_err(|_| CryptoError::InvalidInput("Invalid timestamp".to_string()))?);
+        Ok(ZkProof { commitment, response, signature, timestamp })
+    }
 }
 
 /// Zero-knowledge identity (anonymous credential)

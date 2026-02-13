@@ -129,11 +129,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     bob.complete_handshake(&alice_id, complete)?;
     alice.finalize_initiator(&bob_id)?;
 
-    // Alice sends encrypted message to Bob
-    let encrypted = alice.encrypt_message(&bob_id, b"Hello, B4AE!")?;
+    // Alice sends encrypted message to Bob (may include dummy + real for metadata protection)
+    let encrypted_list = alice.encrypt_message(&bob_id, b"Hello, B4AE!")?;
     
-    // Bob decrypts the message
-    let decrypted = bob.decrypt_message(&alice_id, &encrypted)?;
+    // Bob decrypts each; last non-empty is the real message
+    let mut decrypted = vec![];
+    for enc in &encrypted_list {
+        let d = bob.decrypt_message(&alice_id, enc)?;
+        if !d.is_empty() {
+            decrypted = d;
+        }
+    }
     println!("Received: {}", String::from_utf8_lossy(&decrypted));
 
     Ok(())
@@ -421,7 +427,7 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed progress.
 - **`src/crypto/`** - Cryptographic primitives (Kyber, Dilithium, Hybrid, PFS+, ZKAuth)
 - **`src/protocol/`** - Protocol implementation (Handshake, Message, Session)
 - **`src/metadata/`** - Metadata protection (Padding, Timing, Obfuscation) — terintegrasi di B4aeClient
-- **`src/key_hierarchy.rs`** - Key hierarchy placeholder (MIK, DMK, STK per Spec §4 roadmap)
+- **`src/key_hierarchy.rs`** - Key hierarchy (MIK, DMK, STK, BKS per Spec §4)
 - **`src/transport/`** - Transport layer (ElaraTransport untuk UDP, feature `elara`)
 - **`src/elara_node.rs`** - B4aeElaraNode: B4AE + ELARA integration (feature `elara`)
 - **`specs/`** - Technical specifications

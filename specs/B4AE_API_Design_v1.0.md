@@ -11,9 +11,10 @@
 |----------|--------|-------|
 | **B4aeClient** (handshake, encrypt/decrypt) | Implemented | Manual handshake flow + `encrypt_message` / `decrypt_message` |
 | **B4aeConfig** | Implemented | `security_profile`, `crypto_config`, `protocol_config`, `handshake_config`, `audit_sink` |
-| **Metadata protection** | Implemented | Padding, timing obfuscation, dummy traffic terintegrasi di `encrypt_message`/`decrypt_message` |
+| **Metadata protection** | Implemented | Padding, timing, dummy, metadata_key MAC di `encrypt_message` (return `Vec<EncryptedMessage>`) |
 | **Audit** | Implemented | `B4aeConfig.audit_sink`, log ke handshake/session/key rotation |
-| **Dummy/timing helpers** | Implemented | `should_generate_dummy()`, `encrypt_dummy_message()`, `timing_delay_ms()` |
+| **Key hierarchy** | Implemented | `key_hierarchy`: MIK, DMK, STK, BKS, `export_dmk_for_device`/`import_dmk_for_device` |
+| **Dummy/timing helpers** | Implemented | `should_generate_dummy()`, `encrypt_dummy_message()`, `timing_delay_ms()` (otomatis di encrypt_message) |
 | **connect() / session.send_text()** | Roadmap | Higher-level session API planned |
 | **generate_identity()** | Roadmap | Identity/backup features planned |
 | **Group chat, file transfer** | Examples | `b4ae_chat_demo`, `b4ae_file_transfer_demo` (custom apps) |
@@ -87,9 +88,13 @@ let complete = alice.process_response(&bob_id, response)?;
 bob.complete_handshake(&alice_id, complete)?;
 alice.finalize_initiator(&bob_id)?;
 
-// Encrypt/decrypt
-let encrypted = alice.encrypt_message(&bob_id, b"Hello!")?;
-let decrypted = bob.decrypt_message(&alice_id, &encrypted)?;
+// Encrypt/decrypt (returns Vec — may include dummy + real for metadata protection)
+let encrypted_list = alice.encrypt_message(&bob_id, b"Hello!")?;
+let mut decrypted = vec![];
+for enc in &encrypted_list {
+    let d = bob.decrypt_message(&alice_id, enc)?;
+    if !d.is_empty() { decrypted = d; }
+}
 ```
 
 #### Swift API (iOS/macOS)

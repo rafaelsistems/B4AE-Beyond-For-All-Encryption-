@@ -73,8 +73,14 @@ proptest! {
         bob.complete_handshake(&alice_id, complete).unwrap();
         alice.finalize_initiator(&bob_id).unwrap();
 
-        let encrypted = alice.encrypt_message(&bob_id, &msg).unwrap();
-        let decrypted = bob.decrypt_message(&alice_id, &encrypted).unwrap();
+        let encrypted_list = alice.encrypt_message(&bob_id, &msg).unwrap();
+        let mut decrypted = vec![];
+        for enc in &encrypted_list {
+            let d = bob.decrypt_message(&alice_id, enc).unwrap();
+            if !d.is_empty() {
+                decrypted = d;
+            }
+        }
         prop_assert_eq!(decrypted, msg);
     }
 }

@@ -4,8 +4,10 @@ pub mod padding;
 pub mod timing;
 pub mod obfuscation;
 
-use crate::error::B4aeResult;
+use crate::error::{B4aeError, B4aeResult};
 use crate::protocol::ProtocolConfig;
+use sha3::{Sha3_256, Digest};
+use subtle::ConstantTimeEq;
 
 /// Metadata protection level
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,12 +46,20 @@ impl ProtectionLevel {
 pub struct MetadataProtection {
     config: ProtocolConfig,
     level: ProtectionLevel,
+    /// Optional metadata key from session (for padding authentication)
+    metadata_key: Option<Vec<u8>>,
 }
 
 impl MetadataProtection {
     /// Create new metadata protection manager
     pub fn new(config: ProtocolConfig, level: ProtectionLevel) -> Self {
-        MetadataProtection { config, level }
+        MetadataProtection { config, level, metadata_key: None }
+    }
+
+    /// Create with session metadata key (for authenticated padding)
+    pub fn with_metadata_key(mut self, key: &[u8]) -> Self {
+        self.metadata_key = Some(key.to_vec());
+        self
     }
 
     /// Apply metadata protection to message
@@ -61,12 +71,33 @@ impl MetadataProtection {
             protected = padding::apply_padding(&protected, self.config.padding_block_size)?;
         }
 
+        // Append MAC when metadata_key available (authenticates padding)
+        if let Some(ref key) = self.metadata_key {
+            let tag = compute_padding_tag(key, &protected);
+            protected.extend_from_slice(&tag);
+        }
+
         Ok(protected)
     }
 
     /// Remove metadata protection from message
     pub fn unprotect_message(&self, protected: &[u8]) -> B4aeResult<Vec<u8>> {
         let mut message = protected.to_vec();
+
+        // Verify and strip MAC when metadata_key available
+        if let Some(ref key) = self.metadata_key {
+            if message.len() < 32 {
+                return Err(B4aeError::CryptoError("Message too short for metadata tag".to_string()));
+            }
+            let tag_len = 32;
+            let (payload, tag) = message.split_at(message.len() - tag_len);
+            let expected = compute_padding_tag(key, payload);
+            let tag_arr: [u8; 32] = tag.try_into().map_err(|_| B4aeError::CryptoError("Tag size mismatch".to_string()))?;
+            if bool::from(tag_arr.ct_eq(&expected)) == false {
+                return Err(B4aeError::CryptoError("Metadata protection tag verification failed".to_string()));
+            }
+            message = payload.to_vec();
+        }
 
         // Remove padding
         if self.level.padding_enabled() {
@@ -96,6 +127,16 @@ impl MetadataProtection {
     }
 }
 
+/// Compute 32-byte MAC for padded message (padding authentication)
+fn compute_padding_tag(key: &[u8], message: &[u8]) -> [u8; 32] {
+    let mut hasher = Sha3_256::new();
+    hasher.update(key);
+    hasher.update(message);
+    let mut out = [0u8; 32];
+    out.copy_from_slice(&hasher.finalize());
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -122,5 +163,25 @@ mod tests {
         
         let unprotected = protection.unprotect_message(&protected).unwrap();
         assert_eq!(message, unprotected.as_slice());
+    }
+
+    #[test]
+    fn test_metadata_protection_with_key() {
+        let config = ProtocolConfig::default();
+        let key = [0x42u8; 32];
+        let protection = MetadataProtection::new(config, ProtectionLevel::Standard)
+            .with_metadata_key(&key);
+
+        let message = b"Hello, B4AE with MAC!";
+        let protected = protection.protect_message(message).unwrap();
+        assert!(protected.len() >= message.len() + 32);
+
+        let unprotected = protection.unprotect_message(&protected).unwrap();
+        assert_eq!(message, unprotected.as_slice());
+
+        // Tampered message should fail
+        let mut tampered = protected.clone();
+        tampered[protected.len() - 1] ^= 0xff;
+        assert!(protection.unprotect_message(&tampered).is_err());
     }
 }
