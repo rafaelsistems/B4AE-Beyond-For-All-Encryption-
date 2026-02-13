@@ -2,7 +2,7 @@
 /target/
 **/*.rs.bk
 *.pdb
-Cargo.lock
+# Cargo.lock - committed untuk reproducible CI (pin rand 0.8.5)
 
 # IDE
 .vscode/
