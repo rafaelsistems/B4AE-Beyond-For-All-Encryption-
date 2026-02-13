@@ -3,6 +3,7 @@
 
 use crate::audit::{AuditEntry, AuditEvent, AuditSink, hash_for_audit};
 use crate::crypto::{CryptoConfig, SecurityLevel, CryptoError};
+use crate::crypto::hkdf;
 use crate::metadata::{MetadataProtection, ProtectionLevel};
 use crate::protocol::{SecurityProfile, ProtocolConfig};
 use crate::protocol::handshake::{
@@ -222,6 +223,9 @@ impl B4aeClient {
     }
 
     fn protection_level(&self) -> ProtectionLevel {
+        if self.config.security_profile == SecurityProfile::Maximum {
+            return ProtectionLevel::Maximum;
+        }
         let pc = &self.config.protocol_config;
         if !pc.metadata_protection {
             ProtectionLevel::None
@@ -232,6 +236,29 @@ impl B4aeClient {
         } else {
             ProtectionLevel::High
         }
+    }
+
+    /// Protection level for metadata & onion (used by transport).
+    pub fn get_protection_level(&self) -> ProtectionLevel {
+        self.protection_level()
+    }
+
+    /// Onion layer key for peer when onion routing enabled. Derives from session metadata_key.
+    pub fn onion_layer_key(&self, peer_id: &[u8]) -> B4aeResult<Option<[u8; 32]>> {
+        if !self.protection_level().onion_routing_enabled() {
+            return Ok(None);
+        }
+        let session = self.sessions.get(peer_id)
+            .ok_or_else(|| B4aeError::ProtocolError("No session with peer".to_string()))?;
+        // Derive shared onion key (same on both sides for this session)
+        let key = hkdf::derive_key(
+            &[session.metadata_key()],
+            b"B4AE-v1-onion-layer",
+            32,
+        ).map_err(|e: CryptoError| B4aeError::CryptoError(e.to_string()))?;
+        let mut arr = [0u8; 32];
+        arr.copy_from_slice(&key);
+        Ok(Some(arr))
     }
 
     /// Encrypt message for peer (with full metadata protection: padding, timing, dummy).

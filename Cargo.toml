@@ -53,9 +53,12 @@ async-trait = "0.1"
 # Networking
 quinn = { version = "0.10", optional = true }
 
-# ELARA Transport (UDP, NAT traversal)
-# Path untuk local dev (submodule). Untuk crates.io: ganti ke version setelah ELARA publish.
+# ELARA Transport (UDP, NAT traversal via STUN, packet delivery)
+# Path untuk local dev (submodule). Crates.io: workflow hapus sebelum publish hingga elara-transport dipublish.
 elara-transport = { path = "elara/crates/elara-transport", optional = true }
+
+# SOCKS5 proxy (IP anonymization, Tor)
+socks = { version = "0.3", optional = true }
 
 # Logging
 tracing = "0.1"
@@ -76,6 +79,7 @@ pqcrypto-alt = ["pqcrypto-kyber", "pqcrypto-dilithium"]
 async = ["tokio"]
 networking = ["quinn", "tokio"]
 elara = ["elara-transport", "tokio"]
+proxy = ["socks"]
 hsm = []
 hsm-pkcs11 = ["hsm", "cryptoki"]
 

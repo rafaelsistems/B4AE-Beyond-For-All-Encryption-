@@ -2,7 +2,8 @@
 
 **Tanggal:** 13 Februari 2026  
 **Versi:** B4AE 1.0.0 (Protocol Specification v1.0)  
-**Tujuan:** Memeriksa kesesuaian fitur dan fungsi B4AE dengan tujuan desain dan implementasi terbaru.
+**Tujuan:** Memeriksa kesesuaian fitur dan fungsi B4AE dengan tujuan desain dan implementasi terbaru.  
+**Audit:** Komprehensif — 32 file Rust di `src/`, 7 test suite, 4 examples.
 
 ---
 
@@ -12,11 +13,12 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 
 | Kategori | Status | Catatan |
 |----------|--------|---------|
-| **Cryptographic Core** | ✅ Lengkap | Kyber, Dilithium, hybrid, PFS+, HKDF sesuai spec |
+| **Cryptographic Core** | ✅ Lengkap | Kyber, Dilithium, hybrid, PFS+, HKDF, onion primitive |
 | **Handshake & Session** | ✅ Lengkap | Three-way, key derivation, session keys |
 | **Metadata Protection** | ✅ Lengkap | Padding, timing, dummy, metadata_key MAC via encrypt_message |
-| **Identity & Auth** | ✅ Terintegrasi | ZKAuth terhubung ke handshake (challenge/proof via extensions) |
-| **ELARA Transport** | ✅ Lengkap | UDP, chunking, NAT traversal |
+| **Identity & Auth** | ✅ Terintegrasi | ZKAuth + pseudonymous (ZkIdentity.public_commitment) |
+| **ELARA Transport** | ✅ Lengkap | Feature `elara`; transport/elara_node (path dep, excluded dari crates.io) |
+| **Storage & Memory** | ✅ Lengkap | EncryptedStorage, KeyStore, zeroize |
 | **Platform SDK** | ✅ Full (opsional) | Default: AES subset. `full-protocol`: handshake + encrypt/decrypt |
 | **Audit & Compliance** | ✅ Terintegrasi | B4aeConfig.audit_sink, wired ke client |
 | **HSM** | ✅ Trait ready | NoOp + PKCS#11 |
@@ -73,6 +75,8 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 | PFS+ (per-message keys) | ✅ | `crypto/pfs_plus.rs` |
 | Hardware perf (AES-NI, AVX2) | ✅ | `crypto/perf.rs` |
 | Random (CSPRNG) | ✅ | `crypto/random.rs` |
+| Onion routing (primitif) | ✅ | `crypto/onion.rs` — onion_encrypt, onion_decrypt_layer |
+| ZKAuth (ZkIdentity, ZkVerifier) | ✅ | `crypto/zkauth.rs` |
 
 **Sesuai Protocol Spec v1.0 §3**: Ya.
 
@@ -121,7 +125,7 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 | ZkIdentity, ZkProof, ZkChallenge, ZkVerifier | ✅ Modul | ✅ Dipakai di handshake (extensions) |
 | Handshake authentication | ✅ Hybrid signature (Dilithium+Ed25519) | ✅ |
 | ZK auth flow | ✅ Responder kirim challenge → Initiator proof → Responder verifikasi | ✅ |
-| Pseudonymous identities | ❌ Roadmap | — |
+| Pseudonymous identities | ✅ | ZkIdentity.public_commitment sebagai pseudonymous ID; peer_id opsional opaque |
 
 **Lokasi**: `crypto/zkauth.rs`, `protocol/handshake.rs`. HandshakeConfig mendukung `zk_identity` (initiator) dan `zk_verifier` (responder). Challenge/proof via handshake extensions.
 
@@ -141,10 +145,10 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 
 | Komponen | Status | Catatan |
 |----------|--------|---------|
-| ELARA transport | ✅ | `transport/elara.rs`, `elara_node.rs` |
+| ELARA transport | ✅ | `transport/elara.rs`, `elara_node.rs` — ELARA Protocol (UDP, STUN/NAT, chunking); feature `elara` |
 | UDP, chunking, NAT traversal | ✅ | ElaraTransport |
-| Onion routing | ✅ | `crypto/onion.rs` — layered encryption untuk relay paths |
-| IP anonymization | ✅ | `ProtocolConfig::anonymization` (proxy_url, use_tor) |
+| Onion routing (primitif + integrasi) | ✅ | `crypto/onion.rs`; B4aeElaraNode wrap/unwrap saat ProtectionLevel::Maximum |
+| IP anonymization (config + transport) | ✅ | `ProtocolConfig::anonymization`; B4aeElaraNode::new_with_config + proxy_url → ProxyElaraTransport |
 
 ### 3.8 Storage & Memory (Layer 2) ✅
 
@@ -195,6 +199,29 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 | b4ae_file_transfer_demo | ✅ | File transfer |
 | b4ae_gateway_demo | ✅ | Gateway/proxy |
 
+### 3.13 Tests & Verification ✅
+
+| Test Suite | Status | Scope |
+|-------------|--------|-------|
+| integration_test | ✅ | Handshake flow, message exchange |
+| security_test | ✅ | — |
+| performance_test | ✅ | Latency, throughput |
+| fuzzing_test | ✅ | Empty/binary/special chars, invalid version |
+| penetration_test | ✅ | MITM, replay, timing resistance |
+| elara_integration_test | ✅ | Feature `elara` |
+| proptest_invariants | ✅ | AES roundtrip, handshake completeness |
+
+**Formal verification**: TLA+ (B4AE_Handshake.tla), Coq (B4AE_Handshake.v), cargo-fuzz targets.
+
+### 3.14 Caveats & Catatan Implementasi
+
+| Item | Status | Catatan |
+|------|--------|---------|
+| crates.io publish | ⚠️ | Workflow hapus elara-transport sebelum publish (belum di crates.io); clone --recursive untuk ELARA |
+| Onion integrasi | ✅ | Terintegrasi: `ProtectionLevel::Maximum` → onion_encrypt di send; onion_decrypt_layer di recv (B4aeElaraNode) |
+| Proxy/IP anonymization | ✅ | `B4aeElaraNode::new_with_config` + `proxy_url` → ProxyElaraTransport (SOCKS5); feature `proxy` |
+| HSM di handshake | ✅ | `HandshakeConfig::hsm`, `hsm_key_id` (feature `hsm`); trait wired, PKCS#11 ready |
+
 ---
 
 ## 4. Perbandingan Tujuan vs Implementasi
@@ -209,7 +236,9 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 | Enterprise compliance | ✅ Audit terhubung ke client | — |
 | Multi-device sync | ✅ | Key hierarchy export/import DMK |
 | ZK authentication | ✅ | Terintegrasi di handshake (extensions) |
-| Onion routing | ✅ | crypto/onion.rs |
+| Onion routing | ✅ | crypto/onion.rs + integrasi B4aeElaraNode |
+| IP anonymization | ✅ | AnonymizationConfig + ProxyElaraTransport (feature proxy) |
+| ELARA di crates.io | ⚠️ | elara-transport path dep; publish exclude; pakai clone --recursive untuk ELARA penuh |
 
 ---
 
@@ -223,12 +252,19 @@ B4AE v1.0 mencapai **core security goals** (quantum-resistant crypto, handshake,
 4. **Key hierarchy** — MIK, DMK, STK, BKS, export/import (`key_hierarchy` module).
 5. **Encrypted storage** — `storage.rs` (EncryptedStorage, STK + AES-GCM).
 6. **Key store** — `key_store.rs` (persistent MIK dengan passphrase).
-7. **Onion routing** — `crypto/onion.rs` (layered encryption).
-8. **IP anonymization** — `ProtocolConfig::anonymization`.
+7. **Onion routing (primitif)** — `crypto/onion.rs` (onion_encrypt, onion_decrypt_layer).
+8. **IP anonymization (config)** — `ProtocolConfig::anonymization` (proxy_url, use_tor).
+
+### Selesai (Perbaikan 13 Feb 2026)
+
+9. **Onion integrasi** — B4aeElaraNode wrap/unwrap otomatis saat SecurityProfile::Maximum.
+10. **Proxy wiring** — `B4aeElaraNode::new_with_config` + `proxy_url` → ProxyElaraTransport (SOCKS5).
+11. **HSM di HandshakeConfig** — `HandshakeConfig::hsm`, `hsm_key_id` (feature `hsm`).
 
 ### Prioritas Rendah / Opsional
 
-9. **ZKAuth di handshake** — Opsional, terintegrasi.
+12. **elara-transport ke crates.io** — Publikasi agar B4AE+ELARA berfungsi di crates.io.
+13. **ZKAuth di handshake** — Opsional, terintegrasi.
 
 ---
 
@@ -241,9 +277,61 @@ B4AE v1.0 **memenuhi tujuan inti**: protokol quantum-resistant dengan handshake 
 - **Platform SDK**: full protocol tersedia via feature `full-protocol` ✅
 - **Key hierarchy**: MIK→DMK→STK, BKS, export/import diimplementasikan ✅
 - **Encrypted storage & Key store**: EncryptedStorage (STK + AES-GCM), KeyStore (MIK persist dengan passphrase) ✅
-- **Onion routing & IP anonymization**: crypto/onion.rs, ProtocolConfig::anonymization ✅
+- **Onion routing**: crypto/onion.rs + integrasi B4aeElaraNode (Maximum profile) ✅
+- **IP anonymization**: AnonymizationConfig + ProxyElaraTransport via `new_with_config` (feature proxy) ✅
+- **HSM di handshake**: HandshakeConfig::hsm, hsm_key_id (feature hsm) ✅
+- **crates.io publish**: workflow hapus elara-transport; untuk ELARA penuh: `git clone --recursive`
 
-Dokumen spesifikasi dan README selaras dengan implementasi terbaru.
+Dokumen spesifikasi dan README selaras dengan implementasi terbaru. Per 13 Feb 2026: onion, proxy, dan HSM wiring selesai dan berfungsi.
+
+---
+
+## 7. Audit Bugs, Isu, dan Gap (Kodebase)
+
+Audit kode untuk menemukan bug, isu keamanan, dan gap implementasi.
+
+### 7.1 Bugs & Isu Keamanan (Semua Diperbaiki 13 Feb 2026)
+
+| Prioritas | Item | Lokasi | Status | Perbaikan |
+|-----------|------|--------|--------|-----------|
+| **Kritis** | SessionKeys tidak di-zeroize | handshake.rs | ✅ Fixed | `impl Drop for SessionKeys` + Zeroize pada ketiga key; Debug redact |
+| **Kritis** | ZKAuth atribut pakai XOR | zkauth.rs | ✅ Fixed | AES-256-GCM AEAD; legacy XOR fallback untuk backward compatibility |
+| **Tinggi** | Mutex `.unwrap()` di audit | audit.rs | ✅ Fixed | unwrap_or_else untuk poison recovery |
+| **Tinggi** | SystemTime unwrap | handshake, session | ✅ Fixed | Helper `current_time_millis()`/`current_time_secs()` + `unwrap_or(Duration::ZERO)` |
+| **Sedang** | PFS+ get_key DoS | pfs_plus.rs | ✅ Fixed | `MAX_COUNTER_ADVANCE = 1000`; reject jika advance > limit |
+| **Sedang** | ChunkBuffer reassembly | elara.rs, proxy.rs | ✅ Fixed | Validasi total_len, chunk_id vs max_chunk_id |
+| **Rendah** | remove_random_padding ambiguity | padding.rs | ✅ Fixed | Format: [message][padding][length suffix] — unambiguous |
+
+### 7.2 Potensi Panic di Production (Resolved)
+
+| File | Konteks | Status |
+|------|---------|--------|
+| audit.rs | Mutex poison | ✅ Fixed dengan `unwrap_or_else` |
+| handshake.rs | SystemTime | ✅ Fixed dengan helper |
+| session.rs | SystemTime | ✅ Fixed dengan helper |
+| padding.rs | `.last().unwrap()` | Aman (guard `len() >= 2`) |
+| message.rs | `panic!` | Hanya di `#[cfg(test)]` |
+
+### 7.3 Gap Implementasi
+
+| Gap | Status | Catatan |
+|-----|--------|---------|
+| **SessionKeys zeroize** | ✅ Fixed | `impl Drop` + Zeroize |
+| **ZKAuth AEAD** | ✅ Fixed | AES-256-GCM |
+| **PFS counter cap** | ✅ Fixed | MAX_COUNTER_ADVANCE = 1000 |
+| **Chunk reassembly validation** | ✅ Fixed | total_len + chunk_id validation |
+| **remove_random_padding** | ✅ Fixed | Format unambiguous |
+| **Replay protection** | ⚠️ Catatan | Sequence untuk key lookup; duplikat decrypt dengan key sama — pertimbangkan replay window |
+
+### 7.4 Rekomendasi Perbaikan (Semua Diterapkan 13 Feb 2026)
+
+1. **SessionKeys**: ✅ `impl Drop` + zeroize; Debug redact key.
+2. **ZKAuth**: ✅ AES-256-GCM AEAD untuk atribut.
+3. **Audit Mutex**: ✅ `lock().unwrap_or_else(|e| e.into_inner())`.
+4. **SystemTime**: ✅ Helper dengan `unwrap_or(Duration::ZERO)`.
+5. **PFS+**: ✅ MAX_COUNTER_ADVANCE = 1000.
+6. **ChunkBuffer**: ✅ total_len + chunk_id validation.
+7. **remove_random_padding**: ✅ Format dengan length suffix.
 
 ---
 

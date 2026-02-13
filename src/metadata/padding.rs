@@ -80,9 +80,9 @@ pub fn remove_padding(padded: &[u8]) -> B4aeResult<Vec<u8>> {
 }
 
 /// Apply random padding within a range
-/// 
+///
 /// Adds random amount of padding between min_size and max_size.
-/// This provides additional obfuscation beyond fixed block padding.
+/// Format: [message][random_padding_bytes][2-byte length at end] — unambiguous.
 pub fn apply_random_padding(message: &[u8], min_size: usize, max_size: usize) -> B4aeResult<Vec<u8>> {
     use crate::crypto::random::random_range;
 
@@ -98,43 +98,33 @@ pub fn apply_random_padding(message: &[u8], min_size: usize, max_size: usize) ->
         return Err(B4aeError::InvalidInput("Padding size too large".to_string()));
     }
 
-    // Use 2-byte length prefix for random padding
     let mut padded = Vec::with_capacity(message_len + padding_needed + 2);
     padded.extend_from_slice(message);
-    
-    // Add padding length as 2-byte big-endian
-    padded.extend_from_slice(&(padding_needed as u16).to_be_bytes());
-    
-    // Add random padding bytes
+
     let mut padding_bytes = vec![0u8; padding_needed];
     crate::crypto::random::fill_random(&mut padding_bytes)
         .map_err(|e| B4aeError::CryptoError(format!("Random generation failed: {}", e)))?;
     padded.extend_from_slice(&padding_bytes);
 
+    padded.extend_from_slice(&(padding_needed as u16).to_be_bytes());
+
     Ok(padded)
 }
 
-/// Remove random padding
+/// Remove random padding (unambiguous: length at end)
 pub fn remove_random_padding(padded: &[u8]) -> B4aeResult<Vec<u8>> {
     if padded.len() < 2 {
         return Err(B4aeError::InvalidInput("Message too short for random padding".to_string()));
     }
 
-    // Find padding length (2 bytes before padding starts)
-    let message_len = padded.len();
-    
-    // Try to find the length marker by scanning backwards
-    // The length marker is 2 bytes that indicate how many bytes follow
-    for i in (2..message_len).rev() {
-        let padding_len = u16::from_be_bytes([padded[i-2], padded[i-1]]) as usize;
-        
-        if i + padding_len == message_len {
-            // Found valid padding length
-            return Ok(padded[..i-2].to_vec());
-        }
+    let padding_len = u16::from_be_bytes([padded[padded.len() - 2], padded[padded.len() - 1]]) as usize;
+
+    if padding_len > padded.len().saturating_sub(2) {
+        return Err(B4aeError::InvalidInput("Invalid padding length in random padding".to_string()));
     }
 
-    Err(B4aeError::InvalidInput("Could not find valid padding marker".to_string()))
+    let message_len = padded.len() - 2 - padding_len;
+    Ok(padded[..message_len].to_vec())
 }
 
 #[cfg(test)]
@@ -174,8 +164,8 @@ mod tests {
         let max_size = 100;
 
         let padded = apply_random_padding(message, min_size, max_size).unwrap();
-        assert!(padded.len() >= message.len() + min_size);
-        assert!(padded.len() <= message.len() + max_size + 2); // +2 for length prefix
+        assert!(padded.len() >= message.len() + min_size + 2); // +2 for length suffix
+        assert!(padded.len() <= message.len() + max_size + 2);
 
         let unpadded = remove_random_padding(&padded).unwrap();
         assert_eq!(message, unpadded.as_slice());

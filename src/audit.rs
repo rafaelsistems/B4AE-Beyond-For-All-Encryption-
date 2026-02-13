@@ -80,18 +80,27 @@ impl MemoryAuditSink {
 
     /// Get all logged entries
     pub fn entries(&self) -> Vec<AuditEntry> {
-        self.entries.lock().unwrap().clone()
+        self.entries
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     /// Clear entries (testing only)
     pub fn clear(&self) {
-        self.entries.lock().unwrap().clear();
+        self.entries
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
     }
 }
 
 impl AuditSink for MemoryAuditSink {
     fn log(&self, entry: AuditEntry) {
-        self.entries.lock().unwrap().push(entry);
+        self.entries
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(entry);
     }
 }
 

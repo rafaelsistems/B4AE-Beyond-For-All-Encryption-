@@ -9,3 +9,6 @@ pub const MAX_PACKET_SIZE: usize = 1400;
 
 #[cfg(feature = "elara")]
 pub mod elara;
+
+#[cfg(all(feature = "elara", feature = "proxy"))]
+pub mod proxy;

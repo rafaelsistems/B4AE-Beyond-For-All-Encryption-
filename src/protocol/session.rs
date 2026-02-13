@@ -12,8 +12,16 @@ use crate::protocol::message::flags;
 use crate::error::B4aeResult;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::{info, warn};
+
+/// Safe timestamp (secs since epoch). Returns 0 if system time is before Unix epoch.
+fn current_time_secs() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or(Duration::ZERO)
+        .as_secs()
+}
 
 /// Session state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -126,10 +134,7 @@ impl Session {
         // Create message crypto
         let message_crypto = MessageCrypto::new(pfs_session);
 
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = current_time_secs();
 
         let info = SessionInfo {
             session_id: handshake_result.session_id,
@@ -199,10 +204,7 @@ impl Session {
     pub fn perform_key_rotation(&mut self) -> CryptoResult<KeyRotationMessage> {
         info!("Performing key rotation #{}", self.rotation_count + 1);
         
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = current_time_secs();
         
         // Generate new key material using HKDF from current keys
         let rotation_context = format!("B4AE-v1-key-rotation-{}", self.rotation_count + 1);
@@ -335,10 +337,7 @@ impl Session {
 
     /// Get time since last rotation
     pub fn time_since_rotation(&self) -> u64 {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = current_time_secs();
         now.saturating_sub(self.last_rotation_time)
     }
 
@@ -361,10 +360,7 @@ impl Session {
 
     /// Check if key rotation is needed
     pub fn needs_rotation(&self) -> bool {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = current_time_secs();
 
         // Check time-based rotation
         if let Some(time_limit) = self.rotation_policy.time_based {
@@ -432,10 +428,7 @@ impl Session {
 
     /// Update last activity timestamp
     fn update_activity(&mut self) {
-        self.info.last_activity = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        self.info.last_activity = current_time_secs();
     }
 }
 
@@ -488,10 +481,7 @@ impl SessionManager {
 
     /// Cleanup inactive sessions
     pub fn cleanup_inactive(&mut self) {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = current_time_secs();
 
         self.sessions.retain(|_, session| {
             let inactive_time = now - session.info.last_activity;

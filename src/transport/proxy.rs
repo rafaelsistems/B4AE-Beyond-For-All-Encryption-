@@ -1,17 +1,11 @@
-//! ELARA Transport Adapter untuk B4AE
+//! SOCKS5 proxy transport for B4AE.
 //!
-//! Menggunakan [ELARA Protocol](https://github.com/rafaelsistems/ELARA-Protocol) untuk:
-//! - UDP transport
-//! - NAT traversal (STUN)
-//! - Packet delivery & chunking
-//!
-//! Mendukung chunking untuk payload > 1400 bytes (B4AE handshake, dll).
+//! Routes UDP traffic through SOCKS5 proxy (e.g. Tor at socks5://127.0.0.1:9050).
 
 use crate::error::{B4aeError, B4aeResult};
 use crate::transport::MAX_PACKET_SIZE;
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -22,7 +16,7 @@ const CHUNK_HEADER_SINGLE: u8 = 0x00;
 /// Maximum reassembly size (DoS mitigation; ~90KB)
 const MAX_REASSEMBLY_SIZE: usize = MAX_PACKET_SIZE * 64;
 
-/// Chunk reassembly state
+/// Chunk reassembly (same as ElaraTransport)
 struct ChunkBuffer {
     total_len: usize,
     chunks: HashMap<u16, Vec<u8>>,
@@ -37,9 +31,7 @@ impl ChunkBuffer {
             created: Instant::now(),
         }
     }
-}
 
-impl ChunkBuffer {
     fn add_chunk(&mut self, chunk_id: u16, data: Vec<u8>) -> bool {
         self.chunks.insert(chunk_id, data);
         let received: usize = self.chunks.values().map(|c| c.len()).sum();
@@ -57,45 +49,63 @@ impl ChunkBuffer {
     }
 }
 
-/// Transport B4AE via ELARA UDP.
+/// Parse proxy URL to (host, port). Supports socks5://host:port
+fn parse_proxy_url(url: &str) -> B4aeResult<(String, u16)> {
+    let url = url.trim();
+    let s = url.strip_prefix("socks5://").unwrap_or(url);
+    let (host, port) = s
+        .rsplit_once(':')
+        .ok_or_else(|| B4aeError::InvalidInput(format!("Invalid proxy URL: {}", url)))?;
+    let port: u16 = port
+        .parse()
+        .map_err(|_| B4aeError::InvalidInput(format!("Invalid proxy port: {}", url)))?;
+    Ok((host.to_string(), port))
+}
+
+/// Transport B4AE via SOCKS5 proxy (UDP ASSOCIATE).
+#[cfg(feature = "proxy")]
 #[derive(Clone)]
-pub struct ElaraTransport {
-    udp: Arc<elara_transport::UdpTransport>,
-    /// Reassembly buffers for chunked receives (addr -> buffer)
+pub struct ProxyElaraTransport {
+    datagram: Arc<Mutex<socks::Socks5Datagram>>,
     reassembly: Arc<Mutex<HashMap<String, ChunkBuffer>>>,
 }
 
-impl ElaraTransport {
-    /// Bind ke alamat lokal dan buat transport UDP (ELARA)
-    pub async fn bind(addr: impl AsRef<str>) -> B4aeResult<Self> {
-        let socket_addr: SocketAddr = addr
+#[cfg(feature = "proxy")]
+impl ProxyElaraTransport {
+    /// Bind and route UDP through SOCKS5 proxy.
+    pub fn bind(addr: impl AsRef<str>, proxy_url: &str) -> B4aeResult<Self> {
+        let (proxy_host, proxy_port) = parse_proxy_url(proxy_url)?;
+        let proxy_addr = format!("{}:{}", proxy_host, proxy_port);
+
+        let bind_addr: SocketAddr = addr
             .as_ref()
             .parse()
             .map_err(|e| B4aeError::NetworkError(format!("Invalid bind address: {}", e)))?;
 
-        let udp = elara_transport::UdpTransport::bind(socket_addr)
-            .await
-            .map_err(|e| B4aeError::NetworkError(e.to_string()))?;
+        let datagram = socks::Socks5Datagram::bind(&proxy_addr, bind_addr)
+            .map_err(|e| B4aeError::NetworkError(format!("SOCKS5 proxy bind failed: {}", e)))?;
 
         Ok(Self {
-            udp: Arc::new(udp),
+            datagram: Arc::new(Mutex::new(datagram)),
             reassembly: Arc::new(Mutex::new(HashMap::new())),
         })
     }
 
-    /// Kirim data ke alamat tujuan. Mendukung chunking untuk data besar.
+    /// Send data to destination via proxy
     pub async fn send_to(&self, dest: impl AsRef<str>, data: &[u8]) -> B4aeResult<()> {
         let addr: SocketAddr = dest
             .as_ref()
             .parse()
             .map_err(|e| B4aeError::NetworkError(format!("Invalid destination: {}", e)))?;
 
+        let datagram = self.datagram.lock().map_err(|e| {
+            B4aeError::InternalError(format!("Mutex poisoned: {}", e))
+        })?;
+
         if data.len() <= MAX_PACKET_SIZE - 7 {
             let mut packet = vec![CHUNK_HEADER_SINGLE];
             packet.extend_from_slice(data);
-            self.udp
-                .send_bytes_to(&packet, addr)
-                .await
+            let _ = datagram.send_to(&packet, socks::TargetAddr::Ip(addr))
                 .map_err(|e| B4aeError::NetworkError(e.to_string()))?;
         } else {
             let total_len = data.len() as u32;
@@ -125,9 +135,7 @@ impl ElaraTransport {
                 };
                 packet.extend_from_slice(chunk_data);
 
-                self.udp
-                    .send_bytes_to(&packet, addr)
-                    .await
+                let _ = datagram.send_to(&packet, socks::TargetAddr::Ip(addr))
                     .map_err(|e| B4aeError::NetworkError(e.to_string()))?;
 
                 offset = end;
@@ -137,35 +145,39 @@ impl ElaraTransport {
         Ok(())
     }
 
-    /// Terima data (blocking). Meng reassembly chunk secara otomatis.
+    /// Receive data (blocking on sync socket, wrapped for async)
     pub async fn recv_from(&self) -> B4aeResult<(Vec<u8>, String)> {
         const REASSEMBLY_TIMEOUT: Duration = Duration::from_secs(30);
+        let mut buf = vec![0u8; MAX_PACKET_SIZE * 2];
 
         loop {
-            let (data, addr) = self
-                .udp
-                .recv_bytes_from()
-                .await
-                .map_err(|e| B4aeError::NetworkError(e.to_string()))?;
+            let (len, src) = {
+                let dg = self.datagram.lock().map_err(|e| {
+                    B4aeError::InternalError(format!("Mutex poisoned: {}", e))
+                })?;
+                let (n, target) = dg.recv_from(&mut buf)
+                    .map_err(|e| B4aeError::NetworkError(e.to_string()))?;
+                let addr_str = match target {
+                    socks::TargetAddr::Ip(ip) => ip.to_string(),
+                    socks::TargetAddr::Domain(dom, port) => format!("{}:{}", dom, port),
+                };
+                (n, addr_str)
+            };
 
-            let addr_str = addr.to_string();
-
+            let data = buf[..len].to_vec();
             if data.is_empty() {
                 continue;
             }
 
-            match data[0] {
-                CHUNK_HEADER_SINGLE => {
-                    return Ok((data[1..].to_vec(), addr_str));
-                }
-                CHUNK_HEADER_START => {
+            match data.get(0).copied() {
+                Some(CHUNK_HEADER_SINGLE) => return Ok((data[1..].to_vec(), src)),
+                Some(CHUNK_HEADER_START) => {
                     if data.len() < 7 {
                         continue;
                     }
-                    let total_len =
-                        u32::from_be_bytes([data[1], data[2], data[3], data[4]]) as usize;
+                    let total_len = u32::from_be_bytes([data[1], data[2], data[3], data[4]]) as usize;
                     if total_len == 0 || total_len > MAX_REASSEMBLY_SIZE {
-                        continue; // Reject malicious/ invalid total_len
+                        continue; // Reject malicious/invalid total_len
                     }
                     let chunk_id = u16::from_be_bytes([data[5], data[6]]);
                     let chunk_data = data[7..].to_vec();
@@ -180,7 +192,7 @@ impl ElaraTransport {
                             B4aeError::InternalError(format!("Mutex poisoned: {}", e))
                         })?;
                         let buffer = reassembly
-                            .entry(addr_str.clone())
+                            .entry(src.clone())
                             .or_insert_with(|| ChunkBuffer::new(total_len));
                         if buffer.created.elapsed() > REASSEMBLY_TIMEOUT {
                             *buffer = ChunkBuffer::new(total_len);
@@ -193,13 +205,13 @@ impl ElaraTransport {
                             let mut reassembly = self.reassembly.lock().map_err(|e| {
                                 B4aeError::InternalError(format!("Mutex poisoned: {}", e))
                             })?;
-                            reassembly.remove(&addr_str).unwrap_or_else(|| ChunkBuffer::new(0))
+                            reassembly.remove(&src).unwrap_or_else(|| ChunkBuffer::new(0))
                         };
                         let result = buffer.assemble()?;
-                        return Ok((result, addr_str));
+                        return Ok((result, src));
                     }
                 }
-                CHUNK_HEADER_CONT => {
+                Some(CHUNK_HEADER_CONT) => {
                     if data.len() < 3 {
                         continue;
                     }
@@ -210,9 +222,9 @@ impl ElaraTransport {
                         let mut reassembly = self.reassembly.lock().map_err(|e| {
                             B4aeError::InternalError(format!("Mutex poisoned: {}", e))
                         })?;
-                        if let Some(buffer) = reassembly.get_mut(&addr_str) {
+                        if let Some(buffer) = reassembly.get_mut(&src) {
                             if buffer.created.elapsed() > REASSEMBLY_TIMEOUT {
-                                reassembly.remove(&addr_str);
+                                reassembly.remove(&src);
                                 false
                             } else {
                                 buffer.add_chunk(chunk_id, chunk_data)
@@ -227,12 +239,10 @@ impl ElaraTransport {
                             let mut reassembly = self.reassembly.lock().map_err(|e| {
                                 B4aeError::InternalError(format!("Mutex poisoned: {}", e))
                             })?;
-                            reassembly.remove(&addr_str).unwrap_or_else(|| {
-                                ChunkBuffer::new(0)
-                            })
+                            reassembly.remove(&src).unwrap_or_else(|| ChunkBuffer::new(0))
                         };
                         let result = buffer.assemble()?;
-                        return Ok((result, addr_str));
+                        return Ok((result, src));
                     }
                 }
                 _ => continue,
@@ -240,19 +250,16 @@ impl ElaraTransport {
         }
     }
 
-    /// Alamat lokal
     pub fn local_addr(&self) -> String {
-        self.udp.local_addr().to_string()
+        self.datagram
+            .lock()
+            .map_err(|e| B4aeError::InternalError(format!("Mutex poisoned: {}", e)))
+            .and_then(|dg| {
+                dg.get_ref()
+                    .local_addr()
+                    .map_err(|e| B4aeError::NetworkError(e.to_string()))
+            })
+            .map(|a| a.to_string())
+            .unwrap_or_else(|_| "0.0.0.0:0".to_string())
     }
-
-    /// Re-export STUN untuk NAT traversal (jika diperlukan)
-    pub fn stun_client() -> elara_transport::StunClient {
-        elara_transport::StunClient::new()
-    }
-}
-
-/// Parse alamat peer ke SocketAddr
-pub fn parse_peer_addr(peer_addr: &str) -> B4aeResult<SocketAddr> {
-    SocketAddr::from_str(peer_addr)
-        .map_err(|e| B4aeError::InvalidInput(format!("Invalid peer address '{}': {}", peer_addr, e)))
 }

@@ -79,9 +79,12 @@ impl PfsKeyChain {
         Ok(message_key)
     }
 
+    /// Maximum advance per get_key call (DoS mitigation)
+    const MAX_COUNTER_ADVANCE: u64 = 1000;
+
     /// Get key for specific message counter (for out-of-order messages)
     /// Jika counter <= message_counter, cari di cache
-    /// Jika counter > message_counter, derive keys sampai counter tersebut
+    /// Jika counter > message_counter, derive keys sampai counter tersebut (dengan batas DoS)
     pub fn get_key(&mut self, counter: u64) -> CryptoResult<Option<[u8; 32]>> {
         // Check cache first
         if let Some(key) = self.key_cache.get(&counter) {
@@ -91,6 +94,16 @@ impl PfsKeyChain {
         // If counter is in the past and not in cache, key has been deleted (forward secrecy)
         if counter < self.message_counter {
             return Ok(None);
+        }
+
+        // DoS mitigation: reject excessive counter advance
+        let advance = counter.saturating_sub(self.message_counter);
+        if advance > Self::MAX_COUNTER_ADVANCE {
+            return Err(CryptoError::InvalidInput(format!(
+                "Counter advance {} exceeds maximum {}",
+                advance,
+                Self::MAX_COUNTER_ADVANCE
+            )));
         }
 
         // If counter is current or future, derive keys up to that counter

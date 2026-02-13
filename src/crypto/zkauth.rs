@@ -2,6 +2,7 @@
 // Allows authentication without revealing identity
 
 use crate::crypto::{CryptoError, CryptoResult};
+use crate::crypto::aes_gcm::{self, AesKey};
 use crate::crypto::hkdf;
 use crate::crypto::random;
 use crate::crypto::dilithium::{self, DilithiumKeyPair, DilithiumSignature};
@@ -237,20 +238,49 @@ impl ZkIdentity {
         }
     }
 
-    /// Encrypt attribute value
+    /// Encrypt attribute value (AES-256-GCM AEAD; new data always uses this)
     fn encrypt_attribute(key: &[u8], value: &[u8]) -> CryptoResult<Vec<u8>> {
-        // Simple XOR encryption for demo (use proper AEAD in production)
-        let derived_key = hkdf::derive_key(&[key], b"B4AE-v1-attr-key", value.len())?;
-        let mut encrypted = Vec::with_capacity(value.len());
-        for (i, &byte) in value.iter().enumerate() {
-            encrypted.push(byte ^ derived_key[i]);
-        }
-        Ok(encrypted)
+        let derived_key = hkdf::derive_key(&[key], b"B4AE-v1-attr-key", 32)?;
+        let aes_key = AesKey::from_bytes(&derived_key)?;
+        let (nonce, ciphertext) = aes_gcm::encrypt(&aes_key, value, b"B4AE-v1-zk-attr")?;
+        let mut out = nonce;
+        out.extend_from_slice(&ciphertext);
+        Ok(out)
     }
 
-    /// Decrypt attribute value
+    /// Decrypt attribute value. Supports:
+    /// - AES-256-GCM (format sejak perbaikan keamanan)
+    /// - Legacy XOR (backward compatibility untuk ZkIdentity lama)
     fn decrypt_attribute(key: &[u8], encrypted: &[u8]) -> CryptoResult<Vec<u8>> {
-        // Simple XOR decryption for demo (use proper AEAD in production)
+        const NONCE_SIZE: usize = 12;
+        const TAG_SIZE: usize = 16;
+        const MIN_AEAD_LEN: usize = NONCE_SIZE + TAG_SIZE;
+
+        if encrypted.is_empty() {
+            return Err(CryptoError::DecryptionFailed(
+                "Encrypted attribute empty".to_string(),
+            ));
+        }
+
+        if encrypted.len() >= MIN_AEAD_LEN {
+            if let Ok(plaintext) = Self::decrypt_attribute_aead(key, encrypted) {
+                return Ok(plaintext);
+            }
+        }
+
+        Self::decrypt_attribute_legacy_xor(key, encrypted)
+    }
+
+    fn decrypt_attribute_aead(key: &[u8], encrypted: &[u8]) -> CryptoResult<Vec<u8>> {
+        const NONCE_SIZE: usize = 12;
+        let derived_key = hkdf::derive_key(&[key], b"B4AE-v1-attr-key", 32)?;
+        let aes_key = AesKey::from_bytes(&derived_key)?;
+        let (nonce, ct) = encrypted.split_at(NONCE_SIZE);
+        aes_gcm::decrypt(&aes_key, nonce, ct, b"B4AE-v1-zk-attr")
+    }
+
+    /// Legacy XOR decryption (backward compatibility; deprecated). Pub for tests.
+    pub(crate) fn decrypt_attribute_legacy_xor(key: &[u8], encrypted: &[u8]) -> CryptoResult<Vec<u8>> {
         let derived_key = hkdf::derive_key(&[key], b"B4AE-v1-attr-key", encrypted.len())?;
         let mut decrypted = Vec::with_capacity(encrypted.len());
         for (i, &byte) in encrypted.iter().enumerate() {
@@ -544,5 +574,25 @@ mod tests {
         // Cleanup should remove expired challenge
         verifier.cleanup_expired_challenges();
         assert_eq!(verifier.active_challenge_count(), 0);
+    }
+
+    #[test]
+    fn test_legacy_xor_backward_compatibility() {
+        let key = [0x42u8; 32];
+        let value = b"legacy_value";
+        let encrypted_legacy: Vec<u8> = {
+            let derived =
+                hkdf::derive_key(&[&key], b"B4AE-v1-attr-key", value.len()).unwrap();
+            value
+                .iter()
+                .zip(derived.iter())
+                .map(|(a, b)| a ^ b)
+                .collect()
+        };
+
+        let decrypted =
+            ZkIdentity::decrypt_attribute_legacy_xor(&key, &encrypted_legacy).unwrap();
+        assert_eq!(decrypted.as_slice(), value);
+        assert_eq!(String::from_utf8(decrypted).unwrap(), "legacy_value");
     }
 }

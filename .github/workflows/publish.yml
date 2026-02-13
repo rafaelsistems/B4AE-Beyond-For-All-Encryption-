@@ -42,12 +42,11 @@ jobs:
 
     - name: Prepare Cargo.toml for publish
       run: |
-        # Remove elara-transport dep (not on crates.io) - required for cargo publish
+        # Hapus elara-transport (path dep, belum di crates.io) agar cargo publish berhasil
         sed -i '/# ELARA Transport/d' Cargo.toml
         sed -i '/# Path untuk local dev/d' Cargo.toml
         sed -i '/elara-transport = { path = "elara\/crates\/elara-transport", optional = true }/d' Cargo.toml
         sed -i 's/elara = \["elara-transport", "tokio"\]/elara = ["tokio"]\nelara-transport = []/' Cargo.toml
-        # Verify dep removed (fail if path still present)
         grep 'path.*elara-transport' Cargo.toml && exit 1 || true
 
     - name: Verify package

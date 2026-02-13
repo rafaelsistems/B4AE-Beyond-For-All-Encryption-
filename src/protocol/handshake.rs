@@ -10,8 +10,17 @@ use crate::crypto::zkauth::{self, ZkChallenge, ZkProof, EXTENSION_TYPE_ZK_CHALLE
 use crate::protocol::PROTOCOL_VERSION;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use subtle::ConstantTimeEq;
+use zeroize::Zeroize;
+
+/// Safe timestamp (millis since epoch). Returns 0 if system time is before Unix epoch.
+fn current_time_millis() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or(Duration::ZERO)
+        .as_millis() as u64
+}
 
 /// Handshake state machine (matches TLA+/Coq spec: Initiation, WaitingResponse, etc.)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -86,6 +95,12 @@ pub struct HandshakeConfig {
     pub zk_identity: Option<Arc<zkauth::ZkIdentity>>,
     /// Optional ZK verifier for responder (verifies initiator's proof)
     pub zk_verifier: Option<Arc<Mutex<zkauth::ZkVerifier>>>,
+    /// Optional HSM backend for signing (when available, ECDSA part uses HSM)
+    #[cfg(feature = "hsm")]
+    pub hsm: Option<Arc<dyn crate::hsm::HsmBackend>>,
+    /// HSM key ID when hsm is configured
+    #[cfg(feature = "hsm")]
+    pub hsm_key_id: Option<String>,
 }
 
 impl std::fmt::Debug for HandshakeConfig {
@@ -121,16 +136,38 @@ impl Default for HandshakeConfig {
             extensions: Vec::new(),
             zk_identity: None,
             zk_verifier: None,
+            #[cfg(feature = "hsm")]
+            hsm: None,
+            #[cfg(feature = "hsm")]
+            hsm_key_id: None,
         }
     }
 }
 
 /// Session keys derived from handshake
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SessionKeys {
     pub encryption_key: Vec<u8>,
     pub authentication_key: Vec<u8>,
     pub metadata_key: Vec<u8>,
+}
+
+impl std::fmt::Debug for SessionKeys {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SessionKeys")
+            .field("encryption_key", &"<redacted>")
+            .field("authentication_key", &"<redacted>")
+            .field("metadata_key", &"<redacted>")
+            .finish()
+    }
+}
+
+impl Drop for SessionKeys {
+    fn drop(&mut self) {
+        self.encryption_key.zeroize();
+        self.authentication_key.zeroize();
+        self.metadata_key.zeroize();
+    }
 }
 
 /// Handshake result containing session keys
@@ -176,10 +213,7 @@ impl HandshakeInitiator {
         let mut client_random = [0u8; 32];
         random::fill_random(&mut client_random)?;
         
-        let start_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        let start_time = current_time_millis();
 
         Ok(HandshakeInitiator {
             config,
@@ -408,11 +442,7 @@ impl HandshakeInitiator {
     }
 
     pub fn is_timed_out(&self) -> bool {
-        let current_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
-
+        let current_time = current_time_millis();
         current_time - self.start_time > self.config.timeout_ms
     }
 }
@@ -422,10 +452,7 @@ impl HandshakeResponder {
         let mut server_random = [0u8; 32];
         random::fill_random(&mut server_random)?;
 
-        let start_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        let start_time = current_time_millis();
 
         Ok(HandshakeResponder {
             config,
@@ -657,11 +684,7 @@ impl HandshakeResponder {
     }
 
     pub fn is_timed_out(&self) -> bool {
-        let current_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
-
+        let current_time = current_time_millis();
         current_time - self.start_time > self.config.timeout_ms
     }
 }
