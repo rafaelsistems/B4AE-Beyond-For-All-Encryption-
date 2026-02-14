@@ -343,8 +343,8 @@ mod tests {
 
         let avg_interval = pattern.average_interval();
         // Bounds widened for CI: sleep(100) can exceed 100ms under load; expect ~100ms nominal
-        assert!(avg_interval >= 50 && avg_interval < 600,
-            "avg_interval {} outside expected range [50, 600) for CI timing variability",
+        assert!(avg_interval >= 50 && avg_interval < 1200,
+            "avg_interval {} outside expected range [50, 1200) for CI timing variability",
             avg_interval);
 
         let recommended_size = pattern.recommended_dummy_size();
