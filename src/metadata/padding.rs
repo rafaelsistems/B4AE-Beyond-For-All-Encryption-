@@ -52,27 +52,27 @@ pub fn remove_padding(padded: &[u8]) -> B4aeResult<Vec<u8>> {
         .last()
         .ok_or_else(|| B4aeError::InvalidInput("Padded message empty".to_string()))?;
     let second_last = padded[padded.len() - 2];
-    
-    // Try standard PKCS#7 first when last_byte in 1..255 (avoids ambiguity with large format)
-    let padding_len = last_byte as usize;
-    if padding_len >= 1 && padding_len <= 255 && padding_len <= padded.len() {
-        let start = padded.len() - padding_len;
-        if padded[start..].iter().all(|&b| b == padding_len as u8) {
-            return Ok(padded[..start].to_vec());
-        }
-    }
-    
-    // Large padding: length in last 2 bytes; padding region is zeros + length
+
+    // Try LARGE padding first: when last 2 bytes encode length > 255, standard PKCS#7
+    // can wrongly match (e.g. 511-byte msg + [14,1] = 3585; last_byte=1 would strip 1 byte).
     let potential_large_padding = u16::from_be_bytes([second_last, last_byte]) as usize;
     if potential_large_padding > 255 && potential_large_padding <= padded.len() {
         let message_len = padded.len() - potential_large_padding;
         let padding_region = &padded[message_len..];
-        // Verify format: last 2 bytes = length, rest zeros
         if padding_region.len() >= 2
             && padding_region[padding_region.len() - 2..] == (potential_large_padding as u16).to_be_bytes()
             && padding_region[..padding_region.len() - 2].iter().all(|&b| b == 0)
         {
             return Ok(padded[..message_len].to_vec());
+        }
+    }
+
+    // Standard PKCS#7 for padding_len in 1..255
+    let padding_len = last_byte as usize;
+    if padding_len >= 1 && padding_len <= 255 && padding_len <= padded.len() {
+        let start = padded.len() - padding_len;
+        if padded[start..].iter().all(|&b| b == padding_len as u8) {
+            return Ok(padded[..start].to_vec());
         }
     }
 
@@ -199,5 +199,18 @@ mod tests {
 
         let unpadded = remove_padding(&padded).unwrap();
         assert_eq!(empty, unpadded.as_slice());
+    }
+
+    /// 511 bytes + block 4096: padding ends with [14,1]; must try large format before standard
+    #[test]
+    fn test_large_padding_511_bytes() {
+        let msg: Vec<u8> = (0..511).map(|i| (i % 251) as u8).collect();
+        let padded = apply_padding(&msg, 4096).unwrap();
+        assert_eq!(padded.len(), 4096);
+        assert_eq!(padded[4094], 14);
+        assert_eq!(padded[4095], 1);
+
+        let unpadded = remove_padding(&padded).unwrap();
+        assert_eq!(&unpadded, &msg);
     }
 }

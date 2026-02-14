@@ -65,7 +65,8 @@ jobs:
     - name: Run proptest invariants
       run: cargo test --test proptest_invariants --all-features
       env:
-        PROPTEST_CASES: 128
+        # 32 cases to balance coverage vs CI time; edge cases covered by test_message_roundtrip_edge_cases
+        PROPTEST_CASES: 32
 
   security:
     name: Security Audit

@@ -7,6 +7,54 @@ use b4ae::crypto::aes_gcm::{decrypt, encrypt, AesKey};
 use b4ae::protocol::SecurityProfile;
 use proptest::prelude::*;
 
+/// Regression: message roundtrip for edge-case lengths (Standard profile uses block 4096)
+#[test]
+fn test_message_roundtrip_edge_cases() {
+    let do_roundtrip = |msg: &[u8]| -> Vec<u8> {
+        let mut alice = B4aeClient::new(SecurityProfile::Standard).unwrap();
+        let mut bob = B4aeClient::new(SecurityProfile::Standard).unwrap();
+        let alice_id = b"alice".to_vec();
+        let bob_id = b"bob".to_vec();
+
+        let init = alice.initiate_handshake(&bob_id).unwrap();
+        let response = bob.respond_to_handshake(&alice_id, init).unwrap();
+        let complete = alice.process_response(&bob_id, response).unwrap();
+        bob.complete_handshake(&alice_id, complete).unwrap();
+        alice.finalize_initiator(&bob_id).unwrap();
+
+        let encrypted_list = alice.encrypt_message(&bob_id, msg).unwrap();
+        let mut decrypted = vec![];
+        for enc in &encrypted_list {
+            let d = bob.decrypt_message(&alice_id, enc).unwrap();
+            if !d.is_empty() {
+                decrypted = d;
+            }
+        }
+        decrypted
+    };
+
+    // 512 bytes: triggers large padding (block 4096, +3584 bytes)
+    let msg512: Vec<u8> = (0..512).map(|i| (i % 251) as u8).collect();
+    assert_eq!(do_roundtrip(&msg512), msg512);
+
+    // 512 bytes ending with ambiguous-looking bytes
+    let mut msg512_end9 = vec![0u8; 512];
+    msg512_end9[511] = 9;
+    assert_eq!(do_roundtrip(&msg512_end9), msg512_end9);
+
+    // 498 bytes: standard PKCS#7 (14 bytes padding)
+    let msg498: Vec<u8> = (0..498).map(|i| (i * 7 % 251) as u8).collect();
+    assert_eq!(do_roundtrip(&msg498), msg498);
+
+    // 511 bytes: large padding ends with [14,1]; was misparsed as 1-byte PKCS#7 (regression)
+    let msg511: Vec<u8> = (0..511).map(|i| (i % 251) as u8).collect();
+    assert_eq!(do_roundtrip(&msg511), msg511);
+
+    // Empty and small
+    assert_eq!(do_roundtrip(&[]), Vec::<u8>::new());
+    assert_eq!(do_roundtrip(b"Hi"), b"Hi".to_vec());
+}
+
 proptest! {
     /// Encrypt/decrypt roundtrip: decrypt(encrypt(m)) == m
     #[test]
