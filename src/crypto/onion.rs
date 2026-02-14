@@ -17,6 +17,7 @@ pub struct OnionLayer {
 }
 
 impl OnionLayer {
+    /// Returns the raw layer bytes (nonce || ciphertext || tag).
     pub fn as_bytes(&self) -> &[u8] {
         &self.data
     }

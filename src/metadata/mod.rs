@@ -1,7 +1,12 @@
-// B4AE Metadata Protection Module
+//! B4AE Metadata Protection Module
+//!
+//! Padding, timing obfuscation, dummy traffic for traffic analysis resistance.
 
+/// PKCS#7 and random padding.
 pub mod padding;
+/// Timing delay strategies.
 pub mod timing;
+/// Dummy traffic and pattern obfuscation.
 pub mod obfuscation;
 
 use crate::error::{B4aeError, B4aeResult};
@@ -25,18 +30,22 @@ pub enum ProtectionLevel {
 }
 
 impl ProtectionLevel {
+    /// Whether padding is enabled.
     pub fn padding_enabled(&self) -> bool {
         !matches!(self, ProtectionLevel::None)
     }
 
+    /// Whether timing obfuscation is enabled.
     pub fn timing_enabled(&self) -> bool {
         matches!(self, ProtectionLevel::Standard | ProtectionLevel::High | ProtectionLevel::Maximum)
     }
 
+    /// Whether dummy traffic generation is enabled.
     pub fn dummy_traffic_enabled(&self) -> bool {
         matches!(self, ProtectionLevel::High | ProtectionLevel::Maximum)
     }
 
+    /// Whether onion routing is enabled.
     pub fn onion_routing_enabled(&self) -> bool {
         matches!(self, ProtectionLevel::Maximum)
     }

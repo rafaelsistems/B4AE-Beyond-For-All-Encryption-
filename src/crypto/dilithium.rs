@@ -34,8 +34,10 @@ pub struct DilithiumSignature {
 }
 
 impl DilithiumPublicKey {
+    /// Size in bytes (Dilithium5).
     pub const SIZE: usize = 2592;
 
+    /// Parse from raw bytes.
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         if bytes.len() != Self::SIZE {
             return Err(CryptoError::InvalidKeySize(
@@ -57,6 +59,7 @@ impl DilithiumPublicKey {
         })
     }
 
+    /// Serialize to bytes.
     pub fn as_bytes(&self) -> &[u8] {
         #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
         {
@@ -70,8 +73,10 @@ impl DilithiumPublicKey {
 }
 
 impl DilithiumSecretKey {
+    /// Size in bytes.
     pub const SIZE: usize = 4864;
 
+    /// Parse from raw bytes.
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         if bytes.len() != Self::SIZE {
             return Err(CryptoError::InvalidKeySize(
@@ -93,6 +98,7 @@ impl DilithiumSecretKey {
         })
     }
 
+    /// Serialize to bytes.
     pub fn as_bytes(&self) -> &[u8] {
         #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
         {
@@ -106,8 +112,10 @@ impl DilithiumSecretKey {
 }
 
 impl DilithiumSignature {
-    pub const SIZE: usize = 4627; // pqcrypto-dilithium5 detached signature size
+    /// Size in bytes (pqcrypto-dilithium5 detached signature).
+    pub const SIZE: usize = 4627;
 
+    /// Parse from raw bytes.
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         // Allow flexible size for compatibility
         if bytes.len() < 4595 || bytes.len() > 4700 {
@@ -130,6 +138,7 @@ impl DilithiumSignature {
         })
     }
 
+    /// Serialize to bytes.
     pub fn as_bytes(&self) -> &[u8] {
         #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
         {
@@ -144,7 +153,9 @@ impl DilithiumSignature {
 
 /// Dilithium5 Key Pair
 pub struct DilithiumKeyPair {
+    /// Public key for verification.
     pub public_key: DilithiumPublicKey,
+    /// Secret key for signing.
     pub secret_key: DilithiumSecretKey,
 }
 

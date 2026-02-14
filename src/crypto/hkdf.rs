@@ -144,8 +144,11 @@ impl B4aeKeyDerivation {
 /// Protocol keys derived from master secret
 #[derive(Clone)]
 pub struct ProtocolKeys {
+    /// AES key for message encryption.
     pub encryption_key: Vec<u8>,
+    /// HMAC key for message authentication.
     pub authentication_key: Vec<u8>,
+    /// Key for metadata protection (padding MAC).
     pub metadata_key: Vec<u8>,
 }
 

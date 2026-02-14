@@ -50,9 +50,11 @@ pub struct HybridSecretKey {
     pub dilithium_secret: DilithiumSecretKey,
 }
 
-/// Hybrid Key Pair
+/// Hybrid Key Pair (X25519 + Kyber)
 pub struct HybridKeyPair {
+    /// Public key for key agreement.
     pub public_key: HybridPublicKey,
+    /// Secret key for decapsulation.
     pub secret_key: HybridSecretKey,
 }
 

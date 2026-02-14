@@ -3,8 +3,11 @@
 //! Implements [B4AE Protocol Specification v1.0](../../specs/B4AE_Protocol_Specification_v1.0.md):
 //! handshake, message format, session keys, key derivation.
 
+/// Three-way handshake and key derivation.
 pub mod handshake;
+/// Message format, serialization, flags.
 pub mod message;
+/// Session state, key rotation, message crypto.
 pub mod session;
 
 use crate::error::{B4aeError, B4aeResult};
@@ -34,6 +37,7 @@ pub enum MessageType {
 }
 
 impl MessageType {
+    /// Parse message type from wire byte.
     pub fn from_u8(value: u8) -> B4aeResult<Self> {
         match value {
             0x01 => Ok(MessageType::HandshakeInit),
@@ -47,6 +51,7 @@ impl MessageType {
         }
     }
 
+    /// Serialize to wire byte.
     pub fn to_u8(self) -> u8 {
         self as u8
     }
@@ -106,6 +111,7 @@ pub enum SecurityProfile {
 }
 
 impl SecurityProfile {
+    /// Convert to ProtocolConfig with profile-specific defaults.
     pub fn to_config(self) -> ProtocolConfig {
         match self {
             SecurityProfile::Standard => ProtocolConfig {

@@ -74,11 +74,17 @@ pub enum TimingStrategy {
 /// Timing obfuscation configuration
 #[derive(Debug, Clone)]
 pub struct TimingConfig {
+    /// Delay distribution strategy
     pub strategy: TimingStrategy,
+    /// Minimum delay in milliseconds
     pub min_delay_ms: u64,
+    /// Maximum delay in milliseconds
     pub max_delay_ms: u64,
+    /// Mean delay (for Normal strategy)
     pub mean_delay_ms: u64,
+    /// Standard deviation (for Normal strategy)
     pub std_dev_ms: u64,
+    /// Lambda for exponential distribution
     pub lambda: f64,
 }
 

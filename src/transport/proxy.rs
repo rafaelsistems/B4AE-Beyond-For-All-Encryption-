@@ -287,6 +287,7 @@ impl ProxyElaraTransport {
         }
     }
 
+    /// Returns the local socket address (e.g. "127.0.0.1:0" or "0.0.0.0:0" on error).
     pub fn local_addr(&self) -> String {
         self.datagram
             .lock()

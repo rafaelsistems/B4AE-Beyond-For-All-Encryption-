@@ -1,15 +1,26 @@
-// B4AE Cryptographic Core Module
-// Phase 2: Core Development - Cryptographic Implementation
+//! B4AE Cryptographic Core Module
+//!
+//! Implements NIST-standardized post-quantum cryptography and classical primitives.
 
+/// Kyber KEM (NIST ML-KEM).
 pub mod kyber;
+/// Dilithium signatures (NIST ML-DSA).
 pub mod dilithium;
+/// Hybrid cryptography (PQC + classical).
 pub mod hybrid;
+/// AES-256-GCM encryption.
 pub mod aes_gcm;
+/// HKDF key derivation.
 pub mod hkdf;
+/// Onion routing primitives.
 pub mod onion;
+/// Hardware acceleration helpers.
 pub mod perf;
+/// CSPRNG and random utilities.
 pub mod random;
+/// Perfect Forward Secrecy Plus.
 pub mod pfs_plus;
+/// Zero-knowledge authentication.
 pub mod zkauth;
 
 use std::error::Error;
@@ -18,14 +29,23 @@ use std::fmt;
 /// B4AE Cryptographic Error Types
 #[derive(Debug, Clone)]
 pub enum CryptoError {
+    /// Key generation failed.
     KeyGenerationFailed(String),
+    /// Encryption failed.
     EncryptionFailed(String),
+    /// Decryption failed.
     DecryptionFailed(String),
+    /// Signature generation failed.
     SignatureFailed(String),
+    /// Signature verification failed.
     VerificationFailed(String),
+    /// Invalid key size.
     InvalidKeySize(String),
+    /// Invalid input.
     InvalidInput(String),
+    /// Hardware acceleration not available.
     HardwareAccelerationUnavailable,
+    /// Authentication failed.
     AuthenticationFailed,
 }
 
@@ -47,6 +67,7 @@ impl fmt::Display for CryptoError {
 
 impl Error for CryptoError {}
 
+/// Result type for crypto operations.
 pub type CryptoResult<T> = Result<T, CryptoError>;
 
 /// Security levels for B4AE
@@ -61,6 +82,7 @@ pub enum SecurityLevel {
 }
 
 impl SecurityLevel {
+    /// Returns key size in bytes for this security level.
     pub fn key_size(&self) -> usize {
         match self {
             SecurityLevel::Standard => 32,  // 256 bits
@@ -73,9 +95,13 @@ impl SecurityLevel {
 /// B4AE Cryptographic Configuration
 #[derive(Debug, Clone)]
 pub struct CryptoConfig {
+    /// Security level (Standard/High/Maximum).
     pub security_level: SecurityLevel,
+    /// Enable AES-NI, AVX2 when available.
     pub enable_hardware_acceleration: bool,
+    /// Use hybrid PQC + classical.
     pub enable_hybrid_mode: bool,
+    /// Require quantum-resistant algorithms.
     pub quantum_resistant: bool,
 }
 

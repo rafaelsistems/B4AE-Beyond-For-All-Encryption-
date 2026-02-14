@@ -17,71 +17,103 @@ use zeroize::Zeroize;
 /// Handshake state machine (matches TLA+/Coq spec: Initiation, WaitingResponse, etc.)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HandshakeState {
+    /// Initiating handshake (sending Init).
     Initiation,
+    /// Waiting for Response.
     WaitingResponse,
+    /// Waiting for Complete.
     WaitingComplete,
+    /// Handshake completed.
     Completed,
+    /// Handshake failed.
     Failed,
 }
 
-/// Algorithm identifiers
+/// Algorithm identifiers (wire format).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u16)]
 pub enum AlgorithmId {
+    /// Kyber-1024 KEM
     Kyber1024 = 0x0001,
+    /// Dilithium5 signature
     Dilithium5 = 0x0002,
+    /// ECDH P-521
     EcdhP521 = 0x0003,
+    /// ECDSA P-521
     EcdsaP521 = 0x0004,
+    /// AES-256-GCM
     Aes256Gcm = 0x0005,
+    /// SHA3-256
     Sha3_256 = 0x0006,
 }
 
-/// Handshake extension
+/// Handshake extension (optional data).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Extension {
+    /// Extension type ID.
     pub extension_type: u16,
+    /// Extension payload.
     pub data: Vec<u8>,
 }
 
-/// Handshake Init message
+/// Handshake Init message (client → server).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HandshakeInit {
+    /// Protocol version.
     pub protocol_version: u16,
+    /// Client randomness (32 bytes).
     pub client_random: [u8; 32],
+    /// Hybrid public key for key agreement.
     pub hybrid_public_key: Vec<u8>,
+    /// Supported algorithms.
     pub supported_algorithms: Vec<AlgorithmId>,
+    /// Optional extensions (e.g. ZK challenge).
     pub extensions: Vec<Extension>,
+    /// Signature over init payload.
     pub signature: Vec<u8>,
 }
 
-/// Handshake Response message
+/// Handshake Response message (server → client).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HandshakeResponse {
+    /// Protocol version.
     pub protocol_version: u16,
+    /// Server randomness (32 bytes).
     pub server_random: [u8; 32],
+    /// Server hybrid public key.
     pub hybrid_public_key: Vec<u8>,
+    /// Encrypted shared secret (Kyber encaps).
     pub encrypted_shared_secret: Vec<u8>,
+    /// Selected algorithms.
     pub selected_algorithms: Vec<AlgorithmId>,
+    /// Optional extensions.
     pub extensions: Vec<Extension>,
+    /// Signature over response payload.
     pub signature: Vec<u8>,
 }
 
-/// Handshake Complete message
+/// Handshake Complete message (client → server).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HandshakeComplete {
+    /// Confirmation hash (32 bytes).
     pub confirmation: [u8; 32],
+    /// Signature.
     pub signature: Vec<u8>,
     /// Optional extensions (e.g. ZK proof)
     #[serde(default)]
     pub extensions: Vec<Extension>,
 }
 
-/// Handshake configuration
+/// Handshake configuration.
 #[derive(Clone)]
 pub struct HandshakeConfig {
+    /// Handshake timeout in milliseconds.
     pub timeout_ms: u64,
+    /// Algorithms to advertise.
     pub supported_algorithms: Vec<AlgorithmId>,
+    /// Algorithms that must be supported.
     pub required_algorithms: Vec<AlgorithmId>,
+    /// Pre-configured extensions.
     pub extensions: Vec<Extension>,
     /// Optional ZK identity for initiator (anonymous auth)
     pub zk_identity: Option<Arc<zkauth::ZkIdentity>>,
@@ -136,11 +168,14 @@ impl Default for HandshakeConfig {
     }
 }
 
-/// Session keys derived from handshake
+/// Session keys derived from handshake.
 #[derive(Clone)]
 pub struct SessionKeys {
+    /// AES key for message encryption.
     pub encryption_key: Vec<u8>,
+    /// HMAC key for message authentication.
     pub authentication_key: Vec<u8>,
+    /// Key for metadata protection.
     pub metadata_key: Vec<u8>,
 }
 
@@ -162,12 +197,16 @@ impl Drop for SessionKeys {
     }
 }
 
-/// Handshake result containing session keys
+/// Handshake result containing session keys.
 #[derive(Debug)]
 pub struct HandshakeResult {
+    /// Master secret (before HKDF).
     pub master_secret: Vec<u8>,
+    /// Derived session keys.
     pub session_keys: SessionKeys,
+    /// Peer's hybrid public key.
     pub peer_public_key: HybridPublicKey,
+    /// Session ID (32 bytes).
     pub session_id: [u8; 32],
 }
 
@@ -200,6 +239,7 @@ pub struct HandshakeResponder {
 }
 
 impl HandshakeInitiator {
+    /// Create new handshake initiator.
     pub fn new(config: HandshakeConfig) -> CryptoResult<Self> {
         let local_keypair = hybrid::keypair()?;
         let mut client_random = [0u8; 32];
@@ -220,6 +260,7 @@ impl HandshakeInitiator {
         })
     }
 
+    /// Generate HandshakeInit message.
     pub fn generate_init(&mut self) -> CryptoResult<HandshakeInit> {
         if self.state != HandshakeState::Initiation {
             return Err(CryptoError::InvalidInput("Invalid state for init".to_string()));
@@ -255,6 +296,7 @@ impl HandshakeInitiator {
         })
     }
 
+    /// Process HandshakeResponse from server.
     pub fn process_response(&mut self, response: HandshakeResponse) -> CryptoResult<()> {
         if self.state != HandshakeState::WaitingResponse {
             return Err(CryptoError::InvalidInput("Invalid state for response".to_string()));
@@ -308,6 +350,7 @@ impl HandshakeInitiator {
         Ok(())
     }
 
+    /// Generate HandshakeComplete message.
     pub fn generate_complete(&mut self) -> CryptoResult<HandshakeComplete> {
         if self.state != HandshakeState::WaitingComplete {
             return Err(CryptoError::InvalidInput("Invalid state for complete".to_string()));
@@ -343,6 +386,8 @@ impl HandshakeInitiator {
         })
     }
 
+    /// Finalizes the handshake after completion. Derives master secret, session keys,
+    /// and session ID from the shared secret and server random.
     pub fn finalize(&self) -> CryptoResult<HandshakeResult> {
         if self.state != HandshakeState::Completed {
             return Err(CryptoError::InvalidInput("Handshake not completed".to_string()));
@@ -429,16 +474,19 @@ impl HandshakeInitiator {
         Ok(result)
     }
 
+    /// Current handshake state.
     pub fn state(&self) -> HandshakeState {
         self.state
     }
 
+    /// Whether handshake has timed out.
     pub fn is_timed_out(&self) -> bool {
         let current_time = time::current_time_millis();
         current_time - self.start_time > self.config.timeout_ms
     }
 }
 impl HandshakeResponder {
+    /// Create new handshake responder.
     pub fn new(config: HandshakeConfig) -> CryptoResult<Self> {
         let local_keypair = hybrid::keypair()?;
         let mut server_random = [0u8; 32];
@@ -459,6 +507,7 @@ impl HandshakeResponder {
         })
     }
 
+    /// Process HandshakeInit from client.
     pub fn process_init(&mut self, init: HandshakeInit) -> CryptoResult<HandshakeResponse> {
         if self.state != HandshakeState::Initiation {
             return Err(CryptoError::InvalidInput("Invalid state for init".to_string()));
@@ -540,6 +589,7 @@ impl HandshakeResponder {
         })
     }
 
+    /// Process HandshakeComplete from client.
     pub fn process_complete(&mut self, complete: HandshakeComplete) -> CryptoResult<()> {
         if self.state != HandshakeState::WaitingComplete {
             return Err(CryptoError::InvalidInput("Invalid state for complete".to_string()));
@@ -585,6 +635,8 @@ impl HandshakeResponder {
         Ok(())
     }
 
+    /// Finalizes the handshake after completion. Derives master secret, session keys,
+    /// and session ID from the shared secret and client random.
     pub fn finalize(&self) -> CryptoResult<HandshakeResult> {
         if self.state != HandshakeState::Completed {
             return Err(CryptoError::InvalidInput("Handshake not completed".to_string()));
@@ -671,10 +723,12 @@ impl HandshakeResponder {
         Ok(result)
     }
 
+    /// Current handshake state.
     pub fn state(&self) -> HandshakeState {
         self.state
     }
 
+    /// Whether handshake has timed out.
     pub fn is_timed_out(&self) -> bool {
         let current_time = time::current_time_millis();
         current_time - self.start_time > self.config.timeout_ms

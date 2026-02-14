@@ -17,19 +17,42 @@ pub fn hash_for_audit(data: &[u8]) -> String {
 #[non_exhaustive]
 pub enum AuditEvent {
     /// Handshake initiated
-    HandshakeInitiated { peer_id_hash: String },
+    HandshakeInitiated {
+        /// Hash of peer ID (privacy-preserving, no raw ID stored)
+        peer_id_hash: String,
+    },
     /// Handshake completed
-    HandshakeCompleted { peer_id_hash: String },
+    HandshakeCompleted {
+        /// Hash of peer ID
+        peer_id_hash: String,
+    },
     /// Handshake failed
-    HandshakeFailed { peer_id_hash: String, reason: String },
+    HandshakeFailed {
+        /// Hash of peer ID
+        peer_id_hash: String,
+        /// Failure reason (non-sensitive)
+        reason: String,
+    },
     /// Key rotation triggered
-    KeyRotation { session_id_hash: String },
+    KeyRotation {
+        /// Hash of session ID
+        session_id_hash: String,
+    },
     /// Authentication failed
-    AuthFailed { reason: String },
+    AuthFailed {
+        /// Failure reason
+        reason: String,
+    },
     /// Session created
-    SessionCreated { session_id_hash: String },
+    SessionCreated {
+        /// Hash of session ID
+        session_id_hash: String,
+    },
     /// Session closed
-    SessionClosed { session_id_hash: String },
+    SessionClosed {
+        /// Hash of session ID
+        session_id_hash: String,
+    },
 }
 
 /// Single audit log entry

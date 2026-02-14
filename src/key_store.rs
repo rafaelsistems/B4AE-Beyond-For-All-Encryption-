@@ -11,7 +11,9 @@ use std::collections::HashMap;
 
 /// Backend for key persistence.
 pub trait KeyStoreBackend: Send + Sync {
+    /// Store a key-value pair (encrypted blob).
     fn put(&mut self, key: &str, value: &[u8]) -> B4aeResult<()>;
+    /// Retrieve value by key.
     fn get(&self, key: &str) -> B4aeResult<Option<Vec<u8>>>;
 }
 
@@ -22,6 +24,7 @@ pub struct MemoryKeyStoreBackend {
 }
 
 impl MemoryKeyStoreBackend {
+    /// Create new in-memory key store backend.
     pub fn new() -> Self {
         Self {
             data: HashMap::new(),
@@ -46,6 +49,7 @@ pub struct KeyStore {
 }
 
 impl KeyStore {
+    /// Create key store with the given backend.
     pub fn new(backend: Box<dyn KeyStoreBackend>) -> Self {
         Self { backend }
     }

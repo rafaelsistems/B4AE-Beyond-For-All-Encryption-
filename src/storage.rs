@@ -25,6 +25,7 @@ pub struct MemoryStorageBackend {
 }
 
 impl MemoryStorageBackend {
+    /// Create new in-memory storage backend.
     pub fn new() -> Self {
         Self {
             data: HashMap::new(),

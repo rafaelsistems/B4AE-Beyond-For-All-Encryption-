@@ -8,16 +8,27 @@
 #![warn(rust_2018_idioms)]
 #![allow(unexpected_cfgs)] // liboqs (PQC) feature — bukan elara; elara-transport sudah dari crates.io
 
+/// Cryptographic primitives (Kyber, Dilithium, hybrid, AES-GCM, HKDF, PFS+, ZKAuth).
 pub mod crypto;
+/// Protocol layer (handshake, message, session).
 pub mod protocol;
+/// Metadata protection (padding, timing, obfuscation).
 pub mod metadata;
+/// Safe time utilities (panic-free).
 pub mod time;
+/// Error types for B4AE.
 pub mod error;
+/// High-level client API.
 pub mod client;
+/// Re-exports for common usage.
 pub mod prelude;
+/// Audit logging for compliance.
 pub mod audit;
+/// Key hierarchy (MIK, DMK, STK, BKS).
 pub mod key_hierarchy;
+/// Key persistence (passphrase-protected MIK storage).
 pub mod key_store;
+/// Encrypted storage using STK.
 pub mod storage;
 
 #[cfg(feature = "hsm")]

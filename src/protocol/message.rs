@@ -13,9 +13,13 @@ use std::collections::BTreeSet;
 /// Message priority levels
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MessagePriority {
+    /// Low priority
     Low = 0,
+    /// Normal priority
     Normal = 1,
+    /// High priority
     High = 2,
+    /// Urgent priority
     Urgent = 3,
 }
 
@@ -28,8 +32,11 @@ pub enum MessageContent {
     Binary(Vec<u8>),
     /// File transfer
     File {
+        /// File name
         filename: String,
+        /// MIME type
         mime_type: String,
+        /// File content
         data: Vec<u8>,
     },
     /// Dummy traffic (metadata obfuscation — discard by recipient)
@@ -72,11 +79,15 @@ pub struct Message {
     pub expires_at: Option<u64>,
 }
 
-/// Message flags
+/// Message flags (wire format)
 pub mod flags {
+    /// Payload is encrypted
     pub const ENCRYPTED: u8 = 0b00000001;
+    /// Payload is compressed
     pub const COMPRESSED: u8 = 0b00000010;
+    /// Dummy traffic (discard by recipient)
     pub const DUMMY_TRAFFIC: u8 = 0b00000100;
+    /// Requires acknowledgment
     pub const REQUIRES_ACK: u8 = 0b00001000;
 }
 

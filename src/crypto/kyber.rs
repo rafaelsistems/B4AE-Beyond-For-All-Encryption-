@@ -42,8 +42,10 @@ pub struct KyberSharedSecret {
 }
 
 impl KyberPublicKey {
+    /// Size in bytes (Kyber-1024).
     pub const SIZE: usize = 1568;
 
+    /// Parse from raw bytes.
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         if bytes.len() != Self::SIZE {
             return Err(CryptoError::InvalidKeySize(
@@ -65,6 +67,7 @@ impl KyberPublicKey {
         })
     }
 
+    /// Serialize to bytes.
     pub fn as_bytes(&self) -> &[u8] {
         #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
         {
@@ -78,8 +81,10 @@ impl KyberPublicKey {
 }
 
 impl KyberSecretKey {
+    /// Size in bytes.
     pub const SIZE: usize = 3168;
 
+    /// Parse from raw bytes.
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         if bytes.len() != Self::SIZE {
             return Err(CryptoError::InvalidKeySize(
@@ -101,6 +106,7 @@ impl KyberSecretKey {
         })
     }
 
+    /// Serialize to bytes.
     pub fn as_bytes(&self) -> &[u8] {
         #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
         {
@@ -114,8 +120,10 @@ impl KyberSecretKey {
 }
 
 impl KyberCiphertext {
+    /// Size in bytes.
     pub const SIZE: usize = 1568;
 
+    /// Parse from raw bytes.
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         if bytes.len() != Self::SIZE {
             return Err(CryptoError::InvalidInput(
@@ -137,6 +145,7 @@ impl KyberCiphertext {
         })
     }
 
+    /// Serialize to bytes.
     pub fn as_bytes(&self) -> &[u8] {
         #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
         {
@@ -150,8 +159,10 @@ impl KyberCiphertext {
 }
 
 impl KyberSharedSecret {
+    /// Size in bytes.
     pub const SIZE: usize = 32;
 
+    /// Parse from raw bytes.
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         if bytes.len() != Self::SIZE {
             return Err(CryptoError::InvalidInput(
@@ -175,6 +186,7 @@ impl KyberSharedSecret {
         }
     }
 
+    /// Serialize to bytes.
     pub fn as_bytes(&self) -> &[u8] {
         #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
         {
@@ -189,7 +201,9 @@ impl KyberSharedSecret {
 
 /// Kyber-1024 Key Pair
 pub struct KyberKeyPair {
+    /// Public key for encapsulation.
     pub public_key: KyberPublicKey,
+    /// Secret key for decapsulation.
     pub secret_key: KyberSecretKey,
 }
 

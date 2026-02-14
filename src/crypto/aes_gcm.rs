@@ -8,9 +8,12 @@ use aes_gcm::{
 };
 use rand::RngCore;
 
-pub const KEY_SIZE: usize = 32; // 256 bits
-pub const NONCE_SIZE: usize = 12; // 96 bits (recommended for GCM)
-pub const TAG_SIZE: usize = 16; // 128 bits
+/// AES-256 key size in bytes (256 bits).
+pub const KEY_SIZE: usize = 32;
+/// GCM nonce size in bytes (96 bits, NIST recommended).
+pub const NONCE_SIZE: usize = 12;
+/// GCM authentication tag size in bytes (128 bits).
+pub const TAG_SIZE: usize = 16;
 
 /// AES-256-GCM Key
 pub struct AesKey {
