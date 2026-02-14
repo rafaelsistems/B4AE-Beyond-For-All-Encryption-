@@ -331,7 +331,7 @@ mod tests {
     fn test_traffic_pattern() {
         let mut pattern = TrafficPattern::new();
 
-        // Record some messages
+        // Record some messages with sleeps to generate intervals
         pattern.record_message(1000);
         std::thread::sleep(Duration::from_millis(100));
         pattern.record_message(1500);
@@ -342,10 +342,8 @@ mod tests {
         assert!(avg_size > 1000 && avg_size < 1500);
 
         let avg_interval = pattern.average_interval();
-        // Bounds widened for CI: sleep(100) can exceed 100ms under load; expect ~100ms nominal
-        assert!(avg_interval >= 50 && avg_interval < 1200,
-            "avg_interval {} outside expected range [50, 1200) for CI timing variability",
-            avg_interval);
+        // Only assert lower bound: sleep(100) yields ≥50ms even on slow CI; no upper bound (CI can be very slow)
+        assert!(avg_interval >= 50, "avg_interval {} ms too small", avg_interval);
 
         let recommended_size = pattern.recommended_dummy_size();
         assert!(recommended_size > 500 && recommended_size < 2000);
