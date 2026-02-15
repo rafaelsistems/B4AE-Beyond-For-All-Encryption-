@@ -88,6 +88,12 @@ lto = true
 codegen-units = 1
 strip = true
 
+# Faster CI builds (avoids 6h timeout on macOS/Windows runners)
+[profile.ci]
+inherits = "release"
+lto = false
+codegen-units = 16
+
 [profile.bench]
 inherits = "release"
 

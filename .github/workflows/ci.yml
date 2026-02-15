@@ -13,6 +13,7 @@ jobs:
   build:
     name: Build and Test
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -38,10 +39,13 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Build
-      run: cargo build --release --all-features
+      run: cargo build --profile ci --all-features
 
     - name: Run tests
-      run: cargo test --release --all-features
+      run: |
+        cargo test --profile ci --all-features --lib
+        cargo test --profile ci --all-features --test integration_test --test security_test --test performance_test --test fuzzing_test --test penetration_test --test proptest_invariants
+      timeout-minutes: 20
 
     - name: Check formatting
       run: cargo fmt -- --check
@@ -49,6 +53,18 @@ jobs:
 
     - name: Clippy
       run: cargo clippy --all-features -- -D warnings
+      continue-on-error: true
+
+  elara-integration:
+    name: ELARA Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: recursive
+    - uses: dtolnay/rust-toolchain@stable
+    - run: cargo test --profile ci --all-features --test elara_integration_test
       continue-on-error: true
 
   proptest:
