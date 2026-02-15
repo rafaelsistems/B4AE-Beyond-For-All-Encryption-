@@ -40,13 +40,19 @@ fn test_random_data_handling() {
 
 #[test]
 fn test_oversized_message() {
-    // Test handling of very large messages
-    let large_data = vec![0u8; 10 * 1024 * 1024]; // 10MB
-    let msg = Message::binary(large_data);
+    // Test handling of oversized messages (DoS mitigation)
+    // MAX_MESSAGE_SIZE = 1 MiB; messages exceeding it must be rejected
+    let oversized_data = vec![0u8; 10 * 1024 * 1024]; // 10MB
+    let msg = Message::binary(oversized_data);
     
-    // Should handle large messages
+    // Should reject oversized messages
     let serialized = msg.to_bytes();
-    assert!(serialized.is_ok());
+    assert!(serialized.is_err(), "Oversized messages must be rejected");
+
+    // Large but valid messages (just under 1 MiB) should succeed
+    let large_valid_data = vec![0u8; (1024 * 1024) - 256]; // ~1 MiB - overhead
+    let msg_valid = Message::binary(large_valid_data);
+    assert!(msg_valid.to_bytes().is_ok(), "Large valid messages should serialize");
 }
 
 #[test]
