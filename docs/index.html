@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>B4AE — Drop-in Quantum-Safe Transport Layer</title>
+  <meta name="description" content="B4AE: TLS for the Post-Quantum Era. Add quantum security to Signal, Matrix, MQTT, gRPC in minutes.">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background: #f8f9fa; }
+    .container { max-width: 720px; margin: 0 auto; padding: 2rem; }
+    header { text-align: center; padding: 3rem 0; border-bottom: 1px solid #dee2e6; }
+    h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+    .tagline { font-size: 1.125rem; color: #6c757d; margin-bottom: 1rem; }
+    .hero-cta { display: inline-block; margin-top: 1rem; padding: 0.5rem 1.25rem; background: #212529; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 500; }
+    .hero-cta:hover { background: #495057; }
+    section { padding: 2rem 0; }
+    h2 { font-size: 1.25rem; margin-bottom: 1rem; }
+    ul { margin-left: 1.25rem; margin-bottom: 1rem; }
+    code { background: #e9ecef; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.9em; }
+    .quick-start { background: #fff; padding: 1rem; border-radius: 8px; border: 1px solid #dee2e6; margin: 1rem 0; }
+    .links { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
+    .links a { color: #0d6efd; text-decoration: none; }
+    .links a:hover { text-decoration: underline; }
+    footer { padding: 2rem 0; border-top: 1px solid #dee2e6; font-size: 0.875rem; color: #6c757d; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>B4AE — Beyond For All Encryption</h1>
+      <p class="tagline">Drop-in Quantum-Safe Transport Layer for Modern Apps</p>
+      <p class="tagline" style="font-size: 0.95rem;">TLS for the Post-Quantum Era</p>
+      <a class="hero-cta" href="https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-">View on GitHub</a>
+    </header>
+
+    <section>
+      <h2>What is B4AE?</h2>
+      <p>B4AE is a quantum-ready secure transport abstraction layer — not a Signal competitor, but infrastructure that layers under Signal, Matrix, MQTT, gRPC, and any app needing quantum-resistant encryption.</p>
+      <ul>
+        <li>Add quantum security in 5 minutes</li>
+        <li>Pluggable, modular, audit-friendly</li>
+        <li>Kyber-1024, Dilithium5 (NIST-standardized PQC)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Quick Start</h2>
+      <div class="quick-start">
+        <code>cargo add b4ae --features elara</code>
+      </div>
+      <p><a href="https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-#quick-start">Full installation &rarr;</a></p>
+    </section>
+
+    <section>
+      <h2>Features</h2>
+      <ul>
+        <li><strong>Quantum-resistant:</strong> Kyber-1024, Dilithium5, hybrid with X25519/Ed25519</li>
+        <li><strong>Metadata protection:</strong> Padding, timing obfuscation, dummy traffic</li>
+        <li><strong>Enterprise:</strong> AuditSink, compliance mapping (GDPR, HIPAA, ISO 27001)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Links</h2>
+      <div class="links">
+        <a href="https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-">Repository</a>
+        <a href="https://docs.rs/b4ae">docs.rs</a>
+        <a href="https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-/blob/main/SECURITY.md">Security</a>
+        <a href="https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-/blob/main/CONTRIBUTORS.md">Contributors</a>
+      </div>
+    </section>
+
+    <footer>
+      <p><strong>Contact:</strong> rafaelsistems@gmail.com | Security: rafaelsistems@gmail.com</p>
+      <p>Dual-licensed MIT OR Apache-2.0</p>
+    </footer>
+  </div>
+</body>
+</html>

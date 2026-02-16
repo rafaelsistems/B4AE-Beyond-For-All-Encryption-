@@ -38,9 +38,11 @@ elara-core, elara-wire, elara-transport v0.1.0 sudah di crates.io. B4AE memakai 
 ```bash
 cargo build --release
 cargo test --all-features   # termasuk elara
-cargo publish --dry-run
+cargo publish --dry-run     # ✅ Verified OK
 cargo package --list
 ```
+
+**Note:** `keccak v0.1.5` in lockfile is yanked; consider `cargo update -p keccak` if sha3 updates.
 
 ### 3.3 Crate Size
 - [x] `exclude` in Cargo.toml — exclude elara/, docs/, bindings/, scripts/, etc.

@@ -24,7 +24,8 @@ Perbarui positioning untuk "Drop-in Quantum-Safe Transport" di situs dan landing
 ### Opsi 1: docs/ sebagai root
 1. Settings → Pages → Source: Deploy from branch
 2. Branch: main, folder: /docs
-3. Buat `docs/index.html` sebagai landing
+3. `docs/index.html` sudah ada sebagai landing
+4. `docs/.nojekyll` agar static HTML digunakan
 
 ### Opsi 2: README sebagai landing
 - Gunakan README.md sebagai halaman utama repo
