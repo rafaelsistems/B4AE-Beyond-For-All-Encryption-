@@ -58,14 +58,20 @@ jobs:
   elara-integration:
     name: ELARA Integration Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # ELARA tests are #[ignore]d (hang in CI); job runs quickly, keeps build manifest
     steps:
     - uses: actions/checkout@v6
       with:
         submodules: recursive
     - uses: dtolnay/rust-toolchain@stable
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - run: cargo test --profile ci --all-features --test elara_integration_test
-      continue-on-error: true
 
   proptest:
     name: Proptest Invariants
