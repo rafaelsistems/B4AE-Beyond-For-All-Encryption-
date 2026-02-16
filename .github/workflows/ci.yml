@@ -73,6 +73,15 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - run: cargo test --profile ci --all-features --test elara_integration_test
 
+  enterprise-relay:
+    name: Enterprise API & Relay
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: dtolnay/rust-toolchain@stable
+    - run: cargo build --manifest-path enterprise-api/Cargo.toml
+    - run: cargo build --manifest-path b4ae-relay/Cargo.toml
+
   proptest:
     name: Proptest Invariants
     runs-on: ubuntu-latest

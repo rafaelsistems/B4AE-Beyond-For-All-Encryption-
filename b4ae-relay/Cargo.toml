@@ -1,0 +1,9 @@
+[package]
+name = "b4ae-relay"
+version = "0.1.0"
+edition = "2021"
+description = "B4AE Secure Relay — minimal relay server stub"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+hex = "0.4"
