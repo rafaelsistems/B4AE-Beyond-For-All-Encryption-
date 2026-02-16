@@ -323,7 +323,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for deta
 
 ### Reporting Security Issues
 
-Please report security vulnerabilities to: security@b4ae.org
+Please report security vulnerabilities to: **rafaelsistems@gmail.com**
 
 **Do not** open public issues for security vulnerabilities.
 
@@ -363,10 +363,9 @@ If you use B4AE in your research, please cite:
 
 ## Contact
 
-- Website: https://b4ae.org
-- Email: info@b4ae.org
-- Twitter: @b4ae_protocol
-- Discord: https://discord.gg/b4ae
+- **Website:** [GitHub Repository](https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-)
+- **Email:** rafaelsistems@gmail.com
+- **Security:** rafaelsistems@gmail.com
 
 ---
 
@@ -548,10 +547,9 @@ Dual-licensed under MIT or Apache 2.0.
 
 ## 📞 Contact
 
-- **Website:** https://b4ae.org
-- **Email:** info@b4ae.org
-- **Security:** security@b4ae.org
-- **GitHub:** https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-
+- **Website:** [GitHub Repository](https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-)
+- **Email:** rafaelsistems@gmail.com
+- **Security:** rafaelsistems@gmail.com
 
 ---
 
