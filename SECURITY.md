@@ -6,9 +6,20 @@ Please report security vulnerabilities to: **rafaelsistems@gmail.com**
 
 **Do not** open public issues for security vulnerabilities.
 
+### Responsible Disclosure SLA
+
+| Step | Target |
+|------|--------|
+| Acknowledgment | Within 72 hours |
+| Initial assessment | Within 7 days |
+| Fix (critical) | Best effort, coordinated disclosure |
+| Public advisory | After patch availability |
+
 ## Security Audits
 
 B4AE undergoes regular security audits by independent third parties. Audit reports will be published when available.
+
+Target auditors: Trail of Bits, Kudelski Security, Cure53.
 
 ## License
 

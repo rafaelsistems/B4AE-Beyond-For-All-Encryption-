@@ -4,6 +4,15 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 
 ---
 
+## Version Roadmap
+
+| Version | Vision |
+|---------|--------|
+| **1.x** | Stable API, production deployments, SDK polish |
+| **2.0** | Modular crates (`b4ae-core`, `b4ae-pq`, etc.), RFC alignment, standardization path |
+
+---
+
 ## Phase 1: Foundation ✅ (Selesai)
 
 - [x] Research & specification
@@ -98,4 +107,6 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 
 - [Platform SDK](PLATFORM_SDK.md)
 - [Formal Verification](FORMAL_VERIFICATION.md)
+- [STRATEGIC_VISION](STRATEGIC_VISION.md)
+- [HYBRID_MODEL_STRATEGY](HYBRID_MODEL_STRATEGY.md)
 - [CHANGELOG](../CHANGELOG.md)

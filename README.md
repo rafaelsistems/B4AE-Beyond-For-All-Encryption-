@@ -1,13 +1,15 @@
 # B4AE (Beyond For All Encryption)
 
-**Quantum-Resistant Secure Communication Protocol**
+**Drop-in Quantum-Safe Transport Layer for Modern Apps**
+
+*TLS for the Post-Quantum Era* — a pluggable secure transport that integrates with Signal, Matrix, MQTT, gRPC, and any application requiring quantum-resistant encryption.
 
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
 
 ## Overview
 
-B4AE is a next-generation secure communication protocol that goes **beyond** traditional End-to-End Encryption (E2EE). It provides comprehensive protection against current and future threats, including quantum computing attacks and metadata analysis.
+B4AE is a **quantum-ready secure transport abstraction layer** — not a competitor to E2EE, but infrastructure that can be layered under Signal, Matrix, IoT protocols, and RPC stacks. Add quantum security to your stack in minutes.
 
 ### Key Features
 
@@ -22,24 +24,30 @@ B4AE is a next-generation secure communication protocol that goes **beyond** tra
 
 ## Why B4AE?
 
-### E2EE Limitations
+### Positioning
 
-Traditional E2EE protocols like Signal have significant limitations:
+| Target | B4AE Role |
+|-------|-----------|
+| Signal, Matrix | Quantum upgrade layer |
+| WireGuard | Quantum-ready alternative |
+| TLS | PQ transport layer |
 
-- ❌ **No Quantum Resistance**: Vulnerable to future quantum computers
-- ❌ **No Metadata Protection**: Exposes who communicates with whom, when, and how often
-- ❌ **Limited Enterprise Features**: Lacks compliance and audit capabilities
-- ❌ **Complex Key Management**: Difficult multi-device synchronization
+### E2EE Gaps B4AE Addresses
 
-### B4AE Advantages
+- ❌ **No Quantum Resistance** in most E2EE → B4AE uses NIST-standardized PQC (Kyber, Dilithium)
+- ❌ **No Metadata Protection** → B4AE: padding, timing obfuscation, dummy traffic
+- ❌ **Limited Enterprise Features** → B4AE: AuditSink, compliance mapping, key rotation
+- ❌ **Complex Key Management** → B4AE: automatic sync, BKS, export/import
 
-B4AE addresses all these limitations:
+### Measured Advantages
 
-- ✅ **72% Better** than E2EE across all security metrics
-- ✅ **Quantum-Safe** for the next 20+ years
-- ✅ **Complete Privacy** including metadata protection
-- ✅ **Enterprise-Grade** with compliance built-in
-- ✅ **User-Friendly** with automatic key management
+| Metric | B4AE | Typical E2EE | Source |
+|--------|------|--------------|--------|
+| Quantum resistance | ✅ Kyber-1024, Dilithium5 | ❌ | NIST PQC 2024 |
+| Metadata obfuscation | ✅ Built-in | Limited | [Protocol Spec](specs/B4AE_Protocol_Specification_v1.0.md) |
+| Audit logging | ✅ AuditSink | Varies | `audit.rs` |
+| Handshake time | <200ms | ~100–300ms | `criterion` bench |
+| Message throughput | >1000/s | Comparable | `docs/PERFORMANCE.md` |
 
 ## Technical Architecture
 
@@ -94,6 +102,8 @@ B4AE addresses all these limitations:
 | Battery Impact | <5% per 1000 msgs | ✅ Achieved |
 
 ## Quick Start
+
+**Add Quantum Security in 5 Minutes.** Prebuilt examples: [secure chat](examples/b4ae_chat_demo.rs), [file transfer](examples/b4ae_file_transfer_demo.rs), [gateway](examples/b4ae_gateway_demo.rs).
 
 ### Installation
 
