@@ -105,6 +105,7 @@ Peta jalan pengembangan B4AE (Beyond For All Encryption).
 
 ## Referensi
 
+- [NEXT_STEPS_IMPLEMENTATION](NEXT_STEPS_IMPLEMENTATION.md) — Tracker implementasi bertahap
 - [Platform SDK](PLATFORM_SDK.md)
 - [Formal Verification](FORMAL_VERIFICATION.md)
 - [STRATEGIC_VISION](STRATEGIC_VISION.md)
