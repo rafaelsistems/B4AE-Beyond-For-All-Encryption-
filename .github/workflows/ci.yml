@@ -20,7 +20,7 @@ jobs:
         rust: [stable]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     # ELARA tests are #[ignore]d (hang in CI); job runs quickly, keeps build manifest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
     - uses: dtolnay/rust-toolchain@stable
@@ -77,7 +77,7 @@ jobs:
     name: Enterprise API & Relay
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
     - run: cargo build --manifest-path enterprise-api/Cargo.toml
     - run: cargo build --manifest-path b4ae-relay/Cargo.toml
@@ -86,7 +86,7 @@ jobs:
     name: Proptest Invariants
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -103,7 +103,7 @@ jobs:
     name: Security Audit
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -126,7 +126,7 @@ jobs:
     name: Cargo Fuzz (libFuzzer)
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -155,7 +155,7 @@ jobs:
     name: TLA+ TLC Model Check
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v4
 
     - name: Set up JDK
       uses: actions/setup-java@v4
@@ -177,7 +177,7 @@ jobs:
     name: WASM Build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v4
 
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -194,7 +194,7 @@ jobs:
     name: C FFI (b4ae-ffi)
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v4
 
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -206,7 +206,7 @@ jobs:
     name: Android JNI (b4ae-android)
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v4
 
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -218,7 +218,7 @@ jobs:
     name: Coq Formal Verification
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v4
 
     - name: Build Coq spec
       run: |
