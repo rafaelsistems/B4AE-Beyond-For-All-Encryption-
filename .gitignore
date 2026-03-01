@@ -1,5 +1,6 @@
-# Rust
-/target/
+# Rust - Build artifacts (recursive pattern to catch all subdirectories)
+**/target/
+target/
 **/*.rs.bk
 *.pdb
 # Cargo.lock - committed untuk reproducible CI (pin rand 0.8.5)
@@ -53,6 +54,13 @@ targetL3XsP8/
 
 # TLA+ tools (downloaded locally, CI fetches fresh)
 tla/
+
+# Android/Gradle build artifacts
+**/.gradle/
+**/build/
+*.apk
+*.aab
+*.ap_
 # Kiro IDE - Internal specs and configurations
 .kiro/
 
