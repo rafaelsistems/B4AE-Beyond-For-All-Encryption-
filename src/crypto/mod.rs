@@ -8,8 +8,12 @@ pub mod kyber;
 pub mod dilithium;
 /// Hybrid cryptography (PQC + classical).
 pub mod hybrid;
+/// Hybrid key exchange (X25519 + Kyber1024) for B4AE v2.0.
+pub mod hybrid_kex;
 /// AES-256-GCM encryption.
 pub mod aes_gcm;
+/// ChaCha20-Poly1305 AEAD encryption.
+pub mod chacha20poly1305_wrapper;
 /// HKDF key derivation.
 pub mod hkdf;
 /// Onion routing primitives.
@@ -22,6 +26,16 @@ pub mod random;
 pub mod pfs_plus;
 /// Zero-knowledge authentication.
 pub mod zkauth;
+/// Hybrid Double Ratchet protocol.
+pub mod double_ratchet;
+/// PADMÉ padding for message length obfuscation.
+pub mod padding;
+/// XEdDSA deniable authentication.
+pub mod xeddsa;
+/// Constant-time operations for side-channel resistance.
+pub mod constant_time;
+/// Post-quantum cryptography wrapper (Kyber1024 + Dilithium5).
+pub mod pq;
 
 use std::error::Error;
 use std::fmt;
@@ -47,6 +61,16 @@ pub enum CryptoError {
     HardwareAccelerationUnavailable,
     /// Authentication failed.
     AuthenticationFailed,
+    /// Ratchet count mismatch.
+    RatchetCountMismatch,
+    /// Counter skip too large - potential DoS.
+    CounterSkipTooLarge,
+    /// Invalid ratchet update.
+    InvalidRatchetUpdate,
+    /// Invalid padding detected.
+    InvalidPadding,
+    /// Message too large for padding.
+    MessageTooLarge,
 }
 
 impl fmt::Display for CryptoError {
@@ -60,7 +84,12 @@ impl fmt::Display for CryptoError {
             CryptoError::InvalidKeySize(msg) => write!(f, "Invalid key size: {}", msg),
             CryptoError::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
             CryptoError::HardwareAccelerationUnavailable => write!(f, "Hardware acceleration unavailable"),
-            CryptoError::AuthenticationFailed => write!(f, "Authentication failed"),
+            CryptoError::AuthenticationFailed => write!(f, "Authentication failed - message tampered or corrupted"),
+            CryptoError::RatchetCountMismatch => write!(f, "Ratchet count mismatch"),
+            CryptoError::CounterSkipTooLarge => write!(f, "Counter skip too large - potential DoS"),
+            CryptoError::InvalidRatchetUpdate => write!(f, "Invalid ratchet update"),
+            CryptoError::InvalidPadding => write!(f, "Invalid padding detected"),
+            CryptoError::MessageTooLarge => write!(f, "Message too large for padding"),
         }
     }
 }
