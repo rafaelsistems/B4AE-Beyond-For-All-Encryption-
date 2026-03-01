@@ -8,8 +8,13 @@ pub mod padding;
 pub mod timing;
 /// Dummy traffic and pattern obfuscation.
 pub mod obfuscation;
+/// Cover traffic generator for metadata protection.
+pub mod cover_traffic;
+/// Metadata protection orchestrator coordinating all components.
+pub mod protector;
 
 use crate::error::{B4aeError, B4aeResult};
+use crate::crypto::{CryptoError, CryptoResult};
 use crate::protocol::ProtocolConfig;
 use sha3::{Sha3_256, Digest};
 use subtle::ConstantTimeEq;
@@ -146,6 +151,186 @@ fn compute_padding_tag(key: &[u8], message: &[u8]) -> [u8; 32] {
     out
 }
 
+/// Metadata protection configuration for cover traffic, timing obfuscation, and traffic shaping.
+///
+/// This configuration controls all aspects of metadata protection including:
+/// - Cover traffic generation rate (dummy messages)
+/// - Constant-rate sending mode
+/// - Timing delays (random delays between min and max)
+/// - Traffic shaping to hide burst patterns
+///
+/// # Examples
+///
+/// ```
+/// use b4ae::metadata::MetadataProtectionConfig;
+///
+/// // High security configuration
+/// let config = MetadataProtectionConfig {
+///     cover_traffic_rate: 0.5,
+///     constant_rate_mode: true,
+///     target_rate_msgs_per_sec: 2.0,
+///     timing_delay_min_ms: 100,
+///     timing_delay_max_ms: 2000,
+///     traffic_shaping_enabled: true,
+/// };
+///
+/// // Validate configuration
+/// config.validate().expect("Invalid configuration");
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MetadataProtectionConfig {
+    /// Cover traffic rate as a fraction of real traffic (0.0 to 1.0).
+    ///
+    /// A value of 0.3 means approximately 30% dummy traffic relative to real traffic.
+    /// Set to 0.0 to disable cover traffic generation.
+    pub cover_traffic_rate: f64,
+
+    /// Enable constant-rate sending mode for maximum metadata protection.
+    ///
+    /// When enabled, messages are sent at constant intervals determined by
+    /// `target_rate_msgs_per_sec`. Dummy messages are inserted to maintain the rate.
+    pub constant_rate_mode: bool,
+
+    /// Target message rate in messages per second for constant-rate mode.
+    ///
+    /// Only used when `constant_rate_mode` is true. Must be greater than 0.0.
+    pub target_rate_msgs_per_sec: f64,
+
+    /// Minimum random delay in milliseconds to apply to messages.
+    ///
+    /// Set both min and max to 0 to disable timing delays.
+    pub timing_delay_min_ms: u64,
+
+    /// Maximum random delay in milliseconds to apply to messages.
+    ///
+    /// Must be greater than or equal to `timing_delay_min_ms`.
+    pub timing_delay_max_ms: u64,
+
+    /// Enable traffic shaping to hide burst patterns.
+    ///
+    /// When enabled, messages are shaped to avoid detectable burst patterns.
+    pub traffic_shaping_enabled: bool,
+}
+
+impl MetadataProtectionConfig {
+    /// Validate the configuration parameters.
+    ///
+    /// # Errors
+    ///
+    /// Returns `CryptoError::InvalidInput` if:
+    /// - `cover_traffic_rate` is not in the range [0.0, 1.0]
+    /// - `timing_delay_min_ms` > `timing_delay_max_ms`
+    /// - `target_rate_msgs_per_sec` ≤ 0.0 when `constant_rate_mode` is enabled
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use b4ae::metadata::MetadataProtectionConfig;
+    ///
+    /// let config = MetadataProtectionConfig::default();
+    /// assert!(config.validate().is_ok());
+    ///
+    /// let invalid_config = MetadataProtectionConfig {
+    ///     cover_traffic_rate: 1.5, // Invalid: > 1.0
+    ///     ..Default::default()
+    /// };
+    /// assert!(invalid_config.validate().is_err());
+    /// ```
+    pub fn validate(&self) -> CryptoResult<()> {
+        // Validate cover_traffic_rate is in [0.0, 1.0]
+        if self.cover_traffic_rate < 0.0 || self.cover_traffic_rate > 1.0 {
+            return Err(CryptoError::InvalidInput(
+                format!(
+                    "cover_traffic_rate must be in range [0.0, 1.0], got {}",
+                    self.cover_traffic_rate
+                )
+            ));
+        }
+
+        // Validate timing delays
+        if self.timing_delay_min_ms > self.timing_delay_max_ms {
+            return Err(CryptoError::InvalidInput(
+                format!(
+                    "timing_delay_min_ms ({}) must be <= timing_delay_max_ms ({})",
+                    self.timing_delay_min_ms, self.timing_delay_max_ms
+                )
+            ));
+        }
+
+        // Validate target rate when constant-rate mode is enabled
+        if self.constant_rate_mode && self.target_rate_msgs_per_sec <= 0.0 {
+            return Err(CryptoError::InvalidInput(
+                format!(
+                    "target_rate_msgs_per_sec must be > 0.0 when constant_rate_mode is enabled, got {}",
+                    self.target_rate_msgs_per_sec
+                )
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Create a high security configuration with maximum metadata protection.
+    ///
+    /// - Cover traffic rate: 50%
+    /// - Constant-rate mode: enabled (2 msgs/sec)
+    /// - Timing delays: 100-2000ms
+    /// - Traffic shaping: enabled
+    pub fn high_security() -> Self {
+        Self {
+            cover_traffic_rate: 0.5,
+            constant_rate_mode: true,
+            target_rate_msgs_per_sec: 2.0,
+            timing_delay_min_ms: 100,
+            timing_delay_max_ms: 2000,
+            traffic_shaping_enabled: true,
+        }
+    }
+
+    /// Create a balanced configuration with moderate metadata protection.
+    ///
+    /// - Cover traffic rate: 20%
+    /// - Constant-rate mode: disabled
+    /// - Timing delays: 50-500ms
+    /// - Traffic shaping: enabled
+    pub fn balanced() -> Self {
+        Self {
+            cover_traffic_rate: 0.2,
+            constant_rate_mode: false,
+            target_rate_msgs_per_sec: 1.0,
+            timing_delay_min_ms: 50,
+            timing_delay_max_ms: 500,
+            traffic_shaping_enabled: true,
+        }
+    }
+
+    /// Create a low overhead configuration with minimal metadata protection.
+    ///
+    /// - Cover traffic rate: 0% (disabled)
+    /// - Constant-rate mode: disabled
+    /// - Timing delays: none
+    /// - Traffic shaping: disabled
+    pub fn low_overhead() -> Self {
+        Self {
+            cover_traffic_rate: 0.0,
+            constant_rate_mode: false,
+            target_rate_msgs_per_sec: 1.0,
+            timing_delay_min_ms: 0,
+            timing_delay_max_ms: 0,
+            traffic_shaping_enabled: false,
+        }
+    }
+}
+
+impl Default for MetadataProtectionConfig {
+    /// Create a default configuration with metadata protection disabled.
+    ///
+    /// This is equivalent to `MetadataProtectionConfig::low_overhead()`.
+    fn default() -> Self {
+        Self::low_overhead()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -192,5 +377,170 @@ mod tests {
         let mut tampered = protected.clone();
         tampered[protected.len() - 1] ^= 0xff;
         assert!(protection.unprotect_message(&tampered).is_err());
+    }
+
+    // Tests for MetadataProtectionConfig
+
+    #[test]
+    fn test_config_default_validation() {
+        let config = MetadataProtectionConfig::default();
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_high_security_validation() {
+        let config = MetadataProtectionConfig::high_security();
+        assert!(config.validate().is_ok());
+        assert_eq!(config.cover_traffic_rate, 0.5);
+        assert!(config.constant_rate_mode);
+        assert_eq!(config.target_rate_msgs_per_sec, 2.0);
+        assert_eq!(config.timing_delay_min_ms, 100);
+        assert_eq!(config.timing_delay_max_ms, 2000);
+        assert!(config.traffic_shaping_enabled);
+    }
+
+    #[test]
+    fn test_config_balanced_validation() {
+        let config = MetadataProtectionConfig::balanced();
+        assert!(config.validate().is_ok());
+        assert_eq!(config.cover_traffic_rate, 0.2);
+        assert!(!config.constant_rate_mode);
+        assert_eq!(config.timing_delay_min_ms, 50);
+        assert_eq!(config.timing_delay_max_ms, 500);
+        assert!(config.traffic_shaping_enabled);
+    }
+
+    #[test]
+    fn test_config_low_overhead_validation() {
+        let config = MetadataProtectionConfig::low_overhead();
+        assert!(config.validate().is_ok());
+        assert_eq!(config.cover_traffic_rate, 0.0);
+        assert!(!config.constant_rate_mode);
+        assert_eq!(config.timing_delay_min_ms, 0);
+        assert_eq!(config.timing_delay_max_ms, 0);
+        assert!(!config.traffic_shaping_enabled);
+    }
+
+    #[test]
+    fn test_config_invalid_cover_traffic_rate_too_low() {
+        let config = MetadataProtectionConfig {
+            cover_traffic_rate: -0.1,
+            ..Default::default()
+        };
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_invalid_cover_traffic_rate_too_high() {
+        let config = MetadataProtectionConfig {
+            cover_traffic_rate: 1.5,
+            ..Default::default()
+        };
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_valid_cover_traffic_rate_boundaries() {
+        let config_zero = MetadataProtectionConfig {
+            cover_traffic_rate: 0.0,
+            ..Default::default()
+        };
+        assert!(config_zero.validate().is_ok());
+
+        let config_one = MetadataProtectionConfig {
+            cover_traffic_rate: 1.0,
+            ..Default::default()
+        };
+        assert!(config_one.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_invalid_timing_delay_min_greater_than_max() {
+        let config = MetadataProtectionConfig {
+            timing_delay_min_ms: 1000,
+            timing_delay_max_ms: 500,
+            ..Default::default()
+        };
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_valid_timing_delay_equal() {
+        let config = MetadataProtectionConfig {
+            timing_delay_min_ms: 500,
+            timing_delay_max_ms: 500,
+            ..Default::default()
+        };
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_invalid_target_rate_zero_with_constant_rate_mode() {
+        let config = MetadataProtectionConfig {
+            constant_rate_mode: true,
+            target_rate_msgs_per_sec: 0.0,
+            ..Default::default()
+        };
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_invalid_target_rate_negative_with_constant_rate_mode() {
+        let config = MetadataProtectionConfig {
+            constant_rate_mode: true,
+            target_rate_msgs_per_sec: -1.0,
+            ..Default::default()
+        };
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_valid_target_rate_zero_without_constant_rate_mode() {
+        let config = MetadataProtectionConfig {
+            constant_rate_mode: false,
+            target_rate_msgs_per_sec: 0.0,
+            ..Default::default()
+        };
+        // Should be valid because constant_rate_mode is disabled
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_valid_all_parameters() {
+        let config = MetadataProtectionConfig {
+            cover_traffic_rate: 0.3,
+            constant_rate_mode: true,
+            target_rate_msgs_per_sec: 5.0,
+            timing_delay_min_ms: 200,
+            timing_delay_max_ms: 1000,
+            traffic_shaping_enabled: true,
+        };
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_edge_case_max_cover_traffic() {
+        let config = MetadataProtectionConfig {
+            cover_traffic_rate: 1.0,
+            constant_rate_mode: true,
+            target_rate_msgs_per_sec: 10.0,
+            timing_delay_min_ms: 0,
+            timing_delay_max_ms: 5000,
+            traffic_shaping_enabled: true,
+        };
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_edge_case_no_delays() {
+        let config = MetadataProtectionConfig {
+            cover_traffic_rate: 0.5,
+            constant_rate_mode: false,
+            target_rate_msgs_per_sec: 1.0,
+            timing_delay_min_ms: 0,
+            timing_delay_max_ms: 0,
+            traffic_shaping_enabled: false,
+        };
+        assert!(config.validate().is_ok());
     }
 }
