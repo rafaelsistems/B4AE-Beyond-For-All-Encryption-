@@ -4,7 +4,7 @@
 use crate::audit::{AuditEntry, AuditEvent, AuditSink, hash_for_audit};
 use crate::crypto::{CryptoError, CryptoResult};
 use crate::crypto::pfs_plus::{PfsSession, PfsManager};
-use crate::crypto::hybrid::HybridPublicKey;
+use crate::crypto::xeddsa::DeniableHybridPublicKey;
 use crate::crypto::hkdf;
 use crate::protocol::message::{Message, MessageCrypto, EncryptedMessage};
 use crate::protocol::handshake::{HandshakeResult, SessionKeys};
@@ -58,7 +58,7 @@ pub struct Session {
     /// Session ID
     session_id: [u8; 32],
     /// Peer's public key
-    peer_public_key: HybridPublicKey,
+    peer_public_key: DeniableHybridPublicKey,
     /// Session keys
     session_keys: SessionKeys,
     /// Message crypto (with PFS+)
@@ -399,7 +399,7 @@ impl Session {
     }
 
     /// Get peer public key
-    pub fn peer_public_key(&self) -> &HybridPublicKey {
+    pub fn peer_public_key(&self) -> &DeniableHybridPublicKey {
         &self.peer_public_key
     }
 
@@ -549,12 +549,12 @@ mod tests {
         }
     }
 
-    fn create_test_public_key() -> HybridPublicKey {
+    fn create_test_public_key() -> DeniableHybridPublicKey {
         // Use correct sizes for X25519 (32 bytes) and Ed25519 (32 bytes)
-        HybridPublicKey {
-            ecdh_public: vec![0; 32],  // X25519 public key size
+        DeniableHybridPublicKey {
+            x25519_public: [0; 32],
+            xeddsa_verification_key: [0; 32],
             kyber_public: crate::crypto::kyber::KyberPublicKey::from_bytes(&[0; 1568]).unwrap(),
-            ecdsa_public: vec![0; 32],  // Ed25519 public key size
             dilithium_public: crate::crypto::dilithium::DilithiumPublicKey::from_bytes(&[0; 2592]).unwrap(),
         }
     }

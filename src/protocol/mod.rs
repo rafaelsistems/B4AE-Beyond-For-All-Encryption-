@@ -10,6 +10,12 @@ pub mod message;
 /// Session state, key rotation, message crypto.
 pub mod session;
 
+/// B4AE v2.0 protocol implementation (research-grade architecture)
+///
+/// Enable with the `v2_protocol` feature flag.
+#[cfg(feature = "v2_protocol")]
+pub mod v2;
+
 use crate::error::{B4aeError, B4aeResult};
 use serde::{Deserialize, Serialize};
 

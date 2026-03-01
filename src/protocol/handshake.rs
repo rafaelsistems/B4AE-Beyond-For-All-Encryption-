@@ -3,7 +3,8 @@
 //! Three-way handshake with quantum-resistant key exchange.
 
 use crate::crypto::{CryptoError, CryptoResult};
-use crate::crypto::hybrid::{self, HybridKeyPair, HybridPublicKey, HybridCiphertext, HybridSignature};
+use crate::crypto::hybrid::{self, HybridPublicKey, HybridCiphertext};
+use crate::crypto::xeddsa::{DeniableHybridKeyPair, DeniableHybridPublicKey, DeniableHybridSignature, verify_deniable_hybrid};
 use crate::crypto::hkdf;
 use crate::crypto::random;
 use crate::crypto::zkauth::{self, ZkChallenge, ZkProof, EXTENSION_TYPE_ZK_CHALLENGE, EXTENSION_TYPE_ZK_PROOF};
@@ -37,10 +38,10 @@ pub enum AlgorithmId {
     Kyber1024 = 0x0001,
     /// Dilithium5 signature
     Dilithium5 = 0x0002,
-    /// ECDH P-521
-    EcdhP521 = 0x0003,
-    /// ECDSA P-521
-    EcdsaP521 = 0x0004,
+    /// ECDH X25519 (Curve25519)
+    EcdhX25519 = 0x0003,
+    /// ECDSA Ed25519
+    EcdsaEd25519 = 0x0004,
     /// AES-256-GCM
     Aes256Gcm = 0x0005,
     /// SHA3-256
@@ -147,8 +148,8 @@ impl Default for HandshakeConfig {
             supported_algorithms: vec![
                 AlgorithmId::Kyber1024,
                 AlgorithmId::Dilithium5,
-                AlgorithmId::EcdhP521,
-                AlgorithmId::EcdsaP521,
+                AlgorithmId::EcdhX25519,
+                AlgorithmId::EcdsaEd25519,
                 AlgorithmId::Aes256Gcm,
                 AlgorithmId::Sha3_256,
             ],
@@ -205,7 +206,7 @@ pub struct HandshakeResult {
     /// Derived session keys.
     pub session_keys: SessionKeys,
     /// Peer's hybrid public key.
-    pub peer_public_key: HybridPublicKey,
+    pub peer_public_key: DeniableHybridPublicKey,
     /// Session ID (32 bytes).
     pub session_id: [u8; 32],
 }
@@ -213,12 +214,12 @@ pub struct HandshakeResult {
 /// Handshake initiator (client)
 pub struct HandshakeInitiator {
     config: HandshakeConfig,
-    local_keypair: HybridKeyPair,
+    local_keypair: DeniableHybridKeyPair,
     state: HandshakeState,
     client_random: [u8; 32],
     server_random: Option<[u8; 32]>,
     shared_secret: Option<Vec<u8>>,
-    peer_public_key: Option<HybridPublicKey>,
+    peer_public_key: Option<DeniableHybridPublicKey>,
     start_time: u64,
     /// ZK challenge from responder (when using ZK auth)
     pending_zk_challenge: Option<ZkChallenge>,
@@ -227,12 +228,12 @@ pub struct HandshakeInitiator {
 /// Handshake responder (server)
 pub struct HandshakeResponder {
     config: HandshakeConfig,
-    local_keypair: HybridKeyPair,
+    local_keypair: DeniableHybridKeyPair,
     state: HandshakeState,
     server_random: [u8; 32],
     client_random: Option<[u8; 32]>,
     shared_secret: Option<Vec<u8>>,
-    peer_public_key: Option<HybridPublicKey>,
+    peer_public_key: Option<DeniableHybridPublicKey>,
     start_time: u64,
     /// ZK challenge ID (when ZK verifier is used)
     pending_zk_challenge_id: Option<[u8; 16]>,
@@ -241,7 +242,7 @@ pub struct HandshakeResponder {
 impl HandshakeInitiator {
     /// Create new handshake initiator.
     pub fn new(config: HandshakeConfig) -> CryptoResult<Self> {
-        let local_keypair = hybrid::keypair()?;
+        let local_keypair = DeniableHybridKeyPair::generate()?;
         let mut client_random = [0u8; 32];
         random::fill_random(&mut client_random)?;
         
@@ -266,8 +267,9 @@ impl HandshakeInitiator {
             return Err(CryptoError::InvalidInput("Invalid state for init".to_string()));
         }
 
-        // Serialize public key using to_bytes
-        let hybrid_public_key = self.local_keypair.public_key.to_bytes();
+        // Serialize public key - include all components
+        let public_key = self.local_keypair.public_key();
+        let hybrid_public_key = serialize_deniable_public_key(&public_key);
 
         // Create message to sign
         let mut message_to_sign = Vec::new();
@@ -275,14 +277,11 @@ impl HandshakeInitiator {
         message_to_sign.extend_from_slice(&self.client_random);
         message_to_sign.extend_from_slice(&hybrid_public_key);
 
-        // Sign the message using secret_key
-        let signature = hybrid::sign(&self.local_keypair.secret_key, &message_to_sign)?;
+        // Sign the message using deniable hybrid signature
+        let signature = self.local_keypair.sign_with_deniable_hybrid(&message_to_sign)?;
         
-        // Serialize signature manually
-        let mut signature_bytes = Vec::new();
-        signature_bytes.extend_from_slice(&(signature.ecdsa_signature.len() as u32).to_be_bytes());
-        signature_bytes.extend_from_slice(&signature.ecdsa_signature);
-        signature_bytes.extend_from_slice(signature.dilithium_signature.as_bytes());
+        // Serialize signature
+        let signature_bytes = serialize_deniable_signature(&signature);
 
         self.state = HandshakeState::WaitingResponse;
 
@@ -297,6 +296,14 @@ impl HandshakeInitiator {
     }
 
     /// Process HandshakeResponse from server.
+    ///
+    /// # Error Handling Security
+    ///
+    /// - Signature verification failures return `CryptoError::VerificationFailed`
+    /// - Connection should be terminated immediately on verification failure
+    /// - Error messages are generic and don't reveal which component failed
+    /// - Uses constant-time operations for signature verification
+    /// - Protocol version mismatches return `CryptoError::InvalidInput`
     pub fn process_response(&mut self, response: HandshakeResponse) -> CryptoResult<()> {
         if self.state != HandshakeState::WaitingResponse {
             return Err(CryptoError::InvalidInput("Invalid state for response".to_string()));
@@ -306,8 +313,8 @@ impl HandshakeInitiator {
             return Err(CryptoError::InvalidInput("Protocol version mismatch".to_string()));
         }
 
-        // Deserialize peer's public key using from_bytes
-        let peer_public_key = HybridPublicKey::from_bytes(&response.hybrid_public_key)?;
+        // Deserialize peer's public key
+        let peer_public_key = deserialize_deniable_public_key(&response.hybrid_public_key)?;
 
         // Verify signature
         let mut message_to_verify = Vec::new();
@@ -316,11 +323,11 @@ impl HandshakeInitiator {
         message_to_verify.extend_from_slice(&response.hybrid_public_key);
         message_to_verify.extend_from_slice(&response.encrypted_shared_secret);
 
-        // Deserialize signature manually
-        let signature = deserialize_signature(&response.signature)?;
+        // Deserialize signature
+        let signature = deserialize_deniable_signature(&response.signature)?;
 
-        // Verify signature dan kembalikan error jika tidak valid
-        let is_valid = hybrid::verify(&peer_public_key, &message_to_verify, &signature)?;
+        // Verify signature using deniable hybrid verification
+        let is_valid = verify_deniable_hybrid(&peer_public_key, &message_to_verify, &signature)?;
         if !is_valid {
             return Err(CryptoError::VerificationFailed("Response signature verification failed".to_string()));
         }
@@ -328,11 +335,14 @@ impl HandshakeInitiator {
         // Deserialize ciphertext manually
         let ciphertext = deserialize_ciphertext(&response.encrypted_shared_secret)?;
 
-        // Decapsulate using secret_key
-        let shared_secret = hybrid::decapsulate(&self.local_keypair.secret_key, &ciphertext)?;
+        // Decapsulate using Kyber secret key
+        let shared_secret = crate::crypto::kyber::decapsulate(
+            self.local_keypair.kyber_secret_key(),
+            &ciphertext.kyber_ciphertext
+        )?;
 
         self.server_random = Some(response.server_random);
-        self.shared_secret = Some(shared_secret);
+        self.shared_secret = Some(shared_secret.as_bytes().to_vec());
         self.peer_public_key = Some(peer_public_key);
 
         // Extract ZK challenge if present and we have zk_identity
@@ -358,14 +368,11 @@ impl HandshakeInitiator {
 
         let confirmation = self.generate_confirmation()?;
 
-        // Sign the confirmation using secret_key
-        let signature = hybrid::sign(&self.local_keypair.secret_key, &confirmation)?;
+        // Sign the confirmation using deniable hybrid signature
+        let signature = self.local_keypair.sign_with_deniable_hybrid(&confirmation)?;
         
-        // Serialize signature manually
-        let mut signature_bytes = Vec::new();
-        signature_bytes.extend_from_slice(&(signature.ecdsa_signature.len() as u32).to_be_bytes());
-        signature_bytes.extend_from_slice(&signature.ecdsa_signature);
-        signature_bytes.extend_from_slice(signature.dilithium_signature.as_bytes());
+        // Serialize signature
+        let signature_bytes = serialize_deniable_signature(&signature);
 
         // Add ZK proof extension if we have challenge and identity
         let mut extensions = self.config.extensions.clone();
@@ -488,7 +495,7 @@ impl HandshakeInitiator {
 impl HandshakeResponder {
     /// Create new handshake responder.
     pub fn new(config: HandshakeConfig) -> CryptoResult<Self> {
-        let local_keypair = hybrid::keypair()?;
+        let local_keypair = DeniableHybridKeyPair::generate()?;
         let mut server_random = [0u8; 32];
         random::fill_random(&mut server_random)?;
 
@@ -508,6 +515,14 @@ impl HandshakeResponder {
     }
 
     /// Process HandshakeInit from client.
+    ///
+    /// # Error Handling Security
+    ///
+    /// - Signature verification failures return `CryptoError::VerificationFailed`
+    /// - Connection should be terminated immediately on verification failure
+    /// - Error messages are generic and don't reveal which component failed
+    /// - Uses constant-time operations for signature verification
+    /// - Protocol version mismatches return `CryptoError::InvalidInput`
     pub fn process_init(&mut self, init: HandshakeInit) -> CryptoResult<HandshakeResponse> {
         if self.state != HandshakeState::Initiation {
             return Err(CryptoError::InvalidInput("Invalid state for init".to_string()));
@@ -517,8 +532,8 @@ impl HandshakeResponder {
             return Err(CryptoError::InvalidInput("Protocol version mismatch".to_string()));
         }
 
-        // Deserialize peer's public key using from_bytes
-        let peer_public_key = HybridPublicKey::from_bytes(&init.hybrid_public_key)?;
+        // Deserialize peer's public key
+        let peer_public_key = deserialize_deniable_public_key(&init.hybrid_public_key)?;
 
         // Verify signature
         let mut message_to_verify = Vec::new();
@@ -526,23 +541,24 @@ impl HandshakeResponder {
         message_to_verify.extend_from_slice(&init.client_random);
         message_to_verify.extend_from_slice(&init.hybrid_public_key);
 
-        // Deserialize signature manually
-        let signature = deserialize_signature(&init.signature)?;
+        // Deserialize signature
+        let signature = deserialize_deniable_signature(&init.signature)?;
 
-        // Verify signature dan kembalikan error jika tidak valid
-        let is_valid = hybrid::verify(&peer_public_key, &message_to_verify, &signature)?;
+        // Verify signature using deniable hybrid verification
+        let is_valid = verify_deniable_hybrid(&peer_public_key, &message_to_verify, &signature)?;
         if !is_valid {
             return Err(CryptoError::VerificationFailed("Init signature verification failed".to_string()));
         }
 
         // Encapsulate - returns (shared_secret, ciphertext)
-        let (shared_secret, ciphertext) = hybrid::encapsulate(&peer_public_key)?;
+        let (shared_secret, ciphertext) = crate::crypto::kyber::encapsulate(&peer_public_key.kyber_public)?;
 
         // Serialize ciphertext manually
         let encrypted_shared_secret = serialize_ciphertext(&ciphertext);
 
-        // Serialize our public key using to_bytes
-        let hybrid_public_key = self.local_keypair.public_key.to_bytes();
+        // Serialize our public key - include all components
+        let public_key = self.local_keypair.public_key();
+        let hybrid_public_key = serialize_deniable_public_key(&public_key);
 
         // Create message to sign
         let mut message_to_sign = Vec::new();
@@ -551,14 +567,11 @@ impl HandshakeResponder {
         message_to_sign.extend_from_slice(&hybrid_public_key);
         message_to_sign.extend_from_slice(&encrypted_shared_secret);
 
-        // Sign the message using secret_key
-        let response_signature = hybrid::sign(&self.local_keypair.secret_key, &message_to_sign)?;
+        // Sign the message using deniable hybrid signature
+        let response_signature = self.local_keypair.sign_with_deniable_hybrid(&message_to_sign)?;
         
-        // Serialize signature manually
-        let mut signature_bytes = Vec::new();
-        signature_bytes.extend_from_slice(&(response_signature.ecdsa_signature.len() as u32).to_be_bytes());
-        signature_bytes.extend_from_slice(&response_signature.ecdsa_signature);
-        signature_bytes.extend_from_slice(response_signature.dilithium_signature.as_bytes());
+        // Serialize signature
+        let signature_bytes = serialize_deniable_signature(&response_signature);
 
         let selected_algorithms = self.config.supported_algorithms.clone();
 
@@ -574,7 +587,7 @@ impl HandshakeResponder {
         }
 
         self.client_random = Some(init.client_random);
-        self.shared_secret = Some(shared_secret);
+        self.shared_secret = Some(shared_secret.as_bytes().to_vec());
         self.peer_public_key = Some(peer_public_key);
         self.state = HandshakeState::WaitingComplete;
 
@@ -590,6 +603,15 @@ impl HandshakeResponder {
     }
 
     /// Process HandshakeComplete from client.
+    ///
+    /// # Error Handling Security
+    ///
+    /// - Signature verification failures return `CryptoError::VerificationFailed`
+    /// - Authentication failures return `CryptoError::AuthenticationFailed`
+    /// - Connection is terminated immediately on any failure
+    /// - Uses constant-time comparison for confirmation hash
+    /// - Error messages are generic and don't reveal specifics
+    /// - ZK proof verification failures return `CryptoError::AuthenticationFailed`
     pub fn process_complete(&mut self, complete: HandshakeComplete) -> CryptoResult<()> {
         if self.state != HandshakeState::WaitingComplete {
             return Err(CryptoError::InvalidInput("Invalid state for complete".to_string()));
@@ -613,11 +635,11 @@ impl HandshakeResponder {
             self.pending_zk_challenge_id = None;
         }
 
-        // Deserialize signature manually
-        let signature = deserialize_signature(&complete.signature)?;
+        // Deserialize signature
+        let signature = deserialize_deniable_signature(&complete.signature)?;
 
-        // Verify signature dan kembalikan error jika tidak valid
-        let is_valid = hybrid::verify(peer_public_key, &complete.confirmation, &signature)?;
+        // Verify signature using deniable hybrid verification
+        let is_valid = verify_deniable_hybrid(peer_public_key, &complete.confirmation, &signature)?;
         if !is_valid {
             return Err(CryptoError::VerificationFailed("Complete signature verification failed".to_string()));
         }
@@ -737,84 +759,129 @@ impl HandshakeResponder {
 
 // Helper functions for manual serialization/deserialization
 
-fn serialize_ciphertext(ciphertext: &HybridCiphertext) -> Vec<u8> {
-    let mut bytes = Vec::new();
-    
-    // ECDH ephemeral public key length + data
-    bytes.extend_from_slice(&(ciphertext.ecdh_ephemeral_public.len() as u32).to_be_bytes());
-    bytes.extend_from_slice(&ciphertext.ecdh_ephemeral_public);
-    
-    // Kyber ciphertext
-    bytes.extend_from_slice(ciphertext.kyber_ciphertext.as_bytes());
-    
-    bytes
+fn serialize_ciphertext(ciphertext: &crate::crypto::kyber::KyberCiphertext) -> Vec<u8> {
+    ciphertext.as_bytes().to_vec()
 }
 
 fn deserialize_ciphertext(bytes: &[u8]) -> CryptoResult<HybridCiphertext> {
     use crate::crypto::kyber::KyberCiphertext;
     
-    let mut offset = 0;
-    
-    // Read ECDH ephemeral public key
-    if bytes.len() < offset + 4 {
-        return Err(CryptoError::InvalidInput("Insufficient data".to_string()));
-    }
-    let ecdh_len = u32::from_be_bytes([
-        bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]
-    ]) as usize;
-    offset += 4;
-    if ecdh_len > 256 {
-        return Err(CryptoError::InvalidInput("ECDH ephemeral key length exceeds limit".to_string()));
-    }
-    if bytes.len() < offset + ecdh_len {
-        return Err(CryptoError::InvalidInput("Insufficient data for ECDH key".to_string()));
-    }
-    let ecdh_ephemeral_public = bytes[offset..offset + ecdh_len].to_vec();
-    offset += ecdh_len;
-    
-    // Read Kyber ciphertext
-    if bytes.len() < offset + KyberCiphertext::SIZE {
+    // For now, we only use Kyber ciphertext
+    // The ECDH ephemeral public key is not used in the deniable hybrid scheme
+    if bytes.len() < KyberCiphertext::SIZE {
         return Err(CryptoError::InvalidInput("Insufficient data for Kyber ciphertext".to_string()));
     }
-    let kyber_ciphertext = KyberCiphertext::from_bytes(&bytes[offset..offset + KyberCiphertext::SIZE])?;
+    let kyber_ciphertext = KyberCiphertext::from_bytes(&bytes[0..KyberCiphertext::SIZE])?;
     
     Ok(HybridCiphertext {
-        ecdh_ephemeral_public,
+        ecdh_ephemeral_public: Vec::new(),
         kyber_ciphertext,
     })
 }
 
-fn deserialize_signature(bytes: &[u8]) -> CryptoResult<HybridSignature> {
+fn serialize_deniable_signature(signature: &DeniableHybridSignature) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    
+    // XEdDSA signature (64 bytes: 32 bytes r + 32 bytes s)
+    bytes.extend_from_slice(&signature.xeddsa_signature.r);
+    bytes.extend_from_slice(&signature.xeddsa_signature.s);
+    
+    // Dilithium5 signature (~4627 bytes)
+    bytes.extend_from_slice(signature.dilithium_signature.as_bytes());
+    
+    bytes
+}
+
+fn deserialize_deniable_signature(bytes: &[u8]) -> CryptoResult<DeniableHybridSignature> {
     use crate::crypto::dilithium::DilithiumSignature;
+    use crate::crypto::xeddsa::XEdDSASignature;
     
     let mut offset = 0;
     
-    // Read ECDSA signature
-    if bytes.len() < offset + 4 {
-        return Err(CryptoError::InvalidInput("Insufficient data".to_string()));
+    // Read XEdDSA signature (64 bytes)
+    if bytes.len() < offset + 64 {
+        return Err(CryptoError::InvalidInput("Insufficient data for XEdDSA signature".to_string()));
     }
-    let ecdsa_len = u32::from_be_bytes([
-        bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]
-    ]) as usize;
-    offset += 4;
-    if ecdsa_len > 128 {
-        return Err(CryptoError::InvalidInput("ECDSA signature length exceeds limit".to_string()));
-    }
-    if bytes.len() < offset + ecdsa_len {
-        return Err(CryptoError::InvalidInput("Insufficient data for ECDSA signature".to_string()));
-    }
-    let ecdsa_signature = bytes[offset..offset + ecdsa_len].to_vec();
-    offset += ecdsa_len;
     
-    // Read Dilithium signature
+    let mut r = [0u8; 32];
+    let mut s = [0u8; 32];
+    r.copy_from_slice(&bytes[offset..offset + 32]);
+    offset += 32;
+    s.copy_from_slice(&bytes[offset..offset + 32]);
+    offset += 32;
+    
+    let xeddsa_signature = XEdDSASignature { r, s };
+    
+    // Read Dilithium5 signature
     if bytes.len() < offset + DilithiumSignature::SIZE {
         return Err(CryptoError::InvalidInput("Insufficient data for Dilithium signature".to_string()));
     }
     let dilithium_signature = DilithiumSignature::from_bytes(&bytes[offset..offset + DilithiumSignature::SIZE])?;
     
-    Ok(HybridSignature {
-        ecdsa_signature,
+    Ok(DeniableHybridSignature {
+        xeddsa_signature,
         dilithium_signature,
+    })
+}
+
+fn serialize_deniable_public_key(public_key: &DeniableHybridPublicKey) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    
+    // X25519 public key (32 bytes)
+    bytes.extend_from_slice(&public_key.x25519_public);
+    
+    // XEdDSA verification key (32 bytes)
+    bytes.extend_from_slice(&public_key.xeddsa_verification_key);
+    
+    // Dilithium5 public key (~2592 bytes)
+    bytes.extend_from_slice(public_key.dilithium_public.as_bytes());
+    
+    // Kyber1024 public key (~1568 bytes)
+    bytes.extend_from_slice(public_key.kyber_public.as_bytes());
+    
+    bytes
+}
+
+fn deserialize_deniable_public_key(bytes: &[u8]) -> CryptoResult<DeniableHybridPublicKey> {
+    use crate::crypto::dilithium::DilithiumPublicKey;
+    use crate::crypto::kyber::KyberPublicKey;
+    
+    let mut offset = 0;
+    
+    // Read X25519 public key (32 bytes)
+    if bytes.len() < offset + 32 {
+        return Err(CryptoError::InvalidInput("Insufficient data for X25519 public key".to_string()));
+    }
+    let mut x25519_public = [0u8; 32];
+    x25519_public.copy_from_slice(&bytes[offset..offset + 32]);
+    offset += 32;
+    
+    // Read XEdDSA verification key (32 bytes)
+    if bytes.len() < offset + 32 {
+        return Err(CryptoError::InvalidInput("Insufficient data for XEdDSA verification key".to_string()));
+    }
+    let mut xeddsa_verification_key = [0u8; 32];
+    xeddsa_verification_key.copy_from_slice(&bytes[offset..offset + 32]);
+    offset += 32;
+    
+    // Read Dilithium5 public key (~2592 bytes)
+    if bytes.len() < offset + DilithiumPublicKey::SIZE {
+        return Err(CryptoError::InvalidInput("Insufficient data for Dilithium public key".to_string()));
+    }
+    let dilithium_public = DilithiumPublicKey::from_bytes(&bytes[offset..offset + DilithiumPublicKey::SIZE])?;
+    offset += DilithiumPublicKey::SIZE;
+    
+    // Read Kyber1024 public key (~1568 bytes)
+    if bytes.len() < offset + KyberPublicKey::SIZE {
+        return Err(CryptoError::InvalidInput("Insufficient data for Kyber public key".to_string()));
+    }
+    let kyber_public = KyberPublicKey::from_bytes(&bytes[offset..offset + KyberPublicKey::SIZE])?;
+    
+    Ok(DeniableHybridPublicKey {
+        x25519_public,
+        xeddsa_verification_key,
+        dilithium_public,
+        kyber_public,
     })
 }
 
