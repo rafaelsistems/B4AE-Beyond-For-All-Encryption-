@@ -2,7 +2,7 @@
 // Detailed performance benchmarking using Criterion
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use b4ae::crypto::{kyber, dilithium, aes_gcm, hkdf, hybrid};
+use b4ae::crypto::{kyber, dilithium, aes_gcm, hkdf, hybrid, xeddsa};
 
 fn bench_kyber_keygen(c: &mut Criterion) {
     c.bench_function("kyber_keygen", |b| {
@@ -14,19 +14,17 @@ fn bench_kyber_keygen(c: &mut Criterion) {
 
 fn bench_kyber_encapsulate(c: &mut Criterion) {
     let keypair = kyber::keypair().unwrap();
-    let shared_secret = vec![0x42; 32];
     
     c.bench_function("kyber_encapsulate", |b| {
         b.iter(|| {
-            black_box(kyber::encapsulate(&keypair.public_key, &shared_secret).unwrap())
+            black_box(kyber::encapsulate(&keypair.public_key).unwrap())
         })
     });
 }
 
 fn bench_kyber_decapsulate(c: &mut Criterion) {
     let keypair = kyber::keypair().unwrap();
-    let shared_secret = vec![0x42; 32];
-    let ciphertext = kyber::encapsulate(&keypair.public_key, &shared_secret).unwrap();
+    let (_, ciphertext) = kyber::encapsulate(&keypair.public_key).unwrap();
     
     c.bench_function("kyber_decapsulate", |b| {
         b.iter(|| {
@@ -126,6 +124,77 @@ fn bench_hybrid_keygen(c: &mut Criterion) {
     });
 }
 
+fn bench_xeddsa_keygen(c: &mut Criterion) {
+    c.bench_function("xeddsa_keygen", |b| {
+        b.iter(|| {
+            black_box(xeddsa::XEdDSAKeyPair::generate().unwrap())
+        })
+    });
+}
+
+fn bench_xeddsa_sign(c: &mut Criterion) {
+    let keypair = xeddsa::XEdDSAKeyPair::generate().unwrap();
+    let message = b"Test message for XEdDSA signing benchmark";
+    
+    c.bench_function("xeddsa_sign", |b| {
+        b.iter(|| {
+            black_box(keypair.sign(message).unwrap())
+        })
+    });
+}
+
+fn bench_xeddsa_verify(c: &mut Criterion) {
+    let keypair = xeddsa::XEdDSAKeyPair::generate().unwrap();
+    let message = b"Test message for XEdDSA verification benchmark";
+    let signature = keypair.sign(message).unwrap();
+    
+    c.bench_function("xeddsa_verify", |b| {
+        b.iter(|| {
+            black_box(xeddsa::XEdDSAKeyPair::verify(
+                keypair.verification_key(),
+                message,
+                &signature
+            ).unwrap())
+        })
+    });
+}
+
+fn bench_xeddsa_hybrid_keygen(c: &mut Criterion) {
+    c.bench_function("xeddsa_hybrid_keygen", |b| {
+        b.iter(|| {
+            black_box(xeddsa::DeniableHybridKeyPair::generate().unwrap())
+        })
+    });
+}
+
+fn bench_xeddsa_hybrid_sign(c: &mut Criterion) {
+    let keypair = xeddsa::DeniableHybridKeyPair::generate().unwrap();
+    let message = b"Test message for hybrid deniable signing benchmark";
+    
+    c.bench_function("xeddsa_hybrid_sign", |b| {
+        b.iter(|| {
+            black_box(keypair.sign_with_deniable_hybrid(message).unwrap())
+        })
+    });
+}
+
+fn bench_xeddsa_hybrid_verify(c: &mut Criterion) {
+    let keypair = xeddsa::DeniableHybridKeyPair::generate().unwrap();
+    let message = b"Test message for hybrid deniable verification benchmark";
+    let signature = keypair.sign_with_deniable_hybrid(message).unwrap();
+    let public_key = keypair.public_key();
+    
+    c.bench_function("xeddsa_hybrid_verify", |b| {
+        b.iter(|| {
+            black_box(xeddsa::verify_deniable_hybrid(
+                &public_key,
+                message,
+                &signature
+            ).unwrap())
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_kyber_keygen,
@@ -137,7 +206,13 @@ criterion_group!(
     bench_aes_gcm_encrypt,
     bench_aes_gcm_decrypt,
     bench_hkdf_derive,
-    bench_hybrid_keygen
+    bench_hybrid_keygen,
+    bench_xeddsa_keygen,
+    bench_xeddsa_sign,
+    bench_xeddsa_verify,
+    bench_xeddsa_hybrid_keygen,
+    bench_xeddsa_hybrid_sign,
+    bench_xeddsa_hybrid_verify
 );
 
 criterion_main!(benches);
