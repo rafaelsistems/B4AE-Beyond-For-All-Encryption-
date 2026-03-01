@@ -53,3 +53,15 @@ targetL3XsP8/
 
 # TLA+ tools (downloaded locally, CI fetches fresh)
 tla/
+# Kiro IDE - Internal specs and configurations
+.kiro/
+
+# Documentation - Exclude sensitive/private folders
+docs/business/
+docs/compliance/
+docs/archive/
+
+# Documentation - Exclude internal planning and audit prep
+docs/P1_DOCUMENTATION_UPDATE_SUMMARY.md
+docs/P2_P3_DOCUMENTATION_UPDATE_SUMMARY.md
+docs/DOCUMENTATION_AUDIT_REPORT.md
