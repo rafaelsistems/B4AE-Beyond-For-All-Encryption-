@@ -66,6 +66,9 @@ impl From<crate::crypto::CryptoError> for B4aeError {
 /// B4AE Result Type
 pub type B4aeResult<T> = Result<T, B4aeError>;
 
+/// Re-export security-hardened result type for panic-free operations
+pub use crate::security::hardened_core::{SecurityResult, SecurityError};
+
 #[cfg(test)]
 mod tests {
     use super::*;

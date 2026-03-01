@@ -30,6 +30,8 @@ pub mod key_hierarchy;
 pub mod key_store;
 /// Encrypted storage using STK.
 pub mod storage;
+/// Performance monitoring and profiling.
+pub mod performance;
 
 #[cfg(feature = "hsm")]
 pub mod hsm;
@@ -61,6 +63,9 @@ pub const PROTOCOL_FULL_NAME: &str = "Beyond For All Encryption";
 
 /// Maximum message size (plaintext or ciphertext) — DoS mitigation.
 pub const MAX_MESSAGE_SIZE: usize = 1 << 20; // 1 MiB
+
+/// Security-hardened core module with panic-free production paths
+pub mod security;
 
 #[cfg(test)]
 mod tests {
