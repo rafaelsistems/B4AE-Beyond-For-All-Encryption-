@@ -31,7 +31,10 @@ pqcrypto-traits = "0.3"
 # Classical Cryptography
 ring = "0.17"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+curve25519-dalek = "4.0"
+sha2 = "0.10"
 aes-gcm = "0.10"
+chacha20poly1305 = "0.10"
 sha3 = "0.10"
 hkdf = "0.12"
 
@@ -45,6 +48,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 bincode = "1.3"
 subtle = "2.5"  # Constant-time comparison untuk mencegah timing attacks
+bloomfilter = "1.0"  # Bloom filter for replay protection
 
 # Async runtime
 tokio = { version = "1.35", features = ["full"], optional = true }
@@ -81,6 +85,7 @@ elara = ["elara-transport", "tokio"]
 proxy = ["socks"]
 hsm = []
 hsm-pkcs11 = ["hsm", "cryptoki"]
+v2_protocol = []
 
 [profile.release]
 opt-level = 3
