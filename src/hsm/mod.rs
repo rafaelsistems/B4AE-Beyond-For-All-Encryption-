@@ -65,6 +65,9 @@ impl HsmBackend for NoOpHsm {
 #[cfg(feature = "hsm-pkcs11")]
 pub mod pkcs11;
 
+#[cfg(feature = "hsm-pkcs11")]
+pub mod pkcs11_enhanced;
+
 #[cfg(test)]
 mod tests {
     use super::*;
