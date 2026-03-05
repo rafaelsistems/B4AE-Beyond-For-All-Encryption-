@@ -83,7 +83,7 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "b4ae"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "aes-gcm",
  "async-trait",
@@ -495,9 +495,9 @@ checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
 name = "elara-core"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aeadf5be64d51a69e0e40fed56fe6ca341b7e6b4b063dba243d9b4de0e67a838"
+checksum = "06a999ced83e38fecae4851e62de87a85f6648d1fab30a6e8d7e28829160bb6c"
 dependencies = [
  "bytes",
  "thiserror",
@@ -505,9 +505,9 @@ dependencies = [
 
 [[package]]
 name = "elara-transport"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "381a3378d5749f73b2a963dc5145d7853344696c6cc5ab9c6d3e093aaf8ad979"
+checksum = "83e810990640ce55f916418150f95671b40e72c39ade9f32f9cac33998e8cfc5"
 dependencies = [
  "elara-core",
  "elara-wire",
@@ -519,9 +519,9 @@ dependencies = [
 
 [[package]]
 name = "elara-wire"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f3bb12d8acf1f6c9be55bfca258061263236647f9e4f484089f8fdb6aaef7fb"
+checksum = "58300b9afe09621ad447c0e30eeb1f431ea746c16b9e840718d7c3334502684f"
 dependencies = [
  "bytes",
  "elara-core",
