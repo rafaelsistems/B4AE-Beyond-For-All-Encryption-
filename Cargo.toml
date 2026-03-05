@@ -58,7 +58,7 @@ async-trait = "0.1"
 quinn = { version = "0.10", optional = true }
 
 # ELARA Transport (UDP, NAT traversal via STUN, packet delivery)
-elara-transport = { version = "0.1", optional = true }
+elara-transport = { version = "0.2", optional = true }
 
 # SOCKS5 proxy (IP anonymization, Tor)
 socks = { version = "0.3", optional = true }
