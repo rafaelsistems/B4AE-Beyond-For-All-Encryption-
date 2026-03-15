@@ -49,10 +49,13 @@ exclude = [
 categories = ["cryptography", "network-programming"]
 
 [dependencies]
-# Post-Quantum Cryptography
+# Post-Quantum Cryptography (NIST PQC Standards)
+pqcrypto-mlkem = { version = "0.1", optional = true }     # ML-KEM-1024 (menggantikan Kyber — FIPS 203)
+pqcrypto-mldsa = { version = "0.1", optional = true }     # ML-DSA-87 (menggantikan Dilithium5 — FIPS 204)
+pqcrypto-traits = "0.3"
+# Crate lama dipertahankan untuk backward compatibility
 pqcrypto-kyber = { version = "0.8", optional = true }
 pqcrypto-dilithium = { version = "0.5", optional = true }
-pqcrypto-traits = "0.3"
 
 # Classical Cryptography
 ring = "0.17"
@@ -103,8 +106,8 @@ tokio-test = "0.4"
 
 [features]
 default = ["pqcrypto-alt", "full-crypto"]
-full-crypto = ["pqcrypto-kyber", "pqcrypto-dilithium"]
-pqcrypto-alt = ["pqcrypto-kyber", "pqcrypto-dilithium"]
+full-crypto = ["pqcrypto-mlkem", "pqcrypto-mldsa"]
+pqcrypto-alt = ["pqcrypto-mlkem", "pqcrypto-mldsa"]      # Gunakan NIST standards terbaru sebagai default
 async = ["tokio"]
 networking = ["quinn", "tokio"]
 elara = ["elara-transport", "tokio"]

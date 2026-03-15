@@ -4,44 +4,65 @@
 //! security-hardened implementations against malformed and adversarial inputs.
 
 use crate::security::{
-    SecurityResult, SecurityError, SecurityBuffer, SecurityNetworkParser,
-    SecurityHandshakeStateMachine, SecurityHybridParser, SecurityKey, KeyType,
-    SecurityHkdf, SecurityAesGcm, SecurityCompare, SecurityRandom,
-    ProtocolVersion, MessageType, CipherSuite, HandshakeState
+    SecurityError, SecurityBuffer, SecurityNetworkParser,
+    SecurityHandshakeStateMachine, SecurityKey, KeyType,
+    SecurityHkdf, SecurityAesGcm, SecurityCompare, MessageType, HandshakeState
 };
-use std::convert::TryFrom;
 
 /// Fuzzing configuration with comprehensive coverage
 #[derive(Debug, Clone)]
 pub struct FuzzingConfig {
+    /// Ukuran maksimum input fuzzing dalam bytes
     pub max_input_size: usize,
+    /// Strategi mutasi yang digunakan
     pub mutation_strategies: Vec<MutationStrategy>,
+    /// Target coverage yang diuji
     pub coverage_targets: Vec<CoverageTarget>,
+    /// Timeout per test case dalam milidetik
     pub timeout_ms: u64,
+    /// Jumlah seed input awal
     pub seed_count: usize,
 }
 
+/// Strategi mutasi input untuk fuzzing
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MutationStrategy {
+    /// Flip bit secara acak
     BitFlip,
+    /// Flip byte secara acak
     ByteFlip,
+    /// Operasi aritmetika pada nilai byte
     Arithmetic,
+    /// Gunakan nilai-nilai menarik (0, 255, INT_MAX, dll)
     InterestingValues,
+    /// Hapus blok data
     BlockDeletion,
+    /// Duplikasi blok data
     BlockDuplication,
+    /// Sisipkan blok data baru
     BlockInsertion,
+    /// Gunakan kamus kata kunci protokol
     Dictionary,
+    /// Kombinasi mutasi acak
     Havoc,
 }
 
+/// Target coverage yang diuji dalam fuzzing
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoverageTarget {
+    /// Batas-batas operasi buffer
     BufferBounds,
+    /// Parsing pesan protokol
     ProtocolParsing,
+    /// Operasi kriptografi
     CryptographicOperations,
+    /// Transisi state machine handshake
     StateMachineTransitions,
+    /// Kebersihan memori dan zeroization
     MemoryHygiene,
+    /// Perlindungan dari resource exhaustion
     ResourceExhaustion,
+    /// Operasi constant-time untuk mencegah timing attack
     ConstantTimeOperations,
 }
 
@@ -76,16 +97,17 @@ impl Default for FuzzingConfig {
 /// Fuzzing harness for SecurityBuffer
 pub struct BufferFuzzingHarness {
     config: FuzzingConfig,
-    crash_inputs: Vec<Vec<u8>>,
+    _crash_inputs: Vec<Vec<u8>>,
     slow_inputs: Vec<Vec<u8>>,
     coverage_hits: std::collections::HashMap<String, usize>,
 }
 
 impl BufferFuzzingHarness {
+    /// Buat harness fuzzing baru untuk SecurityBuffer
     pub fn new(config: FuzzingConfig) -> Self {
         BufferFuzzingHarness {
             config,
-            crash_inputs: Vec::new(),
+            _crash_inputs: Vec::new(),
             slow_inputs: Vec::new(),
             coverage_hits: std::collections::HashMap::new(),
         }
@@ -179,14 +201,19 @@ pub struct NetworkFuzzingHarness {
     protocol_violations: Vec<ProtocolViolation>,
 }
 
+/// Pelanggaran protokol yang terdeteksi saat fuzzing
 #[derive(Debug, Clone)]
 pub struct ProtocolViolation {
+    /// Tipe pelanggaran protokol
     pub violation_type: String,
+    /// Input yang memicu pelanggaran
     pub input: Vec<u8>,
+    /// Error keamanan yang dihasilkan
     pub error: SecurityError,
 }
 
 impl NetworkFuzzingHarness {
+    /// Buat harness fuzzing baru untuk parsing jaringan
     pub fn new(config: FuzzingConfig) -> Self {
         NetworkFuzzingHarness {
             config,
@@ -316,14 +343,19 @@ pub struct CryptoFuzzingHarness {
     timing_leaks: Vec<TimingLeak>,
 }
 
+/// Indikasi kebocoran timing pada operasi kriptografi
 #[derive(Debug, Clone)]
 pub struct TimingLeak {
+    /// Nama operasi yang menunjukkan kebocoran
     pub operation: String,
+    /// Ukuran input saat kebocoran terdeteksi
     pub input_size: usize,
+    /// Varians timing yang terdeteksi (dalam nanodetik)
     pub timing_variance: f64,
 }
 
 impl CryptoFuzzingHarness {
+    /// Buat harness fuzzing baru untuk operasi kriptografi
     pub fn new(config: FuzzingConfig) -> Self {
         CryptoFuzzingHarness {
             config,
@@ -479,14 +511,19 @@ pub struct StateMachineFuzzingHarness {
     invalid_transitions: Vec<InvalidTransition>,
 }
 
+/// Transisi state machine yang tidak valid
 #[derive(Debug, Clone)]
 pub struct InvalidTransition {
+    /// State asal transisi
     pub from_state: HandshakeState,
+    /// State tujuan yang tidak valid
     pub to_state: HandshakeState,
+    /// Input yang memicu transisi tidak valid
     pub input: Vec<u8>,
 }
 
 impl StateMachineFuzzingHarness {
+    /// Buat harness fuzzing baru untuk state machine
     pub fn new(config: FuzzingConfig) -> Self {
         StateMachineFuzzingHarness {
             config,
@@ -583,10 +620,15 @@ impl StateMachineFuzzingHarness {
 /// Fuzzing result types
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FuzzingResult {
+    /// Test case berhasil diproses tanpa masalah
     Success,
+    /// Test case menyebabkan crash dengan pesan error
     Crash(String),
+    /// Test case berjalan lebih lambat dari threshold
     Slow,
+    /// Test case melebihi batas waktu
     Timeout,
+    /// Test case menyebabkan memory exhaustion
     MemoryExhaustion,
 }
 
@@ -600,19 +642,29 @@ pub struct SecurityFuzzingOrchestrator {
     results: FuzzingResults,
 }
 
+/// Akumulasi hasil seluruh fuzzing campaign
 #[derive(Debug, Default, Clone)]
 pub struct FuzzingResults {
+    /// Total jumlah test case yang dijalankan
     pub total_runs: usize,
+    /// Jumlah test case yang berhasil
     pub successful_runs: usize,
+    /// Daftar crash beserta input penyebabnya
     pub crashes: Vec<(String, Vec<u8>)>,
+    /// Input yang menyebabkan eksekusi lambat
     pub slow_inputs: Vec<Vec<u8>>,
+    /// Pelanggaran protokol yang terdeteksi
     pub protocol_violations: Vec<ProtocolViolation>,
+    /// Kebocoran timing yang terdeteksi
     pub timing_leaks: Vec<TimingLeak>,
+    /// Transisi state machine yang tidak valid
     pub invalid_transitions: Vec<InvalidTransition>,
+    /// Statistik coverage per target
     pub coverage_stats: std::collections::HashMap<String, usize>,
 }
 
 impl SecurityFuzzingOrchestrator {
+    /// Buat orchestrator fuzzing baru dengan konfigurasi yang diberikan
     pub fn new(config: FuzzingConfig) -> Self {
         SecurityFuzzingOrchestrator {
             config: config.clone(),

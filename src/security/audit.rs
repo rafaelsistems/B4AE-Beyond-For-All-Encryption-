@@ -10,11 +10,17 @@ use std::process::Command;
 /// Build configuration for reproducible builds
 #[derive(Debug, Clone)]
 pub struct ReproducibleBuildConfig {
+    /// Versi Rust yang di-pin untuk build deterministik
     pub rust_version: String,
+    /// Target triple kompilasi (misal: x86_64-unknown-linux-gnu)
     pub target_triple: String,
+    /// Apakah menggunakan Cargo.lock yang sudah di-lock
     pub cargo_locked: bool,
+    /// Apakah mengaktifkan mode build deterministik
     pub deterministic_build: bool,
+    /// Apakah strip debug symbols dari binary
     pub strip_symbols: bool,
+    /// Daftar artifact yang diverifikasi reprodusibilitasnya
     pub reproducible_artifacts: Vec<String>,
 }
 
@@ -38,10 +44,15 @@ impl Default for ReproducibleBuildConfig {
 /// Dependency audit configuration
 #[derive(Debug, Clone)]
 pub struct DependencyAuditConfig {
+    /// Daftar tool audit yang digunakan (cargo-audit, cargo-geiger, dll)
     pub audit_tools: Vec<String>,
+    /// Daftar database vulnerability yang dikonsultasi
     pub vulnerability_databases: Vec<String>,
+    /// Threshold severity minimum untuk dianggap gagal (low/medium/high/critical)
     pub severity_threshold: String,
+    /// Daftar advisory ID yang diabaikan
     pub ignore_list: Vec<String>,
+    /// Apakah build gagal jika ditemukan vulnerability
     pub fail_on_vulnerabilities: bool,
 }
 
@@ -67,37 +78,51 @@ impl Default for DependencyAuditConfig {
 /// Security vulnerability information
 #[derive(Debug, Clone)]
 pub struct SecurityVulnerability {
+    /// ID advisory (misal: RUSTSEC-2024-0001)
     pub id: String,
+    /// Nama crate yang vulnerable
     pub package: String,
+    /// Versi crate yang terpengaruh
     pub version: String,
+    /// Tingkat keparahan: low/medium/high/critical
     pub severity: String,
+    /// Deskripsi vulnerability
     pub description: String,
+    /// Versi yang sudah dipatch
     pub patched_versions: Vec<String>,
+    /// Referensi CVE dan advisory
     pub references: Vec<String>,
 }
 
 /// Dependency audit result
 #[derive(Debug, Clone)]
 pub struct DependencyAuditResult {
+    /// Total jumlah dependency yang diaudit
     pub total_dependencies: usize,
+    /// Daftar dependency yang memiliki vulnerability
     pub vulnerable_dependencies: Vec<SecurityVulnerability>,
+    /// Daftar dependency yang sudah kadaluarsa
     pub outdated_dependencies: Vec<String>,
+    /// Daftar dependency yang tidak lagi dirawat
     pub unmaintained_dependencies: Vec<String>,
+    /// Daftar masalah lisensi yang ditemukan
     pub license_issues: Vec<String>,
+    /// True jika semua pengecekan audit lulus
     pub audit_passed: bool,
 }
 
 /// Reproducible build system
 pub struct ReproducibleBuildSystem {
-    config: ReproducibleBuildConfig,
-    build_cache: HashMap<String, String>,
+    _config: ReproducibleBuildConfig,
+    _build_cache: HashMap<String, String>,
 }
 
 impl ReproducibleBuildSystem {
+    /// Buat instance baru ReproducibleBuildSystem dengan konfigurasi yang diberikan
     pub fn new(config: ReproducibleBuildConfig) -> Self {
         ReproducibleBuildSystem {
-            config,
-            build_cache: HashMap::new(),
+            _config: config,
+            _build_cache: HashMap::new(),
         }
     }
     
@@ -180,15 +205,16 @@ impl ReproducibleBuildSystem {
 
 /// Dependency audit system
 pub struct DependencyAuditSystem {
-    config: DependencyAuditConfig,
-    vulnerability_cache: HashMap<String, Vec<SecurityVulnerability>>,
+    _config: DependencyAuditConfig,
+    _vulnerability_cache: HashMap<String, Vec<SecurityVulnerability>>,
 }
 
 impl DependencyAuditSystem {
+    /// Buat instance baru DependencyAuditSystem dengan konfigurasi yang diberikan
     pub fn new(config: DependencyAuditConfig) -> Self {
         DependencyAuditSystem {
-            config,
-            vulnerability_cache: HashMap::new(),
+            _config: config,
+            _vulnerability_cache: HashMap::new(),
         }
     }
     
@@ -252,8 +278,8 @@ impl DependencyAuditSystem {
         // Parse output for unsafe code statistics
         Ok(UnsafeAnalysisResult {
             unsafe_blocks: 5, // Placeholder
-            unsafe_functions: 10, // Placeholder
-            total_dependencies: 100, // Placeholder
+            _unsafe_functions: 10, // Placeholder
+            _total_dependencies: 100, // Placeholder
         })
     }
     
@@ -283,9 +309,13 @@ impl DependencyAuditSystem {
 /// Build reproducibility report
 #[derive(Debug, Clone)]
 pub struct ReproducibilityReport {
+    /// Hash artifact dari build pertama
     pub first_build_hash: String,
+    /// Hash artifact dari build kedua (untuk perbandingan)
     pub second_build_hash: String,
+    /// True jika kedua build menghasilkan artifact identik
     pub reproducible: bool,
+    /// Waktu laporan dibuat
     pub timestamp: std::time::SystemTime,
 }
 
@@ -300,8 +330,8 @@ struct CargoAuditResult {
 #[derive(Debug, Clone)]
 struct UnsafeAnalysisResult {
     pub unsafe_blocks: usize,
-    pub unsafe_functions: usize,
-    pub total_dependencies: usize,
+    pub _unsafe_functions: usize,
+    pub _total_dependencies: usize,
 }
 
 /// Cargo deny result (internal)
@@ -316,10 +346,15 @@ struct CargoDenyResult {
 /// Build errors
 #[derive(Debug, Clone)]
 pub enum BuildError {
+    /// Perintah shell gagal dieksekusi
     CommandFailed(String),
+    /// Proses build gagal
     BuildFailed(String),
+    /// Proses clean artifact gagal
     CleanFailed(String),
+    /// Kalkulasi hash artifact gagal
     HashCalculationFailed(String),
+    /// Perbandingan dua build gagal
     ComparisonFailed(String),
 }
 
@@ -338,8 +373,11 @@ impl std::fmt::Display for BuildError {
 /// Audit errors
 #[derive(Debug, Clone)]
 pub enum AuditError {
+    /// Tool audit tidak tersedia di sistem
     ToolNotAvailable(String),
+    /// Gagal mem-parse output tool audit
     ParseError(String),
+    /// Eksekusi tool audit gagal
     ExecutionFailed(String),
 }
 
@@ -360,6 +398,7 @@ pub struct SecurityAuditOrchestrator {
 }
 
 impl SecurityAuditOrchestrator {
+    /// Buat orchestrator baru dengan konfigurasi build dan audit
     pub fn new(
         build_config: ReproducibleBuildConfig,
         audit_config: DependencyAuditConfig,
@@ -411,9 +450,13 @@ impl SecurityAuditOrchestrator {
 /// Complete security audit report
 #[derive(Debug, Clone)]
 pub struct CompleteSecurityReport {
+    /// Laporan reprodusibilitas build
     pub reproducibility_report: ReproducibilityReport,
+    /// Hasil audit dependency
     pub dependency_audit: DependencyAuditResult,
+    /// Waktu audit dilakukan
     pub timestamp: std::time::SystemTime,
+    /// Status keseluruhan: PASSED/WARNING/FAILED
     pub overall_status: String,
 }
 

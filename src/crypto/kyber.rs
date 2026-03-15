@@ -4,40 +4,52 @@
 use crate::crypto::{CryptoError, CryptoResult};
 use std::fmt;
 
-#[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+#[cfg(feature = "pqcrypto-mlkem")]
+use pqcrypto_mlkem::mlkem1024;
+
+#[cfg(all(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mlkem")))]
 use pqcrypto_kyber::kyber1024;
 
-/// Kyber-1024 Public Key (1568 bytes)
+
+/// Kyber/ML-KEM-1024 Public Key (1568 bytes)
 #[derive(Clone)]
 pub struct KyberPublicKey {
-    #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+    #[cfg(feature = "pqcrypto-mlkem")]
+    inner: mlkem1024::PublicKey,
+    #[cfg(all(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mlkem")))]
     inner: kyber1024::PublicKey,
-    #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+    #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
     data: Vec<u8>,
 }
 
-/// Kyber-1024 Secret Key (3168 bytes)
+/// Kyber/ML-KEM-1024 Secret Key (3168 bytes)
 pub struct KyberSecretKey {
-    #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+    #[cfg(feature = "pqcrypto-mlkem")]
+    inner: mlkem1024::SecretKey,
+    #[cfg(all(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mlkem")))]
     inner: kyber1024::SecretKey,
-    #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+    #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
     data: Vec<u8>,
 }
 
-/// Kyber-1024 Ciphertext (1568 bytes)
+/// Kyber/ML-KEM-1024 Ciphertext (1568 bytes)
 #[derive(Clone)]
 pub struct KyberCiphertext {
-    #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+    #[cfg(feature = "pqcrypto-mlkem")]
+    inner: mlkem1024::Ciphertext,
+    #[cfg(all(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mlkem")))]
     inner: kyber1024::Ciphertext,
-    #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+    #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
     data: Vec<u8>,
 }
 
-/// Kyber-1024 Shared Secret (32 bytes)
+/// Kyber/ML-KEM-1024 Shared Secret (32 bytes)
 pub struct KyberSharedSecret {
-    #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+    #[cfg(feature = "pqcrypto-mlkem")]
+    inner: mlkem1024::SharedSecret,
+    #[cfg(all(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mlkem")))]
     inner: kyber1024::SharedSecret,
-    #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+    #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
     data: [u8; 32],
 }
 
@@ -45,7 +57,7 @@ impl KyberPublicKey {
     /// Size in bytes (Kyber-1024).
     pub const SIZE: usize = 1568;
 
-    /// Parse from raw bytes.
+    /// Parse dari raw bytes.
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         if bytes.len() != Self::SIZE {
             return Err(CryptoError::InvalidKeySize(
@@ -53,30 +65,36 @@ impl KyberPublicKey {
             ));
         }
         
-        #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+        #[cfg(feature = "pqcrypto-mlkem")]
+        {
+            use pqcrypto_traits::kem::PublicKey;
+            let inner = mlkem1024::PublicKey::from_bytes(bytes)
+                .map_err(|_| CryptoError::InvalidKeySize("Invalid ML-KEM public key".to_string()))?;
+            return Ok(KyberPublicKey { inner });
+        }
+        
+        #[cfg(all(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mlkem")))]
         {
             use pqcrypto_traits::kem::PublicKey;
             let inner = kyber1024::PublicKey::from_bytes(bytes)
                 .map_err(|_| CryptoError::InvalidKeySize("Invalid Kyber public key".to_string()))?;
-            Ok(KyberPublicKey { inner })
+            return Ok(KyberPublicKey { inner });
         }
         
-        #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
-        Ok(KyberPublicKey {
-            data: bytes.to_vec(),
-        })
+        #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+        Ok(KyberPublicKey { data: bytes.to_vec() })
     }
 
-    /// Serialize to bytes.
+    /// Serialisasi ke bytes.
     pub fn as_bytes(&self) -> &[u8] {
-        #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+        #[cfg(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
         {
             use pqcrypto_traits::kem::PublicKey;
-            self.inner.as_bytes()
+            return self.inner.as_bytes();
         }
         
-        #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
-        &self.data
+        #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+        { &self.data }
     }
 }
 
@@ -84,7 +102,7 @@ impl KyberSecretKey {
     /// Size in bytes.
     pub const SIZE: usize = 3168;
 
-    /// Parse from raw bytes.
+    /// Parse dari raw bytes.
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         if bytes.len() != Self::SIZE {
             return Err(CryptoError::InvalidKeySize(
@@ -92,30 +110,36 @@ impl KyberSecretKey {
             ));
         }
         
-        #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+        #[cfg(feature = "pqcrypto-mlkem")]
+        {
+            use pqcrypto_traits::kem::SecretKey;
+            let inner = mlkem1024::SecretKey::from_bytes(bytes)
+                .map_err(|_| CryptoError::InvalidKeySize("Invalid ML-KEM secret key".to_string()))?;
+            return Ok(KyberSecretKey { inner });
+        }
+        
+        #[cfg(all(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mlkem")))]
         {
             use pqcrypto_traits::kem::SecretKey;
             let inner = kyber1024::SecretKey::from_bytes(bytes)
                 .map_err(|_| CryptoError::InvalidKeySize("Invalid Kyber secret key".to_string()))?;
-            Ok(KyberSecretKey { inner })
+            return Ok(KyberSecretKey { inner });
         }
         
-        #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
-        Ok(KyberSecretKey {
-            data: bytes.to_vec(),
-        })
+        #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+        Ok(KyberSecretKey { data: bytes.to_vec() })
     }
 
-    /// Serialize to bytes.
+    /// Serialisasi ke bytes.
     pub fn as_bytes(&self) -> &[u8] {
-        #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+        #[cfg(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
         {
             use pqcrypto_traits::kem::SecretKey;
-            self.inner.as_bytes()
+            return self.inner.as_bytes();
         }
         
-        #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
-        &self.data
+        #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+        { &self.data }
     }
 }
 
@@ -123,7 +147,7 @@ impl KyberCiphertext {
     /// Size in bytes.
     pub const SIZE: usize = 1568;
 
-    /// Parse from raw bytes.
+    /// Parse dari raw bytes.
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         if bytes.len() != Self::SIZE {
             return Err(CryptoError::InvalidInput(
@@ -131,30 +155,36 @@ impl KyberCiphertext {
             ));
         }
         
-        #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+        #[cfg(feature = "pqcrypto-mlkem")]
+        {
+            use pqcrypto_traits::kem::Ciphertext;
+            let inner = mlkem1024::Ciphertext::from_bytes(bytes)
+                .map_err(|_| CryptoError::InvalidInput("Invalid ML-KEM ciphertext".to_string()))?;
+            return Ok(KyberCiphertext { inner });
+        }
+        
+        #[cfg(all(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mlkem")))]
         {
             use pqcrypto_traits::kem::Ciphertext;
             let inner = kyber1024::Ciphertext::from_bytes(bytes)
                 .map_err(|_| CryptoError::InvalidInput("Invalid Kyber ciphertext".to_string()))?;
-            Ok(KyberCiphertext { inner })
+            return Ok(KyberCiphertext { inner });
         }
         
-        #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
-        Ok(KyberCiphertext {
-            data: bytes.to_vec(),
-        })
+        #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+        Ok(KyberCiphertext { data: bytes.to_vec() })
     }
 
-    /// Serialize to bytes.
+    /// Serialisasi ke bytes.
     pub fn as_bytes(&self) -> &[u8] {
-        #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+        #[cfg(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
         {
             use pqcrypto_traits::kem::Ciphertext;
-            self.inner.as_bytes()
+            return self.inner.as_bytes();
         }
         
-        #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
-        &self.data
+        #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+        { &self.data }
     }
 }
 
@@ -162,7 +192,7 @@ impl KyberSharedSecret {
     /// Size in bytes.
     pub const SIZE: usize = 32;
 
-    /// Parse from raw bytes.
+    /// Parse dari raw bytes.
     pub fn from_bytes(bytes: &[u8]) -> CryptoResult<Self> {
         if bytes.len() != Self::SIZE {
             return Err(CryptoError::InvalidInput(
@@ -170,15 +200,23 @@ impl KyberSharedSecret {
             ));
         }
         
-        #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+        #[cfg(feature = "pqcrypto-mlkem")]
+        {
+            use pqcrypto_traits::kem::SharedSecret;
+            let inner = mlkem1024::SharedSecret::from_bytes(bytes)
+                .map_err(|_| CryptoError::InvalidInput("Invalid ML-KEM shared secret".to_string()))?;
+            return Ok(KyberSharedSecret { inner });
+        }
+        
+        #[cfg(all(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mlkem")))]
         {
             use pqcrypto_traits::kem::SharedSecret;
             let inner = kyber1024::SharedSecret::from_bytes(bytes)
                 .map_err(|_| CryptoError::InvalidInput("Invalid Kyber shared secret".to_string()))?;
-            Ok(KyberSharedSecret { inner })
+            return Ok(KyberSharedSecret { inner });
         }
         
-        #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+        #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
         {
             let mut data = [0u8; 32];
             data.copy_from_slice(bytes);
@@ -186,16 +224,16 @@ impl KyberSharedSecret {
         }
     }
 
-    /// Serialize to bytes.
+    /// Serialisasi ke bytes.
     pub fn as_bytes(&self) -> &[u8] {
-        #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+        #[cfg(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
         {
             use pqcrypto_traits::kem::SharedSecret;
-            self.inner.as_bytes()
+            return self.inner.as_bytes();
         }
         
-        #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
-        &self.data
+        #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+        { &self.data }
     }
 }
 
@@ -225,24 +263,28 @@ pub fn keypair() -> CryptoResult<KyberKeyPair> {
         })
     }
     
-    #[cfg(all(not(feature = "liboqs"), any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+    #[cfg(all(not(feature = "liboqs"), feature = "pqcrypto-mlkem"))]
     {
-        // Use real pqcrypto implementation
-        let (pk, sk) = kyber1024::keypair();
-        
-        Ok(KyberKeyPair {
+        let (pk, sk) = mlkem1024::keypair();
+        return Ok(KyberKeyPair {
             public_key: KyberPublicKey { inner: pk },
             secret_key: KyberSecretKey { inner: sk },
-        })
+        });
     }
     
-    #[cfg(all(not(feature = "liboqs"), not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))))]
+    #[cfg(all(not(feature = "liboqs"), any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mlkem")))]
     {
-        // Placeholder for development
-        Err(CryptoError::KeyGenerationFailed(
-            "No Kyber implementation available. Enable 'liboqs' feature for production use".to_string()
-        ))
+        let (pk, sk) = kyber1024::keypair();
+        return Ok(KyberKeyPair {
+            public_key: KyberPublicKey { inner: pk },
+            secret_key: KyberSecretKey { inner: sk },
+        });
     }
+    
+    #[cfg(not(any(feature = "liboqs", feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+    Err(CryptoError::KeyGenerationFailed(
+        "Tidak ada implementasi KEM yang tersedia. Aktifkan feature 'pqcrypto-mlkem'".to_string()
+    ))
 }
 
 /// Encapsulate: Generate shared secret and ciphertext
@@ -266,23 +308,28 @@ pub fn encapsulate(public_key: &KyberPublicKey) -> CryptoResult<(KyberSharedSecr
         ))
     }
     
-    #[cfg(all(not(feature = "liboqs"), any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+    #[cfg(all(not(feature = "liboqs"), feature = "pqcrypto-mlkem"))]
     {
-        // Use real pqcrypto implementation
-        let (ss, ct) = kyber1024::encapsulate(&public_key.inner);
-        
-        Ok((
+        let (ss, ct) = mlkem1024::encapsulate(&public_key.inner);
+        return Ok((
             KyberSharedSecret { inner: ss },
             KyberCiphertext { inner: ct },
-        ))
+        ));
     }
     
-    #[cfg(all(not(feature = "liboqs"), not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))))]
+    #[cfg(all(not(feature = "liboqs"), any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mlkem")))]
     {
-        Err(CryptoError::EncryptionFailed(
-            "No Kyber implementation available".to_string()
-        ))
+        let (ss, ct) = kyber1024::encapsulate(&public_key.inner);
+        return Ok((
+            KyberSharedSecret { inner: ss },
+            KyberCiphertext { inner: ct },
+        ));
     }
+    
+    #[cfg(not(any(feature = "liboqs", feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+    Err(CryptoError::EncryptionFailed(
+        "Tidak ada implementasi KEM yang tersedia".to_string()
+    ))
 }
 
 /// Decapsulate: Recover shared secret from ciphertext
@@ -309,33 +356,35 @@ pub fn decapsulate(
         KyberSharedSecret::from_bytes(ss.as_ref())
     }
     
-    #[cfg(all(not(feature = "liboqs"), any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+    #[cfg(all(not(feature = "liboqs"), feature = "pqcrypto-mlkem"))]
     {
-        // Use real pqcrypto implementation
-        let ss = kyber1024::decapsulate(&ciphertext.inner, &secret_key.inner);
-        
-        Ok(KyberSharedSecret { inner: ss })
+        let ss = mlkem1024::decapsulate(&ciphertext.inner, &secret_key.inner);
+        return Ok(KyberSharedSecret { inner: ss });
     }
     
-    #[cfg(all(not(feature = "liboqs"), not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))))]
+    #[cfg(all(not(feature = "liboqs"), any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mlkem")))]
     {
-        Err(CryptoError::DecryptionFailed(
-            "No Kyber implementation available".to_string()
-        ))
+        let ss = kyber1024::decapsulate(&ciphertext.inner, &secret_key.inner);
+        return Ok(KyberSharedSecret { inner: ss });
     }
+    
+    #[cfg(not(any(feature = "liboqs", feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+    Err(CryptoError::DecryptionFailed(
+        "Tidak ada implementasi KEM yang tersedia".to_string()
+    ))
 }
 
 impl fmt::Debug for KyberPublicKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+        #[cfg(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
         {
             use pqcrypto_traits::kem::PublicKey;
             let bytes = self.inner.as_bytes();
-            write!(f, "KyberPublicKey({}...)", hex::encode(&bytes[..8]))
+            return write!(f, "KyberPublicKey({}...)", hex::encode(&bytes[..8]));
         }
         
-        #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
-        write!(f, "KyberPublicKey({}...)", hex::encode(&self.data[..8]))
+        #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+        { write!(f, "KyberPublicKey({}...)", hex::encode(&self.data[..8])) }
     }
 }
 
@@ -347,15 +396,15 @@ impl fmt::Debug for KyberSecretKey {
 
 impl fmt::Debug for KyberCiphertext {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        #[cfg(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
+        #[cfg(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt"))]
         {
             use pqcrypto_traits::kem::Ciphertext;
             let bytes = self.inner.as_bytes();
-            write!(f, "KyberCiphertext({}...)", hex::encode(&bytes[..8]))
+            return write!(f, "KyberCiphertext({}...)", hex::encode(&bytes[..8]));
         }
         
-        #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
-        write!(f, "KyberCiphertext({}...)", hex::encode(&self.data[..8]))
+        #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+        { write!(f, "KyberCiphertext({}...)", hex::encode(&self.data[..8])) }
     }
 }
 
@@ -368,27 +417,15 @@ impl fmt::Debug for KyberSharedSecret {
 // Secure drop implementations
 impl Drop for KyberSecretKey {
     fn drop(&mut self) {
-        // pqcrypto types handle their own secure drop
-        #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
-        {
-            // Zero out secret key memory
-            for byte in &mut self.data {
-                *byte = 0;
-            }
-        }
+        #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+        for byte in &mut self.data { *byte = 0; }
     }
 }
 
 impl Drop for KyberSharedSecret {
     fn drop(&mut self) {
-        // pqcrypto types handle their own secure drop
-        #[cfg(not(any(feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
-        {
-            // Zero out shared secret memory
-            for byte in &mut self.data {
-                *byte = 0;
-            }
-        }
+        #[cfg(not(any(feature = "pqcrypto-mlkem", feature = "pqcrypto-kyber", feature = "pqcrypto-alt")))]
+        for byte in &mut self.data { *byte = 0; }
     }
 }
 

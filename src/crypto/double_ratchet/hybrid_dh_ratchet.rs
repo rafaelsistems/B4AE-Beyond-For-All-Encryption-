@@ -118,7 +118,7 @@ impl HybridDHRatchet {
         let peer_x25519_pk = X25519PublicKey::from(peer_public.x25519_public);
 
         // Derive Kyber shared secret
-        let kyber_ss = if let Some((_, ref kyber_sk)) = self.kyber_keypair {
+        let kyber_ss = if let Some((_, ref _kyber_sk)) = self.kyber_keypair {
             // We are the receiver - decapsulate
             // First, we need the ciphertext from the peer
             // For now, we'll encapsulate to derive the shared secret

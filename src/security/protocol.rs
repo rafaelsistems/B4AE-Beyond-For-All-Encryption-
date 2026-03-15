@@ -4,20 +4,21 @@
 //! for the B4AE protocol handshake and message handling.
 
 use crate::security::hardened_core::{
-    SecurityBuffer, SecurityResult, SecurityError, SecurityStateMachine,
-    constant_time_eq_security, checked_add_security, checked_sub_security
+    SecurityBuffer, SecurityResult, SecurityError
 };
-use std::convert::TryFrom;
 
 /// Protocol version with explicit validation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProtocolVersion {
+    /// Versi 1.0 (0x0100)
     V1_0 = 0x0100,
 }
 
 impl ProtocolVersion {
+    /// Ukuran representasi bytes versi protokol
     pub const SIZE: usize = 2;
     
+    /// Parse versi protokol dari 2 bytes
     pub fn from_bytes(bytes: [u8; 2]) -> SecurityResult<Self> {
         match u16::from_be_bytes(bytes) {
             0x0100 => Ok(ProtocolVersion::V1_0),
@@ -28,6 +29,7 @@ impl ProtocolVersion {
         }
     }
     
+    /// Konversi versi protokol ke 2 bytes
     pub fn to_bytes(&self) -> [u8; 2] {
         match self {
             ProtocolVersion::V1_0 => [0x01, 0x00],
@@ -38,15 +40,22 @@ impl ProtocolVersion {
 /// Message type with explicit validation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MessageType {
+    /// Pesan inisiasi handshake
     HandshakeInit = 0x01,
+    /// Pesan respons handshake
     HandshakeResponse = 0x02,
+    /// Pesan penyelesaian handshake
     HandshakeComplete = 0x03,
+    /// Pesan data terenkripsi
     Data = 0x04,
+    /// Pesan keep-alive
     KeepAlive = 0x05,
+    /// Pesan penutupan koneksi
     Close = 0x06,
 }
 
 impl MessageType {
+    /// Parse tipe pesan dari 1 byte
     pub fn from_u8(byte: u8) -> SecurityResult<Self> {
         match byte {
             0x01 => Ok(MessageType::HandshakeInit),
@@ -59,6 +68,7 @@ impl MessageType {
         }
     }
     
+    /// Konversi tipe pesan ke 1 byte
     pub fn to_u8(&self) -> u8 {
         match self {
             MessageType::HandshakeInit => 0x01,
@@ -74,12 +84,16 @@ impl MessageType {
 /// Cipher suite with explicit validation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CipherSuite {
+    /// Hybrid KEM: Kyber-1024 + X25519
     HybridKyber1024X25519 = 0x0101,
+    /// Hybrid signature: Dilithium5 + Ed25519
     HybridDilithium5Ed25519 = 0x0202,
+    /// Enkripsi simetris: AES-256-GCM
     Aes256Gcm = 0x0303,
 }
 
 impl CipherSuite {
+    /// Parse cipher suite dari 1 byte
     pub fn from_u8(byte: u8) -> SecurityResult<Self> {
         match byte {
             0x01 => Ok(CipherSuite::HybridKyber1024X25519),
@@ -89,6 +103,7 @@ impl CipherSuite {
         }
     }
     
+    /// Konversi cipher suite ke 1 byte
     pub fn to_u8(&self) -> u8 {
         match self {
             CipherSuite::HybridKyber1024X25519 => 0x01,
@@ -101,17 +116,25 @@ impl CipherSuite {
 /// Security-hardened message header
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SecurityMessageHeader {
+    /// Versi protokol
     pub version: ProtocolVersion,
+    /// Tipe pesan
     pub message_type: MessageType,
+    /// Cipher suite yang digunakan
     pub cipher_suite: CipherSuite,
+    /// ID unik pesan
     pub message_id: u64,
+    /// Panjang payload dalam bytes
     pub payload_length: u32,
+    /// Timestamp Unix pengiriman pesan
     pub timestamp: u64,
 }
 
 impl SecurityMessageHeader {
-    pub const SIZE: usize = 2 + 1 + 1 + 8 + 4 + 8; // 24 bytes total
+    /// Ukuran header dalam bytes (24 bytes total)
+    pub const SIZE: usize = 2 + 1 + 1 + 8 + 4 + 8;
     
+    /// Parse header dari SecurityBuffer
     pub fn parse_security(buffer: &mut SecurityBuffer) -> SecurityResult<Self> {
         // Parse version (2 bytes)
         let version_bytes = buffer.read_exact(2)?;
@@ -146,6 +169,7 @@ impl SecurityMessageHeader {
         })
     }
     
+    /// Serialisasi header ke SecurityBuffer
     pub fn serialize_security(&self, buffer: &mut SecurityBuffer) -> SecurityResult<()> {
         // Serialize version (2 bytes)
         let version_bytes = self.version.to_bytes();
@@ -169,6 +193,7 @@ impl SecurityMessageHeader {
         Ok(())
     }
     
+    /// Validasi semua field header — versi, panjang payload, dan timestamp
     pub fn validate_security(&self) -> SecurityResult<()> {
         // Validate version
         if self.version != ProtocolVersion::V1_0 {
@@ -208,18 +233,25 @@ impl SecurityMessageHeader {
 /// Handshake state machine with explicit transitions
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HandshakeState {
+    /// State awal handshake
     Init,
+    /// Menunggu respons dari peer
     WaitingResponse,
+    /// Menunggu konfirmasi penyelesaian
     WaitingComplete,
+    /// Handshake berhasil diselesaikan
     Completed,
+    /// Handshake gagal
     Failed,
 }
 
 impl HandshakeState {
+    /// Cek apakah state adalah terminal (tidak dapat bertransisi lagi)
     pub fn is_terminal(&self) -> bool {
         matches!(self, HandshakeState::Completed | HandshakeState::Failed)
     }
     
+    /// Validasi apakah transisi ke state berikutnya diizinkan
     pub fn can_transition_to(&self, next: HandshakeState) -> SecurityResult<()> {
         match (*self, next) {
             (HandshakeState::Init, HandshakeState::WaitingResponse) => Ok(()),
@@ -243,6 +275,7 @@ pub struct SecurityHandshakeParser {
 }
 
 impl SecurityHandshakeParser {
+    /// Buat parser handshake baru dengan batas ukuran pesan
     pub fn new(max_size: usize) -> SecurityResult<Self> {
         Ok(SecurityHandshakeParser {
             state: HandshakeState::Init,
@@ -250,6 +283,7 @@ impl SecurityHandshakeParser {
         })
     }
     
+    /// Parse pesan dan kembalikan header tervalidasi
     pub fn parse_message(&mut self, data: &[u8]) -> SecurityResult<SecurityMessageHeader> {
         // Validate input size
         if data.len() > self.buffer.capacity() {
@@ -273,12 +307,14 @@ impl SecurityHandshakeParser {
         Ok(header)
     }
     
+    /// Transisi state machine ke state baru dengan validasi
     pub fn transition_state(&mut self, new_state: HandshakeState) -> SecurityResult<()> {
         self.state.can_transition_to(new_state)?;
         self.state = new_state;
         Ok(())
     }
     
+    /// Kembalikan state handshake saat ini
     pub fn current_state(&self) -> HandshakeState {
         self.state
     }

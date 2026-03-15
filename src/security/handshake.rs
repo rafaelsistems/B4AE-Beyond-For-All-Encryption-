@@ -5,10 +5,9 @@
 
 use crate::security::{
     SecurityResult, SecurityError, SecurityBuffer,
-    ProtocolVersion, MessageType, CipherSuite, SecurityMessageHeader,
-    HandshakeState, SecurityHandshakeParser
+    ProtocolVersion, CipherSuite,
+    HandshakeState
 };
-use std::convert::TryFrom;
 
 /// Maximum sizes for security validation
 const MAX_ECDH_SIZE: usize = 256;
@@ -137,14 +136,18 @@ impl SecurityHybridParser {
 /// Security-hardened hybrid ciphertext structure
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SecurityHybridCiphertext {
+    /// Public key ephemeral ECDH
     pub ecdh_ephemeral_public: Vec<u8>,
+    /// Ciphertext Kyber KEM
     pub kyber_ciphertext: Vec<u8>,
 }
 
 /// Security-hardened hybrid signature structure
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SecurityHybridSignature {
+    /// Signature ECDSA klasik
     pub ecdsa_signature: Vec<u8>,
+    /// Signature Dilithium5 post-quantum
     pub dilithium_signature: Vec<u8>,
 }
 
@@ -288,30 +291,45 @@ impl SecurityHandshakeMessageParser {
 /// Security-hardened handshake init message
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SecurityHandshakeInit {
+    /// Versi protokol yang digunakan
     pub version: ProtocolVersion,
+    /// Cipher suite yang dipilih
     pub cipher_suite: CipherSuite,
+    /// Kunci-kunci ephemeral hybrid
     pub ephemeral_keys: SecurityHybridCiphertext,
+    /// Timestamp Unix saat handshake dimulai
     pub timestamp: u64,
+    /// Data ekstensi opsional
     pub extensions: Vec<u8>,
 }
 
 /// Security-hardened handshake response message
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SecurityHandshakeResponse {
+    /// Versi protokol yang digunakan
     pub version: ProtocolVersion,
+    /// Cipher suite yang dipilih
     pub cipher_suite: CipherSuite,
+    /// Kunci-kunci ephemeral hybrid
     pub ephemeral_keys: SecurityHybridCiphertext,
+    /// Tanda tangan hybrid untuk autentikasi
     pub signature: SecurityHybridSignature,
+    /// Timestamp Unix saat respons dikirim
     pub timestamp: u64,
+    /// Data ekstensi opsional
     pub extensions: Vec<u8>,
 }
 
 /// Security-hardened handshake complete message
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SecurityHandshakeComplete {
+    /// Versi protokol yang digunakan
     pub version: ProtocolVersion,
+    /// Tanda tangan hybrid untuk konfirmasi
     pub signature: SecurityHybridSignature,
+    /// Timestamp Unix saat handshake selesai
     pub timestamp: u64,
+    /// Data ekstensi opsional
     pub extensions: Vec<u8>,
 }
 
@@ -322,6 +340,7 @@ pub struct SecurityHandshakeStateMachine {
 }
 
 impl SecurityHandshakeStateMachine {
+    /// Buat state machine handshake baru dengan batas ukuran pesan
     pub fn new(max_message_size: usize) -> SecurityResult<Self> {
         // Validate max message size
         const MIN_MESSAGE_SIZE: usize = 1024; // 1 KB minimum
@@ -341,6 +360,7 @@ impl SecurityHandshakeStateMachine {
         })
     }
     
+    /// Proses pesan HandshakeInit dan transisi ke state WaitingResponse
     pub fn process_init(&mut self, data: &[u8]) -> SecurityResult<SecurityHandshakeInit> {
         // Validate state transition
         self.state.can_transition_to(HandshakeState::WaitingResponse)?;
@@ -367,6 +387,7 @@ impl SecurityHandshakeStateMachine {
         Ok(init)
     }
     
+    /// Proses pesan HandshakeResponse dan transisi ke state WaitingComplete
     pub fn process_response(&mut self, data: &[u8]) -> SecurityResult<SecurityHandshakeResponse> {
         // Validate state transition
         self.state.can_transition_to(HandshakeState::WaitingComplete)?;
@@ -393,6 +414,7 @@ impl SecurityHandshakeStateMachine {
         Ok(response)
     }
     
+    /// Proses pesan HandshakeComplete dan transisi ke state Completed
     pub fn process_complete(&mut self, data: &[u8]) -> SecurityResult<SecurityHandshakeComplete> {
         // Validate state transition
         self.state.can_transition_to(HandshakeState::Completed)?;
@@ -419,16 +441,19 @@ impl SecurityHandshakeStateMachine {
         Ok(complete)
     }
     
+    /// Kembalikan state handshake saat ini
     pub fn current_state(&self) -> HandshakeState {
         self.state
     }
     
+    /// Transisi ke state baru dengan validasi eksplisit
     pub fn transition_state(&mut self, new_state: HandshakeState) -> SecurityResult<()> {
         self.state.can_transition_to(new_state)?;
         self.state = new_state;
         Ok(())
     }
     
+    /// Reset state machine kembali ke Init
     pub fn reset(&mut self) -> SecurityResult<()> {
         self.state.can_transition_to(HandshakeState::Init)?;
         self.state = HandshakeState::Init;

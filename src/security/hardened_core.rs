@@ -11,19 +11,34 @@
 use std::convert::TryFrom;
 use std::num::TryFromIntError;
 use zeroize::Zeroize;
-use subtle::{Choice, ConstantTimeEq};
+use subtle::ConstantTimeEq;
 
 /// Security-hardened error types - no panic propagation
 #[derive(Debug, Clone, PartialEq)]
 pub enum SecurityError {
     /// Invalid input length
-    InvalidLength { expected: usize, actual: usize },
+    InvalidLength {
+        /// Panjang yang diharapkan
+        expected: usize,
+        /// Panjang aktual yang diterima
+        actual: usize,
+    },
     /// Integer overflow
     IntegerOverflow(TryFromIntError),
     /// Buffer too small
-    BufferTooSmall { required: usize, available: usize },
+    BufferTooSmall {
+        /// Ukuran yang diperlukan
+        required: usize,
+        /// Ukuran yang tersedia
+        available: usize,
+    },
     /// Invalid protocol version
-    InvalidProtocolVersion { expected: u16, actual: u16 },
+    InvalidProtocolVersion {
+        /// Versi yang diharapkan
+        expected: u16,
+        /// Versi aktual yang diterima
+        actual: u16,
+    },
     /// Invalid message type
     InvalidMessageType(u8),
     /// Invalid cipher suite
@@ -43,41 +58,116 @@ pub enum SecurityError {
     /// Invalid signature length
     InvalidSignatureLength(u16),
     /// Invalid public key
-    InvalidPublicKey { expected: usize, actual: usize },
+    InvalidPublicKey {
+        /// Ukuran yang diharapkan
+        expected: usize,
+        /// Ukuran aktual
+        actual: usize,
+    },
     /// Invalid secret key
-    InvalidSecretKey { expected: usize, actual: usize },
+    InvalidSecretKey {
+        /// Ukuran yang diharapkan
+        expected: usize,
+        /// Ukuran aktual
+        actual: usize,
+    },
     /// Invalid ciphertext
-    InvalidCiphertext { expected: usize, actual: usize },
+    InvalidCiphertext {
+        /// Ukuran yang diharapkan
+        expected: usize,
+        /// Ukuran aktual
+        actual: usize,
+    },
     /// Invalid shared secret
-    InvalidSharedSecret { expected: usize, actual: usize },
+    InvalidSharedSecret {
+        /// Ukuran yang diharapkan
+        expected: usize,
+        /// Ukuran aktual
+        actual: usize,
+    },
     /// Invalid signature
-    InvalidSignature { expected: usize, actual: usize },
+    InvalidSignature {
+        /// Ukuran yang diharapkan
+        expected: usize,
+        /// Ukuran aktual
+        actual: usize,
+    },
     /// Invalid MAC
-    InvalidMac { expected: usize, actual: usize },
+    InvalidMac {
+        /// Ukuran yang diharapkan
+        expected: usize,
+        /// Ukuran aktual
+        actual: usize,
+    },
     /// Invalid nonce
-    InvalidNonce { expected: usize, actual: usize },
+    InvalidNonce {
+        /// Ukuran yang diharapkan
+        expected: usize,
+        /// Ukuran aktual
+        actual: usize,
+    },
     /// Invalid key
-    InvalidKey { expected: usize, actual: usize },
+    InvalidKey {
+        /// Ukuran yang diharapkan
+        expected: usize,
+        /// Ukuran aktual
+        actual: usize,
+    },
     /// Invalid algorithm ID
     InvalidAlgorithmId(u16),
     /// Invalid security level
     InvalidSecurityLevel(u8),
     /// Invalid entropy
-    InvalidEntropy { expected: usize, actual: usize },
+    InvalidEntropy {
+        /// Ukuran yang diharapkan
+        expected: usize,
+        /// Ukuran aktual
+        actual: usize,
+    },
     /// Invalid random value
     InvalidRandomValue,
     /// Invalid hash
-    InvalidHash { expected: usize, actual: usize },
+    InvalidHash {
+        /// Ukuran yang diharapkan
+        expected: usize,
+        /// Ukuran aktual
+        actual: usize,
+    },
     /// Invalid HKDF context
-    InvalidHkdfContext { max_length: usize, actual_length: usize },
+    InvalidHkdfContext {
+        /// Panjang maksimum yang diizinkan
+        max_length: usize,
+        /// Panjang aktual yang diterima
+        actual_length: usize,
+    },
     /// Invalid HKDF salt
-    InvalidHkdfSalt { max_length: usize, actual_length: usize },
+    InvalidHkdfSalt {
+        /// Panjang maksimum yang diizinkan
+        max_length: usize,
+        /// Panjang aktual yang diterima
+        actual_length: usize,
+    },
     /// Invalid HKDF info
-    InvalidHkdfInfo { max_length: usize, actual_length: usize },
+    InvalidHkdfInfo {
+        /// Panjang maksimum yang diizinkan
+        max_length: usize,
+        /// Panjang aktual yang diterima
+        actual_length: usize,
+    },
     /// Invalid HKDF output length
-    InvalidHkdfOutputLength { max_length: usize, actual_length: usize },
+    InvalidHkdfOutputLength {
+        /// Panjang maksimum yang diizinkan
+        max_length: usize,
+        /// Panjang aktual yang diterima
+        actual_length: usize,
+    },
     /// Invalid HKDF input
-    InvalidHkdfInput { max_length: usize, actual_length: usize },
+    InvalidHkdfInput {
+        /// Panjang maksimum yang diizinkan
+        max_length: usize,
+        /// Panjang aktual yang diterima
+        actual_length: usize,
+    },
     /// Invalid session state
     InvalidSessionState(String),
     /// Invalid handshake state
@@ -93,63 +183,198 @@ pub enum SecurityError {
     /// Invalid protocol state
     InvalidProtocolState(String),
     /// Invalid state transition
-    InvalidStateTransition { from: String, to: String },
+    InvalidStateTransition {
+        /// State asal transisi
+        from: String,
+        /// State tujuan yang tidak valid
+        to: String,
+    },
     /// State machine violation
-    StateMachineViolation { expected: String, actual: String },
+    StateMachineViolation {
+        /// State yang diharapkan
+        expected: String,
+        /// State aktual
+        actual: String,
+    },
     /// Security invariant violation
-    SecurityInvariantViolation { invariant: String, details: String },
+    SecurityInvariantViolation {
+        /// Invariant yang dilanggar
+        invariant: String,
+        /// Detail pelanggaran
+        details: String,
+    },
     /// Memory safety violation
-    MemorySafetyViolation { operation: String, details: String },
+    MemorySafetyViolation {
+        /// Operasi yang menyebabkan pelanggaran
+        operation: String,
+        /// Detail pelanggaran
+        details: String,
+    },
     /// Constant-time violation
-    ConstantTimeViolation { operation: String, details: String },
+    ConstantTimeViolation {
+        /// Operasi yang tidak constant-time
+        operation: String,
+        /// Detail pelanggaran
+        details: String,
+    },
     /// Zeroization failure
-    ZeroizationFailure { target: String },
+    ZeroizationFailure {
+        /// Target yang gagal di-zeroize
+        target: String,
+    },
     /// Bounds checking failure
-    BoundsCheckingFailure { operation: String, bounds: String },
+    BoundsCheckingFailure {
+        /// Operasi yang melebihi batas
+        operation: String,
+        /// Informasi batas yang dilanggar
+        bounds: String,
+    },
     /// Integer conversion failure
-    IntegerConversionFailure { from: String, to: String, value: i64 },
+    IntegerConversionFailure {
+        /// Tipe sumber konversi
+        from: String,
+        /// Tipe tujuan konversi
+        to: String,
+        /// Nilai yang gagal dikonversi
+        value: i64,
+    },
     /// Buffer overflow protection triggered
-    BufferOverflowProtection { size: usize, capacity: usize },
+    BufferOverflowProtection {
+        /// Ukuran yang diminta
+        size: usize,
+        /// Kapasitas maksimum buffer
+        capacity: usize,
+    },
     /// Null pointer protection
-    NullPointerProtection { operation: String },
+    NullPointerProtection {
+        /// Operasi yang membutuhkan pointer valid
+        operation: String,
+    },
     /// Division by zero protection
-    DivisionByZeroProtection { operation: String },
+    DivisionByZeroProtection {
+        /// Operasi yang melakukan pembagian
+        operation: String,
+    },
     /// Arithmetic overflow protection
-    ArithmeticOverflowProtection { operation: String, values: String },
+    ArithmeticOverflowProtection {
+        /// Operasi aritmetika yang overflow
+        operation: String,
+        /// Nilai-nilai operand yang terlibat
+        values: String,
+    },
     /// Type safety violation
-    TypeSafetyViolation { expected: String, actual: String },
+    TypeSafetyViolation {
+        /// Tipe yang diharapkan
+        expected: String,
+        /// Tipe aktual
+        actual: String,
+    },
     /// Lifetime safety violation
-    LifetimeSafetyViolation { operation: String },
+    LifetimeSafetyViolation {
+        /// Operasi yang melanggar lifetime
+        operation: String,
+    },
     /// Send safety violation
-    SendSafetyViolation { type_name: String },
+    SendSafetyViolation {
+        /// Nama tipe yang tidak Send
+        type_name: String,
+    },
     /// Sync safety violation
-    SyncSafetyViolation { type_name: String },
+    SyncSafetyViolation {
+        /// Nama tipe yang tidak Sync
+        type_name: String,
+    },
     /// Uninitialized memory access
-    UninitializedMemoryAccess { location: String },
+    UninitializedMemoryAccess {
+        /// Lokasi akses memori yang belum diinisialisasi
+        location: String,
+    },
     /// Use after free protection
-    UseAfterFreeProtection { location: String },
+    UseAfterFreeProtection {
+        /// Lokasi use-after-free
+        location: String,
+    },
     /// Double free protection
-    DoubleFreeProtection { location: String },
+    DoubleFreeProtection {
+        /// Lokasi double-free
+        location: String,
+    },
     /// Memory leak detection
-    MemoryLeakDetected { size: usize, location: String },
+    MemoryLeakDetected {
+        /// Ukuran memori yang bocor
+        size: usize,
+        /// Lokasi alokasi yang bocor
+        location: String,
+    },
     /// Resource exhaustion protection
-    ResourceExhaustionProtection { resource: String, limit: usize, requested: usize },
+    ResourceExhaustionProtection {
+        /// Nama resource yang habis
+        resource: String,
+        /// Batas maksimum resource
+        limit: usize,
+        /// Jumlah yang diminta
+        requested: usize,
+    },
     /// Timeout protection
-    TimeoutProtection { operation: String, timeout: u64 },
+    TimeoutProtection {
+        /// Operasi yang timeout
+        operation: String,
+        /// Batas waktu dalam milidetik
+        timeout: u64,
+    },
     /// Deadlock prevention
-    DeadlockPrevention { operation: String, cycle: String },
+    DeadlockPrevention {
+        /// Operasi yang menyebabkan deadlock
+        operation: String,
+        /// Siklus dependensi yang terdeteksi
+        cycle: String,
+    },
     /// Race condition prevention
-    RaceConditionPrevention { operation: String, access_pattern: String },
+    RaceConditionPrevention {
+        /// Operasi yang mengalami race condition
+        operation: String,
+        /// Pola akses yang tidak aman
+        access_pattern: String,
+    },
     /// Data race prevention
-    DataRacePrevention { operation: String, thread_ids: String },
+    DataRacePrevention {
+        /// Operasi yang mengalami data race
+        operation: String,
+        /// ID thread yang terlibat
+        thread_ids: String,
+    },
     /// Atomicity violation
-    AtomicityViolation { operation: String, expected: String, actual: String },
+    AtomicityViolation {
+        /// Operasi yang tidak atomik
+        operation: String,
+        /// State yang diharapkan
+        expected: String,
+        /// State aktual
+        actual: String,
+    },
     /// Ordering violation
-    OrderingViolation { operation: String, expected: String, actual: String },
+    OrderingViolation {
+        /// Operasi yang melanggar urutan
+        operation: String,
+        /// Urutan yang diharapkan
+        expected: String,
+        /// Urutan aktual
+        actual: String,
+    },
     /// Visibility violation
-    VisibilityViolation { operation: String, thread_ids: String },
+    VisibilityViolation {
+        /// Operasi dengan masalah visibilitas
+        operation: String,
+        /// ID thread yang terlibat
+        thread_ids: String,
+    },
     /// Happens-before violation
-    HappensBeforeViolation { operation: String, order: String },
+    HappensBeforeViolation {
+        /// Operasi yang melanggar happens-before
+        operation: String,
+        /// Urutan happens-before yang dilanggar
+        order: String,
+    },
 }
 
 impl std::error::Error for SecurityError {}
@@ -368,11 +593,14 @@ pub type SecurityResult<T> = Result<T, SecurityError>;
 /// Deterministic protocol version - explicit enum, no implicit values
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ProtocolVersion {
-    V1_0, // 0x0100
+    /// Versi 1.0 (0x0100)
+    V1_0,
 }
 
 impl ProtocolVersion {
+    /// Versi protokol yang sedang digunakan
     pub const CURRENT: Self = Self::V1_0;
+    /// Ukuran representasi bytes versi protokol
     pub const BYTES: usize = 2;
     
     /// Convert to bytes - no panic, explicit error handling
@@ -404,10 +632,15 @@ impl ProtocolVersion {
 /// Deterministic message type - explicit enum, no implicit values
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MessageType {
+    /// Pesan inisiasi handshake
     HandshakeInit = 0x01,
+    /// Pesan respons handshake
     HandshakeResponse = 0x02,
+    /// Pesan penyelesaian handshake
     HandshakeComplete = 0x03,
+    /// Pesan data terenkripsi
     DataMessage = 0x04,
+    /// Pesan rotasi kunci
     KeyRotation = 0x05,
 }
 
@@ -433,9 +666,12 @@ impl MessageType {
 /// Deterministic cipher suite - explicit enum, no implicit values
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CipherSuite {
-    Standard = 0x01,   // Kyber-768 + Dilithium3
-    High = 0x02,       // Kyber-1024 + Dilithium5
-    Maximum = 0x03,    // Kyber-1024 + Dilithium5 + extra
+    /// Kyber-768 + Dilithium3 (keamanan standar)
+    Standard = 0x01,
+    /// Kyber-1024 + Dilithium5 (keamanan tinggi)
+    High = 0x02,
+    /// Kyber-1024 + Dilithium5 + lapisan tambahan (keamanan maksimum)
+    Maximum = 0x03,
 }
 
 impl CipherSuite {
@@ -467,8 +703,11 @@ impl CipherSuite {
 /// Security levels - explicit enum
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SecurityLevel {
+    /// Level keamanan standar
     Standard,
+    /// Level keamanan tinggi
     High,
+    /// Level keamanan maksimum
     Maximum,
 }
 
@@ -1047,6 +1286,7 @@ impl SecurityIntegerConversions for u8 {
 
 /// Security-hardened array operations - bounds checked, no panic
 pub trait SecurityArrayOperations {
+    /// Tipe elemen array
     type Output;
     
     /// Get element at index - bounds checked, no panic
@@ -1212,8 +1452,11 @@ pub fn checked_div_security(a: usize, b: usize) -> SecurityResult<usize> {
 
 /// Security-hardened deterministic state machine base trait
 pub trait SecurityStateMachine {
+    /// Tipe state machine
     type State: Eq + std::hash::Hash + std::fmt::Debug;
+    /// Tipe event yang memicu transisi state
     type Event: std::fmt::Debug;
+    /// Tipe konteks tambahan untuk validasi transisi
     type Context: std::fmt::Debug;
     
     /// Get current state - deterministic
@@ -1294,18 +1537,31 @@ pub trait SecurityResourceManagement {
 /// Security-hardened deterministic protocol message header
 #[derive(Debug, Clone, PartialEq)]
 pub struct SecurityMessageHeader {
+    /// Versi protokol
     pub protocol_version: ProtocolVersion,
+    /// Tipe pesan
     pub message_type: MessageType,
+    /// Cipher suite yang digunakan
     pub cipher_suite: CipherSuite,
+    /// Feature flags aktif
     pub feature_flags: FeatureFlags,
+    /// Level proteksi metadata (0-3)
     pub metadata_level: u8,
+    /// Apakah onion routing diaktifkan
     pub onion_enabled: bool,
+    /// Mode transport (0=TCP, 1=UDP, dll)
     pub transport_mode: u8,
+    /// Timestamp Unix pesan
     pub timestamp: i64,
+    /// Panjang payload dalam bytes
     pub message_length: u32,
+    /// ID unik pesan (32 bytes)
     pub message_id: [u8; 32],
+    /// ID sesi aktif (32 bytes)
     pub session_id: [u8; 32],
+    /// Jumlah ekstensi header
     pub extension_count: u16,
+    /// Panjang signature dalam bytes
     pub signature_length: u16,
 }
 

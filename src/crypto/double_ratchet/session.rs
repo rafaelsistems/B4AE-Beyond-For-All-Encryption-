@@ -14,12 +14,16 @@ pub enum RatchetState {
     Active,
     /// Waiting for ratchet acknowledgment
     RatchetPending {
+        /// Update ratchet yang sedang menunggu konfirmasi
         pending_update: RatchetUpdate,
+        /// Timestamp Unix saat update dikirim
         sent_at: u64,
     },
     /// Processing received ratchet
     RatchetReceived {
+        /// Update ratchet yang diterima dari peer
         received_update: RatchetUpdate,
+        /// Apakah update sudah diproses
         processed: bool,
     },
     /// Error state

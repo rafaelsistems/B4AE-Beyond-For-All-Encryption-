@@ -227,10 +227,15 @@ impl Default for PerformanceMonitor {
 /// Comprehensive performance report
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformanceReport {
+    /// Durasi uptime sistem
     pub uptime: Duration,
+    /// Total operasi yang telah dieksekusi
     pub total_operations: u64,
+    /// Total error yang terjadi
     pub total_errors: u64,
+    /// Metrik per nama operasi
     pub operations: HashMap<String, PerformanceMetrics>,
+    /// Waktu laporan dibuat
     pub timestamp: SystemTime,
 }
 

@@ -4,32 +4,41 @@
 use crate::crypto::{CryptoError, CryptoResult};
 use std::fmt;
 
-#[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
+#[cfg(feature = "pqcrypto-mldsa")]
+use pqcrypto_mldsa::mldsa87;
+
+#[cfg(all(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mldsa")))]
 use pqcrypto_dilithium::dilithium5;
 
-/// Dilithium5 Public Key (2592 bytes)
+/// Dilithium5/ML-DSA-87 Public Key (2592 bytes)
 #[derive(Clone)]
 pub struct DilithiumPublicKey {
-    #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
+    #[cfg(feature = "pqcrypto-mldsa")]
+    inner: mldsa87::PublicKey,
+    #[cfg(all(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mldsa")))]
     inner: dilithium5::PublicKey,
-    #[cfg(not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+    #[cfg(not(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
     data: Vec<u8>,
 }
 
-/// Dilithium5 Secret Key (4864 bytes)
+/// Dilithium5/ML-DSA-87 Secret Key (4864 bytes)
 pub struct DilithiumSecretKey {
-    #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
+    #[cfg(feature = "pqcrypto-mldsa")]
+    inner: mldsa87::SecretKey,
+    #[cfg(all(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mldsa")))]
     inner: dilithium5::SecretKey,
-    #[cfg(not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+    #[cfg(not(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
     data: Vec<u8>,
 }
 
-/// Dilithium5 Signature (4595 bytes)
+/// Dilithium5/ML-DSA-87 Signature
 #[derive(Clone)]
 pub struct DilithiumSignature {
-    #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
+    #[cfg(feature = "pqcrypto-mldsa")]
+    inner: mldsa87::DetachedSignature,
+    #[cfg(all(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mldsa")))]
     inner: dilithium5::DetachedSignature,
-    #[cfg(not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+    #[cfg(not(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
     data: Vec<u8>,
 }
 
@@ -45,30 +54,36 @@ impl DilithiumPublicKey {
             ));
         }
         
-        #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
+        #[cfg(feature = "pqcrypto-mldsa")]
+        {
+            use pqcrypto_traits::sign::PublicKey;
+            let inner = mldsa87::PublicKey::from_bytes(bytes)
+                .map_err(|_| CryptoError::InvalidKeySize("Invalid ML-DSA public key".to_string()))?;
+            return Ok(DilithiumPublicKey { inner });
+        }
+        
+        #[cfg(all(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mldsa")))]
         {
             use pqcrypto_traits::sign::PublicKey;
             let inner = dilithium5::PublicKey::from_bytes(bytes)
                 .map_err(|_| CryptoError::InvalidKeySize("Invalid Dilithium public key".to_string()))?;
-            Ok(DilithiumPublicKey { inner })
+            return Ok(DilithiumPublicKey { inner });
         }
         
-        #[cfg(not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
-        Ok(DilithiumPublicKey {
-            data: bytes.to_vec(),
-        })
+        #[cfg(not(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+        Ok(DilithiumPublicKey { data: bytes.to_vec() })
     }
 
-    /// Serialize to bytes.
+    /// Serialisasi ke bytes.
     pub fn as_bytes(&self) -> &[u8] {
-        #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
+        #[cfg(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
         {
             use pqcrypto_traits::sign::PublicKey;
-            self.inner.as_bytes()
+            return self.inner.as_bytes();
         }
         
-        #[cfg(not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
-        &self.data
+        #[cfg(not(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+        { &self.data }
     }
 }
 
@@ -84,30 +99,36 @@ impl DilithiumSecretKey {
             ));
         }
         
-        #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
+        #[cfg(feature = "pqcrypto-mldsa")]
+        {
+            use pqcrypto_traits::sign::SecretKey;
+            let inner = mldsa87::SecretKey::from_bytes(bytes)
+                .map_err(|_| CryptoError::InvalidKeySize("Invalid ML-DSA secret key".to_string()))?;
+            return Ok(DilithiumSecretKey { inner });
+        }
+        
+        #[cfg(all(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mldsa")))]
         {
             use pqcrypto_traits::sign::SecretKey;
             let inner = dilithium5::SecretKey::from_bytes(bytes)
                 .map_err(|_| CryptoError::InvalidKeySize("Invalid Dilithium secret key".to_string()))?;
-            Ok(DilithiumSecretKey { inner })
+            return Ok(DilithiumSecretKey { inner });
         }
         
-        #[cfg(not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
-        Ok(DilithiumSecretKey {
-            data: bytes.to_vec(),
-        })
+        #[cfg(not(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+        Ok(DilithiumSecretKey { data: bytes.to_vec() })
     }
 
-    /// Serialize to bytes.
+    /// Serialisasi ke bytes.
     pub fn as_bytes(&self) -> &[u8] {
-        #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
+        #[cfg(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
         {
             use pqcrypto_traits::sign::SecretKey;
-            self.inner.as_bytes()
+            return self.inner.as_bytes();
         }
         
-        #[cfg(not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
-        &self.data
+        #[cfg(not(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+        { &self.data }
     }
 }
 
@@ -124,30 +145,36 @@ impl DilithiumSignature {
             ));
         }
         
-        #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
+        #[cfg(feature = "pqcrypto-mldsa")]
+        {
+            use pqcrypto_traits::sign::DetachedSignature;
+            let inner = mldsa87::DetachedSignature::from_bytes(bytes)
+                .map_err(|_| CryptoError::InvalidInput("Invalid ML-DSA signature".to_string()))?;
+            return Ok(DilithiumSignature { inner });
+        }
+        
+        #[cfg(all(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mldsa")))]
         {
             use pqcrypto_traits::sign::DetachedSignature;
             let inner = dilithium5::DetachedSignature::from_bytes(bytes)
                 .map_err(|_| CryptoError::InvalidInput("Invalid Dilithium signature".to_string()))?;
-            Ok(DilithiumSignature { inner })
+            return Ok(DilithiumSignature { inner });
         }
         
-        #[cfg(not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
-        Ok(DilithiumSignature {
-            data: bytes.to_vec(),
-        })
+        #[cfg(not(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+        Ok(DilithiumSignature { data: bytes.to_vec() })
     }
 
-    /// Serialize to bytes.
+    /// Serialisasi ke bytes.
     pub fn as_bytes(&self) -> &[u8] {
-        #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
+        #[cfg(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
         {
             use pqcrypto_traits::sign::DetachedSignature;
-            self.inner.as_bytes()
+            return self.inner.as_bytes();
         }
         
-        #[cfg(not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
-        &self.data
+        #[cfg(not(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+        { &self.data }
     }
 }
 
@@ -177,23 +204,28 @@ pub fn keypair() -> CryptoResult<DilithiumKeyPair> {
         })
     }
     
-    #[cfg(all(not(feature = "liboqs"), any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+    #[cfg(all(not(feature = "liboqs"), feature = "pqcrypto-mldsa"))]
     {
-        // Use real pqcrypto implementation
-        let (pk, sk) = dilithium5::keypair();
-        
-        Ok(DilithiumKeyPair {
+        let (pk, sk) = mldsa87::keypair();
+        return Ok(DilithiumKeyPair {
             public_key: DilithiumPublicKey { inner: pk },
             secret_key: DilithiumSecretKey { inner: sk },
-        })
+        });
     }
     
-    #[cfg(all(not(feature = "liboqs"), not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))))]
+    #[cfg(all(not(feature = "liboqs"), any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mldsa")))]
     {
-        Err(CryptoError::KeyGenerationFailed(
-            "No Dilithium implementation available. Enable 'liboqs' feature for production use".to_string()
-        ))
+        let (pk, sk) = dilithium5::keypair();
+        return Ok(DilithiumKeyPair {
+            public_key: DilithiumPublicKey { inner: pk },
+            secret_key: DilithiumSecretKey { inner: sk },
+        });
     }
+    
+    #[cfg(not(any(feature = "liboqs", feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+    Err(CryptoError::KeyGenerationFailed(
+        "Tidak ada implementasi DSA yang tersedia. Aktifkan feature 'pqcrypto-mldsa'".to_string()
+    ))
 }
 
 /// Sign a message with Dilithium5
@@ -214,20 +246,22 @@ pub fn sign(secret_key: &DilithiumSecretKey, message: &[u8]) -> CryptoResult<Dil
         DilithiumSignature::from_bytes(signature.as_ref())
     }
     
-    #[cfg(all(not(feature = "liboqs"), any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+    #[cfg(all(not(feature = "liboqs"), feature = "pqcrypto-mldsa"))]
     {
-        // Use real pqcrypto implementation
-        let sig = dilithium5::detached_sign(message, &secret_key.inner);
-        
-        Ok(DilithiumSignature { inner: sig })
+        let sig = mldsa87::detached_sign(message, &secret_key.inner);
+        return Ok(DilithiumSignature { inner: sig });
     }
     
-    #[cfg(all(not(feature = "liboqs"), not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))))]
+    #[cfg(all(not(feature = "liboqs"), any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mldsa")))]
     {
-        Err(CryptoError::SignatureFailed(
-            "No Dilithium implementation available".to_string()
-        ))
+        let sig = dilithium5::detached_sign(message, &secret_key.inner);
+        return Ok(DilithiumSignature { inner: sig });
     }
+    
+    #[cfg(not(any(feature = "liboqs", feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+    Err(CryptoError::SignatureFailed(
+        "Tidak ada implementasi DSA yang tersedia".to_string()
+    ))
 }
 
 /// Verify a Dilithium5 signature
@@ -253,32 +287,33 @@ pub fn verify(
             .map_err(|e| CryptoError::VerificationFailed(e.to_string()))
     }
     
-    #[cfg(all(not(feature = "liboqs"), any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+    #[cfg(all(not(feature = "liboqs"), feature = "pqcrypto-mldsa"))]
     {
-        // Use real pqcrypto implementation
-        // Return Ok(false) for invalid signature instead of error
-        Ok(dilithium5::verify_detached_signature(&signature.inner, message, &public_key.inner).is_ok())
+        return Ok(mldsa87::verify_detached_signature(&signature.inner, message, &public_key.inner).is_ok());
     }
     
-    #[cfg(all(not(feature = "liboqs"), not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))))]
+    #[cfg(all(not(feature = "liboqs"), any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"), not(feature = "pqcrypto-mldsa")))]
     {
-        Err(CryptoError::VerificationFailed(
-            "No Dilithium implementation available".to_string()
-        ))
+        return Ok(dilithium5::verify_detached_signature(&signature.inner, message, &public_key.inner).is_ok());
     }
+    
+    #[cfg(not(any(feature = "liboqs", feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+    Err(CryptoError::VerificationFailed(
+        "Tidak ada implementasi DSA yang tersedia".to_string()
+    ))
 }
 
 impl fmt::Debug for DilithiumPublicKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
+        #[cfg(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
         {
             use pqcrypto_traits::sign::PublicKey;
             let bytes = self.inner.as_bytes();
-            write!(f, "DilithiumPublicKey({}...)", hex::encode(&bytes[..8]))
+            return write!(f, "DilithiumPublicKey({}...)", hex::encode(&bytes[..8]));
         }
         
-        #[cfg(not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
-        write!(f, "DilithiumPublicKey({}...)", hex::encode(&self.data[..8]))
+        #[cfg(not(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+        { write!(f, "DilithiumPublicKey({}...)", hex::encode(&self.data[..8])) }
     }
 }
 
@@ -290,29 +325,23 @@ impl fmt::Debug for DilithiumSecretKey {
 
 impl fmt::Debug for DilithiumSignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        #[cfg(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
+        #[cfg(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt"))]
         {
             use pqcrypto_traits::sign::DetachedSignature;
             let bytes = self.inner.as_bytes();
-            write!(f, "DilithiumSignature({}...)", hex::encode(&bytes[..8]))
+            return write!(f, "DilithiumSignature({}...)", hex::encode(&bytes[..8]));
         }
         
-        #[cfg(not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
-        write!(f, "DilithiumSignature({}...)", hex::encode(&self.data[..8]))
+        #[cfg(not(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+        { write!(f, "DilithiumSignature({}...)", hex::encode(&self.data[..8])) }
     }
 }
 
 // Secure drop implementation
 impl Drop for DilithiumSecretKey {
     fn drop(&mut self) {
-        // pqcrypto types handle their own secure drop
-        #[cfg(not(any(feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
-        {
-            // Zero out secret key memory
-            for byte in &mut self.data {
-                *byte = 0;
-            }
-        }
+        #[cfg(not(any(feature = "pqcrypto-mldsa", feature = "pqcrypto-dilithium", feature = "pqcrypto-alt")))]
+        for byte in &mut self.data { *byte = 0; }
     }
 }
 

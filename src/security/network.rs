@@ -4,16 +4,17 @@
 //! for all network protocol parsing operations.
 
 use crate::security::{
-    SecurityResult, SecurityError, SecurityBuffer, SecurityStateMachine,
-    ProtocolVersion, MessageType, CipherSuite, SecurityMessageHeader
+    SecurityResult, SecurityError, SecurityBuffer, MessageType, CipherSuite, SecurityMessageHeader
 };
-use std::convert::TryFrom;
 
-/// Maximum sizes for network protocol elements
-pub const MAX_MESSAGE_SIZE: usize = 1024 * 1024; // 1 MiB
-pub const MAX_HEADER_SIZE: usize = 64; // 64 bytes
-pub const MAX_EXTENSION_SIZE: usize = 4096; // 4 KiB
-pub const MAX_HANDSHAKE_SIZE: usize = 16 * 1024; // 16 KiB
+/// Ukuran maksimum pesan jaringan (1 MiB)
+pub const MAX_MESSAGE_SIZE: usize = 1024 * 1024;
+/// Ukuran maksimum header pesan (64 bytes)
+pub const MAX_HEADER_SIZE: usize = 64;
+/// Ukuran maksimum data ekstensi (4 KiB)
+pub const MAX_EXTENSION_SIZE: usize = 4096;
+/// Ukuran maksimum pesan handshake (16 KiB)
+pub const MAX_HANDSHAKE_SIZE: usize = 16 * 1024;
 
 /// Network protocol parser with comprehensive validation
 pub struct SecurityNetworkParser {
@@ -24,6 +25,7 @@ pub struct SecurityNetworkParser {
 }
 
 impl SecurityNetworkParser {
+    /// Buat parser jaringan baru dengan batas ukuran default
     pub fn new() -> Self {
         SecurityNetworkParser {
             max_message_size: MAX_MESSAGE_SIZE,
@@ -33,6 +35,7 @@ impl SecurityNetworkParser {
         }
     }
     
+    /// Buat parser jaringan dengan batas ukuran kustom
     pub fn with_limits(
         max_message_size: usize,
         max_header_size: usize,
@@ -263,28 +266,36 @@ impl SecurityNetworkParser {
 /// Complete network message with header and payload
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SecurityNetworkMessage {
+    /// Header pesan jaringan
     pub header: SecurityMessageHeader,
+    /// Payload terenkripsi
     pub payload: Vec<u8>,
 }
 
 /// Handshake message wrapper
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SecurityHandshakeMessage {
+    /// Pesan jaringan yang dibungkus
     pub message: SecurityNetworkMessage,
 }
 
 /// Data message wrapper
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SecurityDataMessage {
+    /// Pesan jaringan yang dibungkus
     pub message: SecurityNetworkMessage,
 }
 
 /// Validation settings for network parser
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SecurityValidationSettings {
+    /// Ukuran maksimum pesan dalam bytes
     pub max_message_size: usize,
+    /// Ukuran maksimum header dalam bytes
     pub max_header_size: usize,
+    /// Ukuran maksimum ekstensi dalam bytes
     pub max_extension_size: usize,
+    /// Aktifkan validasi ketat (tolak pesan yang ambigu)
     pub strict_validation: bool,
 }
 
@@ -295,6 +306,7 @@ pub struct SecurityStreamingValidator {
 }
 
 impl SecurityStreamingValidator {
+    /// Buat validator streaming baru dengan ukuran buffer maksimum
     pub fn new(max_buffer_size: usize) -> SecurityResult<Self> {
         Ok(SecurityStreamingValidator {
             parser: SecurityNetworkParser::new(),

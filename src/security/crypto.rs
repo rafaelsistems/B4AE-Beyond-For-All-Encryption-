@@ -4,34 +4,44 @@
 //! bounds checking and constant-time execution for sensitive operations.
 
 use crate::security::hardened_core::{
-    SecurityResult, SecurityError, SecurityBuffer, constant_time_eq_security,
-    checked_add_security, checked_mul_security, checked_sub_security
+    SecurityResult, SecurityError, constant_time_eq_security,
+    checked_add_security, checked_sub_security
 };
 use zeroize::Zeroizing;
 use subtle::ConstantTimeEq;
 
-/// Maximum sizes for cryptographic primitives
-pub const MAX_KEY_SIZE: usize = 64; // 512 bits for post-quantum keys
-pub const MAX_SIGNATURE_SIZE: usize = 4595; // Dilithium5 signature size
-pub const MAX_CIPHERTEXT_SIZE: usize = 1568; // Kyber-1024 ciphertext size
-pub const MAX_HASH_SIZE: usize = 64; // SHA3-512
+/// Ukuran maksimum kunci kriptografi (512 bit untuk kunci post-quantum)
+pub const MAX_KEY_SIZE: usize = 64;
+/// Ukuran maksimum signature Dilithium5
+pub const MAX_SIGNATURE_SIZE: usize = 4595;
+/// Ukuran maksimum ciphertext Kyber-1024
+pub const MAX_CIPHERTEXT_SIZE: usize = 1568;
+/// Ukuran maksimum hash SHA3-512
+pub const MAX_HASH_SIZE: usize = 64;
 
-/// Security-hardened key material with automatic zeroization
+/// Kunci kriptografi yang hardened dengan zeroization otomatis saat drop
 pub struct SecurityKey {
     data: Zeroizing<Vec<u8>>,
     key_type: KeyType,
 }
 
+/// Tipe penggunaan kunci kriptografi
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyType {
+    /// Kunci untuk enkripsi data
     Encryption,
+    /// Kunci untuk autentikasi pesan
     Authentication,
+    /// Kunci untuk proteksi metadata
     Metadata,
+    /// Kunci ephemeral (sementara, per-sesi)
     Ephemeral,
+    /// Kunci statis (jangka panjang)
     Static,
 }
 
 impl SecurityKey {
+    /// Buat SecurityKey baru dari vector bytes dengan tipe kunci yang ditentukan
     pub fn new(data: Vec<u8>, key_type: KeyType) -> SecurityResult<Self> {
         // Validate key size
         if data.is_empty() {
@@ -54,22 +64,27 @@ impl SecurityKey {
         })
     }
     
+    /// Buat SecurityKey dari slice bytes
     pub fn from_slice(data: &[u8], key_type: KeyType) -> SecurityResult<Self> {
         Self::new(data.to_vec(), key_type)
     }
     
+    /// Kembalikan data kunci sebagai slice bytes
     pub fn as_slice(&self) -> &[u8] {
         &self.data
     }
     
+    /// Kembalikan tipe kunci
     pub fn key_type(&self) -> KeyType {
         self.key_type
     }
     
+    /// Kembalikan panjang kunci dalam bytes
     pub fn len(&self) -> usize {
         self.data.len()
     }
     
+    /// Cek apakah kunci kosong
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
@@ -169,6 +184,7 @@ impl SecurityHkdf {
 pub struct SecurityAesGcm;
 
 impl SecurityAesGcm {
+    /// Enkripsi data dengan AES-256-GCM, validasi penuh sebelum operasi
     pub fn encrypt(
         key: &SecurityKey,
         nonce: &[u8],
@@ -223,6 +239,7 @@ impl SecurityAesGcm {
         Ok(vec![0u8; ciphertext_len])
     }
     
+    /// Dekripsi dan verifikasi autentikasi AES-256-GCM
     pub fn decrypt(
         key: &SecurityKey,
         nonce: &[u8],

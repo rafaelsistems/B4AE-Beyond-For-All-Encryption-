@@ -5,9 +5,8 @@
 
 use crate::security::{
     SecurityResult, SecurityError, SecurityBuffer, SecurityNetworkParser,
-    SecurityHandshakeStateMachine, SecurityHybridParser, SecurityKey, KeyType,
-    SecurityHkdf, SecurityAesGcm, SecurityCompare, SecurityRandom,
-    ProtocolVersion, MessageType, CipherSuite, HandshakeState
+    SecurityHandshakeStateMachine, SecurityKey, KeyType,
+    SecurityHkdf, HandshakeState
 };
 
 /// Example: Migrating from panic-prone array slicing to SecurityBuffer
@@ -213,26 +212,35 @@ pub mod state_machine_migration {
     use super::*;
     
     /// OLD: Implicit state transitions without validation
+    /// State machine handshake lama (sebelum hardening) — tanpa validasi transisi
     pub struct OldHandshakeStateMachine {
         state: OldHandshakeState,
     }
     
+    /// State handshake lama tanpa validasi
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum OldHandshakeState {
+        /// State awal handshake
         Init,
+        /// Menunggu respons
         WaitingResponse,
+        /// Menunggu konfirmasi
         WaitingComplete,
+        /// Handshake selesai
         Completed,
+        /// Handshake gagal
         Failed,
     }
     
     impl OldHandshakeStateMachine {
+        /// Buat state machine lama
         pub fn new() -> Self {
             OldHandshakeStateMachine {
                 state: OldHandshakeState::Init,
             }
         }
         
+        /// Transisi ke state baru tanpa validasi (berbahaya)
         pub fn transition(&mut self, new_state: OldHandshakeState) {
             // No validation - can transition to any state
             self.state = new_state;
@@ -245,17 +253,20 @@ pub mod state_machine_migration {
     }
     
     impl NewHandshakeStateMachine {
+        /// Buat state machine baru dengan validasi penuh
         pub fn new() -> SecurityResult<Self> {
             Ok(NewHandshakeStateMachine {
                 state_machine: SecurityHandshakeStateMachine::new(16384)?,
             })
         }
         
+        /// Transisi ke state baru dengan validasi eksplisit
         pub fn transition(&mut self, new_state: HandshakeState) -> SecurityResult<()> {
             // Explicit validation of state transitions
             self.state_machine.transition_state(new_state)
         }
         
+        /// Kembalikan state handshake saat ini
         pub fn current_state(&self) -> HandshakeState {
             self.state_machine.current_state()
         }
@@ -287,7 +298,7 @@ pub mod state_machine_migration {
 
 /// Complete migration checklist for B4AE codebase
 pub mod migration_checklist {
-    use super::*;
+    
     
     /// Checklist for migrating existing B4AE modules to security-hardened implementations
     pub const MIGRATION_CHECKLIST: &[&str] = &[
@@ -318,6 +329,7 @@ pub mod migration_checklist {
         "storage.rs - Implement resource exhaustion protection",
     ];
     
+    /// Cetak panduan migrasi ke stdout
     pub fn print_migration_guide() {
         println!("B4AE Security Hardening Migration Guide");
         println!("======================================");
