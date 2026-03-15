@@ -23,3 +23,27 @@ name = "fuzz_message"
 path = "fuzz_targets/fuzz_message.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "fuzz_mlkem"
+path = "fuzz_targets/fuzz_mlkem.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_mldsa"
+path = "fuzz_targets/fuzz_mldsa.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_aes_gcm"
+path = "fuzz_targets/fuzz_aes_gcm.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_hkdf"
+path = "fuzz_targets/fuzz_hkdf.rs"
+test = false
+doc = false
