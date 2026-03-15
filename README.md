@@ -2,18 +2,19 @@
 
 **Research-Grade Post-Quantum Metadata-Hardened Secure Messaging Protocol**
 
-*B4AE v2.0* — A formally verified, quantum-resistant protocol with authentication mode separation, stateless DoS protection, and global traffic scheduling for metadata protection.
+*B4AE v2.1* — A formally verified, quantum-resistant protocol with authentication mode separation, stateless DoS protection, and global traffic scheduling for metadata protection.
 
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
-[![Version](https://img.shields.io/badge/version-2.0.0-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.1.1-green.svg)](CHANGELOG.md)
+[![Crates.io](https://img.shields.io/crates/v/b4ae.svg)](https://crates.io/crates/b4ae)
 
 ## Overview
 
 B4AE v2.0 is a **research-grade protocol architecture** designed for high-assurance deployments requiring formal verification, post-quantum security, and strong metadata protection. It transforms B4AE from "strong engineering" (v1.0) to "research-grade protocol" suitable for academic scrutiny and formal analysis.
 
-**Current Version**: v2.0.0 (100% complete - 75/75 tasks)  
-**Previous Version**: v1.0.0 (deprecated - see [Migration Guide](docs/V2_MIGRATION_GUIDE.md))
+**Current Version**: v2.1.1 (production-ready — 0 warnings, 0 errors, NIST PQC standards)  
+**Previous Version**: v2.0.0 (see [CHANGELOG](CHANGELOG.md))
 
 ### Key Features (v2.0)
 
@@ -126,9 +127,9 @@ Add B4AE v2.0 to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-b4ae = { version = "2.0", features = ["v2_protocol"] }   # Enable v2.0 protocol
+b4ae = { version = "2.1", features = ["v2_protocol"] }   # Enable v2 protocol + B4aeClientV2
 # Optional features:
-# b4ae = { version = "2.0", features = ["v2_protocol", "elara"] }  # + ELARA UDP transport
+# b4ae = { version = "2.1", features = ["v2_protocol", "elara"] }  # + ELARA UDP transport
 ```
 
 **Features:** `v2_protocol` (v2.0 protocol), `elara` (UDP transport), `proxy` (SOCKS5, requires `elara`)
@@ -136,15 +137,13 @@ b4ae = { version = "2.0", features = ["v2_protocol"] }   # Enable v2.0 protocol
 ### Basic Usage (v2.0)
 
 ```rust
-use b4ae::protocol::v2::{
-    AuthenticationMode, GlobalTrafficScheduler, 
-    ModeNegotiation, SessionId
-};
+use b4ae::B4aeClientV2;
+use b4ae::protocol::v2::AuthenticationMode;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create clients with Mode A (deniable) or Mode B (post-quantum)
-    let mut alice = B4aeClient::new_v2(AuthenticationMode::ModeA)?;
-    let mut bob = B4aeClient::new_v2(AuthenticationMode::ModeB)?;
+    // Gunakan B4aeClientV2 — high-level API untuk v2 protocol
+    let mut alice = B4aeClientV2::new(AuthenticationMode::ModeA)?;
+    let mut bob = B4aeClientV2::new(AuthenticationMode::ModeA)?;
 
     let alice_id = b"alice".to_vec();
     let bob_id = b"bob".to_vec();
