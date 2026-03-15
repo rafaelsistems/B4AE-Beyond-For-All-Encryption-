@@ -8,21 +8,23 @@ use crate::error::{B4aeError, B4aeResult};
 use cryptoki::context::{CInitializeArgs, CInitializeFlags};
 use cryptoki::mechanism::Mechanism;
 use cryptoki::mechanism::eddsa::{EddsaParams, EddsaSignatureScheme};
-#[allow(unused_imports)]
 use cryptoki::object::{Attribute, ObjectClass, KeyType};
 use cryptoki::session::UserType;
 use cryptoki::types::AuthPin;
 use std::path::Path;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex};
 use zeroize::Zeroize;
 
 /// Enhanced PKCS#11 HSM backend with post-quantum support
+///
+/// Session dibuat baru per-operasi sesuai desain cryptoki —
+/// PKCS#11 C API tidak thread-safe sehingga Session sengaja
+/// tidak implement Send+Sync oleh library.
 #[cfg(feature = "hsm-pkcs11")]
 pub struct Pkcs11HsmEnhanced {
-    pkcs11: Arc<RwLock<Option<cryptoki::context::Pkcs11>>>,
+    pkcs11: Arc<Mutex<cryptoki::context::Pkcs11>>,
     slot_id: cryptoki::slot::Slot,
-    pin: Option<AuthPin>,
-    session_cache: Arc<RwLock<Option<cryptoki::session::Session>>>,
+    pin: Option<String>,
 }
 
 #[cfg(feature = "hsm-pkcs11")]
@@ -40,63 +42,36 @@ impl Pkcs11HsmEnhanced {
             .initialize(CInitializeArgs::new(CInitializeFlags::OS_LOCKING_OK))
             .map_err(|e| B4aeError::ProtocolError(format!("PKCS#11 initialize: {}", e)))?;
         
-        let pin = pin.map(|p| AuthPin::new(Box::from(p.into().as_str())));
-        
         Ok(Self {
-            pkcs11: Arc::new(RwLock::new(Some(pkcs11))),
+            pkcs11: Arc::new(Mutex::new(pkcs11)),
             slot_id,
-            pin,
-            session_cache: Arc::new(RwLock::new(None)),
+            pin: pin.map(|p| p.into()),
         })
     }
 
-    /// Initialize session with caching for performance
-    fn init_session(&self) -> B4aeResult<()> {
-        let mut cache = self.session_cache.write().map_err(|e| {
-            B4aeError::ProtocolError(format!("Session cache lock error: {}", e))
-        })?;
-        
-        if cache.is_none() {
-            let guard = self.pkcs11.read().map_err(|e| {
-                B4aeError::ProtocolError(format!("PKCS#11 lock error: {}", e))
-            })?;
-            
-            let pkcs11 = guard.as_ref().ok_or_else(|| {
-                B4aeError::ProtocolError("PKCS#11 finalized".to_string())
-            })?;
-            
-            let session = pkcs11
-                .open_rw_session(self.slot_id)
-                .map_err(|e| B4aeError::ProtocolError(format!("Open session: {}", e)))?;
-            
-            if let Some(ref pin) = self.pin {
-                session
-                    .login(UserType::User, Some(pin))
-                    .map_err(|e| B4aeError::ProtocolError(format!("Login: {}", e)))?;
-            }
-            
-            *cache = Some(session);
-        }
-        
-        Ok(())
-    }
-
-    /// Get cached session or create new one
+    /// Buat session baru per-operasi.
+    /// Session tidak di-cache karena cryptoki::Session sengaja tidak Send+Sync
+    /// (PKCS#11 C API tidak thread-safe per session).
     fn with_session<T, F>(&self, f: F) -> B4aeResult<T>
     where
-        F: FnOnce(&cryptoki::session::Session) -> B4aeResult<T>,
+        F: FnOnce(cryptoki::session::Session) -> B4aeResult<T>,
     {
-        self.init_session()?;
-        
-        let cache = self.session_cache.read().map_err(|e| {
-            B4aeError::ProtocolError(format!("Session cache read error: {}", e))
+        let guard = self.pkcs11.lock().map_err(|e| {
+            B4aeError::ProtocolError(format!("PKCS#11 lock error: {}", e))
         })?;
-        
-        if let Some(ref session) = *cache {
-            f(session)
-        } else {
-            Err(B4aeError::ProtocolError("Session not available".to_string()))
+
+        let session = guard
+            .open_rw_session(self.slot_id)
+            .map_err(|e| B4aeError::ProtocolError(format!("Open session: {}", e)))?;
+
+        if let Some(ref pin_str) = self.pin {
+            let pin = AuthPin::new(Box::from(pin_str.as_str()));
+            session
+                .login(UserType::User, Some(&pin))
+                .map_err(|e| B4aeError::ProtocolError(format!("Login: {}", e)))?;
         }
+
+        f(session)
     }
 
     /// Store key material securely in HSM
@@ -259,63 +234,31 @@ impl Pkcs11HsmEnhanced {
         })
     }
 
-    /// Secure key derivation using HSM
+    /// Secure key derivation using HSM-protected base key
     pub fn derive_key(&self, base_key_id: &str, context: &[u8], length: usize) -> B4aeResult<Vec<u8>> {
-        self.with_session(|_session| {
-            // Use HKDF mechanism if available, otherwise implement in software
-            // For now, implement HKDF in software with HSM-protected base key
-            let base_key = self.get_key(base_key_id)?;
-            
-            // HKDF implementation
-            let hkdf_result = crate::crypto::hkdf::derive_key(
-                &[&base_key, context],
-                b"B4AE-HSM-derive",
-                length,
-            ).map_err(|e| B4aeError::ProtocolError(format!("HKDF derivation: {}", e)))?;
+        let mut base_key = self.get_key(base_key_id)?;
 
-            // Zeroize base key from memory
-            let mut base_key_zeroized = base_key;
-            base_key_zeroized.zeroize();
+        let hkdf_result = crate::crypto::hkdf::derive_key(
+            &[&base_key, context],
+            b"B4AE-HSM-derive",
+            length,
+        ).map_err(|e| B4aeError::ProtocolError(format!("HKDF derivation: {}", e)))?;
 
-            Ok(hkdf_result)
-        })
-    }
-
-    /// Cleanup and secure session termination
-    pub fn cleanup(&self) -> B4aeResult<()> {
-        let mut cache = self.session_cache.write().map_err(|e| {
-            B4aeError::ProtocolError(format!("Session cache lock error: {}", e))
-        })?;
-
-        if let Some(ref session) = *cache {
-            let _ = session.logout();
-        }
-
-        *cache = None;
-        Ok(())
+        base_key.zeroize();
+        Ok(hkdf_result)
     }
 }
 
 #[cfg(feature = "hsm-pkcs11")]
 impl Drop for Pkcs11HsmEnhanced {
     fn drop(&mut self) {
-        let _ = self.cleanup();
-        
-        if let Ok(mut guard) = self.pkcs11.write() {
-            if let Some(pkcs11) = guard.take() {
+        if let Ok(mutex) = Arc::try_unwrap(self.pkcs11.clone()) {
+            if let Ok(pkcs11) = mutex.into_inner() {
                 let _ = pkcs11.finalize();
             }
         }
     }
 }
-
-/// HSM Backend implementation for B4AE integration
-/// SAFETY: Pkcs11HsmEnhanced menggunakan Arc<RwLock<...>> untuk semua akses mutable,
-/// sehingga aman untuk dikirim dan di-share antar thread.
-#[cfg(feature = "hsm-pkcs11")]
-unsafe impl Send for Pkcs11HsmEnhanced {}
-#[cfg(feature = "hsm-pkcs11")]
-unsafe impl Sync for Pkcs11HsmEnhanced {}
 
 #[cfg(feature = "hsm-pkcs11")]
 impl HsmBackend for Pkcs11HsmEnhanced {
@@ -335,9 +278,7 @@ impl HsmBackend for Pkcs11HsmEnhanced {
     }
 
     fn is_available(&self) -> bool {
-        self.session_cache.read()
-            .map(|cache| cache.is_some())
-            .unwrap_or(false)
+        self.pkcs11.lock().is_ok()
     }
 }
 
