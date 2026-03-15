@@ -5,6 +5,25 @@ All notable changes to B4AE will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-03-15
+
+### Added
+- `B4aeClientV2` — high-level client API that wires all v2 protocol modules into a single usable interface (feature flag: `v2_protocol`)
+  - Mode negotiation: `initiate_mode_negotiation()`, `respond_mode_negotiation()`, `complete_mode_negotiation()`
+  - Cookie challenge (DoS protection): `send_client_hello()`, `respond_cookie_challenge()`
+  - Handshake: `initiate_handshake_v2()`, `respond_to_handshake_v2()`, `process_response_v2()`, `complete_handshake_v2()`, `finalize_initiator_v2()`
+  - Messaging: `encrypt_message_v2()`, `decrypt_message_v2()` with global traffic scheduler integration
+  - Session management: `has_session()`, `close_session()`, `cleanup_inactive_sessions()`, `cleanup_old_state()`
+- `GlobalTrafficScheduler::schedule_message()` and `dequeue_message()` — previously missing enqueue/dequeue API
+- `pub use client_v2::B4aeClientV2` exported from crate root (gated `v2_protocol`)
+
+### Fixed
+- `protocol_id.rs`: replaced `include_str!` referencing a non-existent `.kiro/specs/` path with an embedded canonical spec string — fixes build failure on crates.io
+- `HandshakeInit::validate()`, `HandshakeResponse::validate()`, `HandshakeComplete::validate()`: replaced `SystemTime::now().unwrap()` with `crate::time::current_time_secs()` (panic-free)
+
+### Changed
+- v2 handshake bridge: v1 `HandshakeInit`/`Response`/`Complete` messages are serialized via `bincode` and carried inside v2 envelope fields, preserving full crypto state across the v1↔v2 boundary
+
 ## [2.0.0] - 2026-02-14
 
 ### 🎉 Major Release: Research-Grade Protocol Architecture

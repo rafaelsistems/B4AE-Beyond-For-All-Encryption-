@@ -1,6 +1,6 @@
 [package]
 name = "b4ae"
-version = "2.0.0"
+version = "2.1.0"
 edition = "2021"
 authors = ["B4AE Team"]
 description = "B4AE (Beyond For All Encryption) - Quantum-resistant secure communication protocol"
@@ -55,7 +55,7 @@ tokio = { version = "1.35", features = ["full"], optional = true }
 async-trait = "0.1"
 
 # Networking
-quinn = { version = "0.10", optional = true }
+quinn = { version = "0.11", optional = true }
 
 # ELARA Transport (UDP, NAT traversal via STUN, packet delivery)
 elara-transport = { version = "0.1", optional = true }

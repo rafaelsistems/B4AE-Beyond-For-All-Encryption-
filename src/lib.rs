@@ -20,6 +20,9 @@ pub mod time;
 pub mod error;
 /// High-level client API.
 pub mod client;
+/// High-level client API — v2.0 protocol (mode negotiation, cookie challenge, traffic scheduler).
+#[cfg(feature = "v2_protocol")]
+pub mod client_v2;
 /// Re-exports for common usage.
 pub mod prelude;
 /// Audit logging for compliance.
@@ -46,6 +49,8 @@ pub mod elara_node;
 pub use error::{B4aeError, B4aeResult};
 pub use crypto::{CryptoConfig, SecurityLevel};
 pub use client::{B4aeClient, B4aeConfig};
+#[cfg(feature = "v2_protocol")]
+pub use client_v2::B4aeClientV2;
 pub use protocol::SecurityProfile;
 
 /// B4AE crate version (Cargo.toml)

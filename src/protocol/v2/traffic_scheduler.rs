@@ -40,7 +40,6 @@
 
 use crate::protocol::v2::{SessionId, DEFAULT_TARGET_RATE, MAX_QUEUE_DEPTH, MAX_QUEUE_MEMORY};
 use std::collections::VecDeque;
-use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 /// Global traffic scheduler managing all outbound traffic
@@ -232,6 +231,75 @@ impl GlobalTrafficScheduler {
     /// * `memory` - New maximum queue memory in bytes
     pub fn set_max_queue_memory(&mut self, memory: usize) {
         self.max_queue_memory = memory;
+    }
+
+    /// Enqueue a message for scheduled output
+    ///
+    /// Adds a message to the unified queue. Returns an error if the queue is full
+    /// or the memory limit is exceeded.
+    ///
+    /// ## Arguments
+    ///
+    /// * `session_id` - Session ID this message belongs to
+    /// * `payload` - Encrypted message payload
+    /// * `is_dummy` - Whether this is a dummy message for cover traffic
+    ///
+    /// ## Returns
+    ///
+    /// `Ok(())` if the message was successfully queued, `Err(String)` if rejected.
+    ///
+    /// ## Requirements
+    ///
+    /// - REQ-5: Global Unified Traffic Scheduler
+    /// - REQ-6: Global Dummy Message Generation
+    pub fn schedule_message(
+        &mut self,
+        session_id: SessionId,
+        payload: Vec<u8>,
+        is_dummy: bool,
+    ) -> Result<(), String> {
+        // Check queue depth limit
+        if self.unified_queue.len() >= self.max_queue_depth {
+            return Err("Queue full: max queue depth reached".to_string());
+        }
+
+        // Check memory limit
+        let msg_size = payload.len();
+        if self.statistics.current_queue_memory + msg_size > self.max_queue_memory {
+            return Err("Memory limit exceeded: cannot enqueue message".to_string());
+        }
+
+        let scheduled_time = Instant::now();
+        let message = ScheduledMessage::new(session_id, payload, is_dummy, scheduled_time);
+
+        self.statistics.current_queue_memory += msg_size;
+        self.statistics.current_queue_depth = self.unified_queue.len() + 1;
+
+        if is_dummy {
+            self.statistics.dummy_messages_sent += 1;
+        } else {
+            self.statistics.real_messages_sent += 1;
+        }
+        self.statistics.total_messages_sent += 1;
+
+        self.unified_queue.push_back(message);
+        Ok(())
+    }
+
+    /// Dequeue the next message ready to be sent
+    ///
+    /// Returns the next scheduled message, or `None` if the queue is empty.
+    /// Updates statistics on dequeue.
+    pub fn dequeue_message(&mut self) -> Option<ScheduledMessage> {
+        if let Some(msg) = self.unified_queue.pop_front() {
+            let size = msg.size();
+            self.statistics.current_queue_memory =
+                self.statistics.current_queue_memory.saturating_sub(size);
+            self.statistics.current_queue_depth = self.unified_queue.len();
+            Some(msg)
+        } else {
+            None
+        }
     }
 }
 

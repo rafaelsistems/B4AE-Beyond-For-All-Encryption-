@@ -525,10 +525,7 @@ impl HandshakeInit {
         }
         
         // Timestamp should not be too far in the future (allow 5 minute clock skew)
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = crate::time::current_time_secs();
         
         if self.timestamp > now + 300 {
             return Err(ValidationError::FutureTimestamp);
@@ -588,10 +585,7 @@ impl HandshakeResponse {
         }
         
         // Timestamp should not be too far in the future (allow 5 minute clock skew)
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = crate::time::current_time_secs();
         
         if self.timestamp > now + 300 {
             return Err(ValidationError::FutureTimestamp);
@@ -640,10 +634,7 @@ impl HandshakeComplete {
         }
         
         // Timestamp should not be too far in the future (allow 5 minute clock skew)
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = crate::time::current_time_secs();
         
         if self.timestamp > now + 300 {
             return Err(ValidationError::FutureTimestamp);

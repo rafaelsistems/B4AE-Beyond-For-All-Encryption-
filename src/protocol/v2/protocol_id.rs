@@ -45,14 +45,54 @@ use crate::protocol::v2::types::ProtocolId;
 use sha3::{Digest, Sha3_256};
 use std::sync::OnceLock;
 
-/// Canonical protocol specification document embedded at compile time
+/// Canonical protocol specification for B4AE v2.0
 ///
-/// This is the design.md file from the spec directory, which serves as the
-/// canonical specification for B4AE v2.0. The protocol_id is derived from
-/// the SHA3-256 hash of this document.
-const CANONICAL_SPECIFICATION: &str = include_str!(
-    "../../../.kiro/specs/b4ae-v2-research-grade-architecture/design.md"
-);
+/// This string defines the canonical specification that the protocol_id is
+/// derived from. It captures the core cryptographic commitments of B4AE v2.0:
+/// authentication modes, key exchange algorithms, and security properties.
+///
+/// Changing this string changes the protocol_id, which causes handshake
+/// failures with peers running a different version — intentional behaviour
+/// for automatic version enforcement.
+const CANONICAL_SPECIFICATION: &str = "\
+B4AE Protocol Specification v2.0 — Canonical Reference\n\
+\n\
+## Authentication Modes\n\
+- Mode A: XEdDSA deniable signature over X25519 key (plausible deniability)\n\
+- Mode B: Dilithium5 post-quantum non-repudiable signature (NIST PQC Level 5)\n\
+- Mode C: Reserved for future hybrid research (not production-ready)\n\
+\n\
+## Key Exchange\n\
+- Classical: X25519 ECDH\n\
+- Post-Quantum: Kyber-1024 KEM (NIST PQC Level 5)\n\
+- Hybrid: X25519 || Kyber-1024 (combined shared secret via HKDF)\n\
+\n\
+## Symmetric Cryptography\n\
+- AEAD: AES-256-GCM\n\
+- Hash: SHA3-256 (domain separation), SHA-512 (key derivation)\n\
+- KDF: HKDF-SHA3-256\n\
+\n\
+## Protocol Flow\n\
+1. ModeNegotiation (client → server): supported_modes, preferred_mode, client_random\n\
+2. ModeSelection (server → client): selected_mode, server_random\n\
+3. ModeBinding: SHA3-256('B4AE-v2-mode-binding' || client_random || server_random || mode_id)\n\
+4. CookieChallenge (server → client): HMAC-SHA256(server_secret, client_ip || timestamp || client_random)\n\
+5. HandshakeInit (client → server): ephemeral keys, mode_binding, timestamp, signature\n\
+6. HandshakeResponse (server → client): ephemeral keys, Kyber ciphertext, mode_binding, signature\n\
+7. HandshakeComplete (client → server): confirmation, mode_binding, signature\n\
+\n\
+## Security Properties\n\
+- Forward Secrecy: PFS+ via Double Ratchet with Kyber-1024 PQ ratchet\n\
+- Downgrade Protection: mode_binding in every handshake message\n\
+- DoS Protection: Stateless HMAC cookie challenge (360x amplification reduction)\n\
+- Metadata Protection: Global unified traffic scheduler, constant-rate output\n\
+- Replay Protection: Bloom filter on client_random (30-second window)\n\
+- Side-Channel Resistance: Constant-time operations via subtle crate\n\
+- Memory Safety: Zeroize on drop for all key material\n\
+\n\
+## Version\n\
+B4AE-v2.0 — protocol_id = SHA3-256(this document)\n\
+";
 
 /// Global protocol ID computed once at initialization
 ///
