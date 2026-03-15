@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-XEdDSA is a deniable signature scheme that provides authentication while allowing verifiers to forge equivalent signatures, enabling plausible deniability. This specification defines the algorithm, deniability properties, hybrid construction with Dilithium5, and security analysis.
+XEdDSA is a deniable signature scheme that provides authentication while allowing verifiers to forge equivalent signatures, enabling plausible deniability. This specification defines the algorithm, deniability properties, hybrid construction with ML-DSA-87 (FIPS 204), and security analysis.
 
 **Implementation:** `src/crypto/xeddsa.rs` (34 tests passing)
 
@@ -170,15 +170,15 @@ pub fn verify(
 
 ---
 
-## Hybrid Construction with Dilithium5
+## Hybrid Construction with ML-DSA-87 (FIPS 204)
 
 ### Motivation
 
 **Problem:** XEdDSA is not post-quantum secure
 
-**Solution:** Hybrid signature combining XEdDSA (deniable) + Dilithium5 (post-quantum)
+**Solution:** Hybrid signature combining XEdDSA (deniable) + ML-DSA-87 (FIPS 204) (post-quantum)
 
-**Security:** Secure if either XEdDSA OR Dilithium5 is secure
+**Security:** Secure if either XEdDSA OR ML-DSA-87 (FIPS 204) is secure
 
 ---
 
@@ -205,7 +205,7 @@ pub fn sign_with_deniable_hybrid(
     // 1. Sign with XEdDSA
     let xeddsa_sig = self.xeddsa_keypair.sign(message)?;
     
-    // 2. Sign with Dilithium5
+    // 2. Sign with ML-DSA-87 (FIPS 204)
     let dilithium_sig = self.dilithium_keypair.sign(message)?;
     
     Ok(DeniableHybridSignature {
@@ -215,7 +215,7 @@ pub fn sign_with_deniable_hybrid(
 }
 ```
 
-**Signing Time:** ~0.05ms (XEdDSA) + ~3ms (Dilithium5) = ~3.05ms
+**Signing Time:** ~0.05ms (XEdDSA) + ~3ms (ML-DSA-87 (FIPS 204)) = ~3.05ms
 
 ---
 
@@ -234,7 +234,7 @@ pub fn verify_deniable_hybrid(
         &signature.xeddsa_signature,
     )?;
     
-    // 2. Verify Dilithium5 (constant-time)
+    // 2. Verify ML-DSA-87 (FIPS 204) (constant-time)
     let dilithium_valid = dilithium::verify(
         &public_key.dilithium_public,
         message,
@@ -246,7 +246,7 @@ pub fn verify_deniable_hybrid(
 }
 ```
 
-**Verification Time:** ~0.1ms (XEdDSA) + ~3ms (Dilithium5) = ~3.1ms
+**Verification Time:** ~0.1ms (XEdDSA) + ~3ms (ML-DSA-87 (FIPS 204)) = ~3.1ms
 
 **Security Property:** Both signatures must be valid (no short-circuit)
 
@@ -274,7 +274,7 @@ fn ct_point_eq(p1: &EdwardsPoint, p2: &EdwardsPoint) -> Choice {
 
 ### No Early Termination
 
-**Requirement:** Both XEdDSA and Dilithium5 signatures must be verified (no short-circuit)
+**Requirement:** Both XEdDSA and ML-DSA-87 (FIPS 204) signatures must be verified (no short-circuit)
 
 **Implementation:**
 ```rust
@@ -332,7 +332,7 @@ Ok(xeddsa_valid && dilithium_valid)
 - Want to prevent non-repudiation
 - Plausible deniability is important
 
-**Use Hybrid (XEdDSA + Dilithium5) when:**
+**Use Hybrid (XEdDSA + ML-DSA-87 (FIPS 204)) when:**
 - Deniability AND post-quantum security required
 - B4AE protocol (default)
 
@@ -359,9 +359,9 @@ Ok(xeddsa_valid && dilithium_valid)
 
 **Impact:** XEdDSA signatures can be forged by quantum computer
 
-**Mitigation:** Hybrid with Dilithium5 (post-quantum secure)
+**Mitigation:** Hybrid with ML-DSA-87 (FIPS 204) (post-quantum secure)
 
-**Residual Risk:** Low (Dilithium5 provides quantum resistance)
+**Residual Risk:** Low (ML-DSA-87 (FIPS 204) provides quantum resistance)
 
 ---
 
@@ -383,11 +383,11 @@ Ok(xeddsa_valid && dilithium_valid)
 
 **XEdDSA:** ~0.05ms per signature
 
-**Dilithium5:** ~3ms per signature
+**ML-DSA-87 (FIPS 204):** ~3ms per signature
 
 **Hybrid:** ~3.05ms per signature
 
-**Overhead:** +0.05ms compared to Dilithium5 alone
+**Overhead:** +0.05ms compared to ML-DSA-87 (FIPS 204) alone
 
 ---
 
@@ -395,11 +395,11 @@ Ok(xeddsa_valid && dilithium_valid)
 
 **XEdDSA:** ~0.1ms per verification
 
-**Dilithium5:** ~3ms per verification
+**ML-DSA-87 (FIPS 204):** ~3ms per verification
 
 **Hybrid:** ~3.1ms per verification
 
-**Overhead:** +0.1ms compared to Dilithium5 alone
+**Overhead:** +0.1ms compared to ML-DSA-87 (FIPS 204) alone
 
 ---
 
@@ -407,17 +407,17 @@ Ok(xeddsa_valid && dilithium_valid)
 
 **XEdDSA:** 64 bytes
 
-**Dilithium5:** ~4627 bytes
+**ML-DSA-87 (FIPS 204):** ~4627 bytes
 
 **Hybrid:** ~4691 bytes
 
-**Overhead:** +64 bytes compared to Dilithium5 alone
+**Overhead:** +64 bytes compared to ML-DSA-87 (FIPS 204) alone
 
 ---
 
 ### Handshake Impact
 
-**Without XEdDSA:** ~145ms (Dilithium5 only)
+**Without XEdDSA:** ~145ms (ML-DSA-87 (FIPS 204) only)
 
 **With XEdDSA:** ~150ms (Hybrid)
 
@@ -511,7 +511,7 @@ XEdDSA provides deniable authentication with performance comparable to Ed25519. 
 1. **Deniability:** Verifier can forge signatures
 2. **Performance:** ~0.05ms signing, ~0.1ms verification
 3. **Signature Size:** 64 bytes
-4. **Hybrid Security:** Combined with Dilithium5 for post-quantum security
+4. **Hybrid Security:** Combined with ML-DSA-87 (FIPS 204) for post-quantum security
 5. **Constant-Time:** Verification is constant-time
 
 XEdDSA is suitable for applications requiring deniable authentication without sacrificing performance.

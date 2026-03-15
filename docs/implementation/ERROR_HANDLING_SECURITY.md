@@ -152,7 +152,7 @@ Ok(final_valid.into())
 **Error Type:** Returns `Ok(false)` (not an error)
 
 **Scenarios:**
-- Either XEdDSA or Dilithium5 signature is invalid
+- Either XEdDSA or ML-DSA-87 (FIPS 204) signature is invalid
 - Both signatures must be valid for verification to succeed
 
 **Security Properties:**

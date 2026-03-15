@@ -36,12 +36,12 @@ if !bool::from(confirmation_valid) {
 - **Rationale:** No secret-dependent branching needed
 
 **Signature Verification:**
-- Dilithium5: Constant-time (library guarantee)
+- ML-DSA-87 (FIPS 204): Constant-time (library guarantee)
 - Ed25519 (ring): Constant-time (library guarantee)
 - **Source:** `src/crypto/hybrid.rs:318-334`
 
 **KEM Operations:**
-- Kyber1024: Constant-time (library guarantee)
+- MlKem1024: Constant-time (library guarantee)
 - X25519: Constant-time (library guarantee)
 - **Source:** `src/crypto/hybrid.rs:207-287`
 
@@ -423,8 +423,8 @@ pub fn ct_eq(a: &[u8], b: &[u8]) -> Choice {
 
 | Library               | Purpose                  | Version | Audit Status          |
 |-----------------------|--------------------------|---------|------------------------|
-| pqcrypto-kyber        | Kyber1024 KEM            | Latest  | NIST PQC standard      |
-| pqcrypto-dilithium    | Dilithium5 signatures    | Latest  | NIST PQC standard      |
+| pqcrypto-mlkem        | MlKem1024 KEM            | Latest  | NIST PQC standard      |
+| pqcrypto-mldsa    | ML-DSA-87 (FIPS 204) signatures    | Latest  | NIST PQC standard      |
 | x25519-dalek          | X25519 key exchange      | 2.x     | Audited (2020)         |
 | ring                  | Ed25519 signatures       | 0.17.x  | Audited (ongoing)      |
 | chacha20poly1305      | AEAD encryption          | 0.10.x  | Audited (RustCrypto)   |

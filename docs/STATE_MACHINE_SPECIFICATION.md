@@ -1,6 +1,6 @@
 # B4AE v2.0 Protocol State Machine Specification
 
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Date:** 2026  
 **Status:** Research-Grade Formal Specification
 
@@ -72,7 +72,7 @@ HandshakeState (v2.0)
 [HANDSHAKE] Handshake
    |
    | Mode A: XEdDSA signature
-   | Mode B: Dilithium5 signature
+   | Mode B: ML-DSA-87 (FIPS 204) signature
    |
    | receive_handshake_response()
    | - Verify mode-specific signature
@@ -113,7 +113,7 @@ HandshakeState (v2.0)
 [HANDSHAKE] Handshake
    |
    | Mode A: Verify XEdDSA signature
-   | Mode B: Verify Dilithium5 signature
+   | Mode B: Verify ML-DSA-87 (FIPS 204) signature
    |
    | send_handshake_response()
    | - Generate mode-specific signature
@@ -161,7 +161,7 @@ HandshakeState (v2.0)
 |-------|------|-------------|-------------|
 | Mode Negotiation | N/A | ~0.02ms | ~0.02ms |
 | Cookie Challenge | N/A | ~0.03ms | ~0.03ms |
-| Handshake (signatures) | ~9.3ms (XEdDSA + Dilithium5) | ~0.3ms (XEdDSA only) | ~9ms (Dilithium5 only) |
+| Handshake (signatures) | ~9.3ms (XEdDSA + ML-DSA-87 (FIPS 204)) | ~0.3ms (XEdDSA only) | ~9ms (ML-DSA-87 (FIPS 204) only) |
 | Key Derivation | ~0.1ms | ~0.1ms | ~0.1ms |
 | **Total** | **~9.4ms** | **~0.45ms** | **~9.15ms** |
 
@@ -656,7 +656,7 @@ Action      - Transition action
 [RECEIVE_HANDSHAKE_INIT]
    |
    | Immediately perform expensive operations
-   | - Dilithium5 verification: ~3ms
+   | - ML-DSA-87 (FIPS 204) verification: ~3ms
    | - Kyber decapsulation: ~0.6ms
    | Total: ~3.6ms per attempt
    |
@@ -1200,5 +1200,5 @@ Action          - Transition action
 
 **Document Status:** Complete  
 **Last Updated:** 2026  
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Implementation Status:** Specification complete, implementation in progress

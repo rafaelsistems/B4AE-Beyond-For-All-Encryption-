@@ -1,6 +1,6 @@
 # B4AE Handshake Transcript Specification - Exact Byte-Level Details
 
-**Document Version:** 1.0  
+**Document Version:** 2.1.1  
 **Date:** February 2025  
 **Classification:** Technical Specification  
 **Warning:** This document contains precise byte-level details. Any deviation may introduce vulnerabilities.
@@ -44,7 +44,7 @@ Offset  Bytes  Field                    Description
 0       32     client_random           Client random value
 32      2      supported_algs_count    Number of supported algorithms
 34      2      extensions_count        Number of client extensions
-36      1600   hybrid_public_key       Kyber-1024 public key (1568) + X25519 (32)
+36      1600   hybrid_public_key       ML-KEM-1024 (FIPS 203) public key (1568) + X25519 (32)
 1636    2      zk_challenge_len       Zero-knowledge challenge length
 1638    VAR    zk_challenge           Zero-knowledge challenge (optional)
 1638+VAR VAR    supported_algorithms   List of supported algorithm IDs
@@ -55,7 +55,7 @@ Offset  Bytes  Field                    Description
 Offset  Bytes  Field                    Description
 ------  -----  -----------------------  ----------------------------------------
 0       32     server_random           Server random value
-32      1600   hybrid_public_key       Server's Kyber-1024 + X25519 public key
+32      1600   hybrid_public_key       Server's ML-KEM-1024 (FIPS 203) + X25519 public key
 1632    1568   encrypted_shared_secret Kyber ciphertext
 3200    2      selected_algs_count     Number of selected algorithms
 3202    2      extensions_count        Number of server extensions
@@ -261,7 +261,7 @@ mac_key = HKDF-SHA3-256(
 000006f0: b7b8 b9ba bbbc bdbe bfc0 c1c2 c3c4 c5c6  ................
 # ... (Extension data) ...
 00000700: c7c8 c9ca cbcc cddc dedf e0e1 e2e3 e4e5  ................
-# ... (Signature - 4595 bytes for Dilithium5) ...
+# ... (Signature - 4595 bytes for ML-DSA-87 (FIPS 204)) ...
 000018f3: 0102 0304 0506 0708 090a 0b0c 0d0e 0f10  ................
 ```
 
@@ -302,8 +302,8 @@ def select_algorithms(client_algs, server_algs):
     # MUST reject if hybrid mode required but not available
     
     mandatory_algorithms = [
-        AlgorithmId.Kyber1024,
-        AlgorithmId.Dilithium5,
+        AlgorithmId.MlKem1024,
+        AlgorithmId.ML-DSA-87 (FIPS 204),
         AlgorithmId.Aes256Gcm,
         AlgorithmId.Sha3_256
     ]

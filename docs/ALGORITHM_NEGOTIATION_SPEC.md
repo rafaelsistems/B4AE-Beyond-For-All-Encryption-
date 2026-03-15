@@ -1,6 +1,6 @@
 # B4AE v2.0 Algorithm Negotiation and Downgrade Protection Specification
 
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Date:** 2026  
 **Status:** Production-Ready (v2.0 100% Complete)  
 **Reference:** V2_ARCHITECTURE_OVERVIEW.md, V2_SECURITY_ANALYSIS.md
@@ -12,7 +12,7 @@ This document specifies the algorithm negotiation mechanism and downgrade protec
 **v2.0 Key Changes:**
 - **Mode-based negotiation** replaces algorithm-level negotiation
 - **Mode A:** XEdDSA only (deniable)
-- **Mode B:** Dilithium5 only (post-quantum, non-repudiable)
+- **Mode B:** ML-DSA-87 (FIPS 204) only (post-quantum, non-repudiable)
 - **Mode C:** Future hybrid (research placeholder)
 - **Mode binding** prevents downgrade attacks
 - **Protocol ID derivation** from canonical spec (SHA3-256)
@@ -33,7 +33,7 @@ This document specifies the algorithm negotiation mechanism and downgrade protec
 #[repr(u8)]
 pub enum AuthenticationMode {
     ModeA = 0x01,  // XEdDSA (deniable)
-    ModeB = 0x02,  // Dilithium5 (post-quantum, non-repudiable)
+    ModeB = 0x02,  // ML-DSA-87 (FIPS 204) (post-quantum, non-repudiable)
     ModeC = 0x03,  // Future hybrid (not production-ready)
 }
 ```
@@ -45,7 +45,7 @@ pub enum AuthenticationMode {
 | Mode | Signatures | Deniable | Post-Quantum | Non-Repudiable | Use Case |
 |------|-----------|----------|--------------|----------------|----------|
 | Mode A | XEdDSA | ✅ | ❌ | ❌ | Private messaging, whistleblowing |
-| Mode B | Dilithium5 | ❌ | ✅ | ✅ | Legal contracts, audit trails |
+| Mode B | ML-DSA-87 (FIPS 204) | ❌ | ✅ | ✅ | Legal contracts, audit trails |
 | Mode C | TBD | TBD | TBD | TBD | Research placeholder |
 
 **v2.0 Design Philosophy:** Clear security properties, no hybrid confusion
@@ -95,12 +95,12 @@ Client                                    Server
 
 **Mode A Handshake:**
 - Signatures: XEdDSA (~0.3ms per handshake)
-- Key Exchange: X25519 + Kyber1024 hybrid KEM
+- Key Exchange: X25519 + MlKem1024 hybrid KEM
 - Total: ~150ms (including network RTT)
 
 **Mode B Handshake:**
-- Signatures: Dilithium5 (~9ms per handshake)
-- Key Exchange: X25519 + Kyber1024 hybrid KEM
+- Signatures: ML-DSA-87 (FIPS 204) (~9ms per handshake)
+- Key Exchange: X25519 + MlKem1024 hybrid KEM
 - Total: ~155ms (including network RTT)
 
 **v2.0 Note:** Mode determines signature scheme, KEM remains hybrid for both modes
@@ -233,7 +233,7 @@ pub fn verify(
 }
 ```
 
-**Security Property:** Attacker must break BOTH Ed25519 AND Dilithium5 to forge signatures
+**Security Property:** Attacker must break BOTH Ed25519 AND ML-DSA-87 (FIPS 204) to forge signatures
 
 ## 6. Attack Resistance
 
@@ -462,7 +462,7 @@ if let (Some(ref verifier), Some(challenge_id)) = (&self.config.zk_verifier, sel
 | Replay resistance         | Fresh randoms + ephemeral keys                 | Nonce uniqueness            |
 | Mutual authentication     | Bidirectional signatures + confirmation        | Hybrid signature security   |
 | Forward secrecy           | Ephemeral key exchange                         | Hybrid KEM security         |
-| Post-quantum security     | Kyber1024 + Dilithium5                         | NIST PQC standards          |
+| Post-quantum security     | MlKem1024 + ML-DSA-87 (FIPS 204)                         | NIST PQC standards          |
 
 ### 10.3 Formal Security Argument
 
@@ -476,9 +476,9 @@ if let (Some(ref verifier), Some(challenge_id)) = (&self.config.zk_verifier, sel
 
 **Reduction:** Any successful downgrade attack can be used to break either:
 - Ed25519 signature scheme, OR
-- Dilithium5 signature scheme, OR
+- ML-DSA-87 (FIPS 204) signature scheme, OR
 - X25519 key exchange, OR
-- Kyber1024 KEM
+- MlKem1024 KEM
 
 ## 11. Implementation Notes
 

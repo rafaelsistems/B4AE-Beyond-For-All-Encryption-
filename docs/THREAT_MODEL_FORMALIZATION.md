@@ -1,6 +1,6 @@
 # B4AE v2.0 Formal Threat Model
 
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Date:** 2026  
 **Status:** Research-Grade Formal Specification  
 **Single Source of Truth:** This document is the authoritative threat model for B4AE v2.0
@@ -43,7 +43,7 @@ B4AE v2.0 defines six adversary types with precise capabilities and limitations.
 **Limitations:**
 - **Cannot break cryptography:** Cannot invert one-way functions, break encryption without keys, forge signatures without private keys
 - **Cannot compromise endpoints:** Cannot access memory or storage of honest parties
-- **Cannot break post-quantum primitives:** Kyber1024 and Dilithium5 remain secure
+- **Cannot break post-quantum primitives:** MlKem1024 and ML-DSA-87 (FIPS 204) remain secure
 
 **Real-world Examples:**
 - Man-in-the-middle attacks
@@ -109,9 +109,9 @@ B4AE v2.0 defines six adversary types with precise capabilities and limitations.
   - Decrypt stored traffic when quantum computer available
 
 **Limitations:**
-- **Cannot break post-quantum cryptography:** Kyber1024 and Dilithium5 remain secure
-  - Kyber1024 based on Module-LWE (quantum-hard)
-  - Dilithium5 based on Module-LWE/SIS (quantum-hard)
+- **Cannot break post-quantum cryptography:** MlKem1024 and ML-DSA-87 (FIPS 204) remain secure
+  - MlKem1024 based on Module-LWE (quantum-hard)
+  - ML-DSA-87 (FIPS 204) based on Module-LWE/SIS (quantum-hard)
 - **Cannot compromise endpoints:** No access to keys or plaintext before quantum computer
 - **Timeline:** Quantum computers capable of breaking X25519 estimated 10-30 years away
 
@@ -123,8 +123,8 @@ B4AE v2.0 defines six adversary types with precise capabilities and limitations.
 
 **Security Properties Against A₃:**
 - ✅ **Mode B (PQ):** Post-quantum confidentiality and authentication
-  - Kyber1024 KEM provides quantum-resistant key exchange
-  - Dilithium5 signatures provide quantum-resistant authentication
+  - MlKem1024 KEM provides quantum-resistant key exchange
+  - ML-DSA-87 (FIPS 204) signatures provide quantum-resistant authentication
 - ❌ **Mode A (Deniable):** Vulnerable to quantum attacks (documented trade-off)
   - XEdDSA signatures breakable with quantum computer
   - X25519 key exchange breakable with quantum computer
@@ -249,10 +249,10 @@ B4AE v2.0 defines six adversary types with precise capabilities and limitations.
 **Formal Definition:** For all adversaries A and all messages m, the probability that A can distinguish Encrypt(m) from Encrypt(random) is negligible.
 
 **Against A₁ (Dolev-Yao):**
-- ✅ **Achieved:** Hybrid KEM (Kyber1024 + X25519) provides IND-CCA2 security
+- ✅ **Achieved:** Hybrid KEM (MlKem1024 + X25519) provides IND-CCA2 security
 - **Mechanism:** ChaCha20-Poly1305 AEAD encryption with authenticated key exchange
 - **Mode A:** X25519 + XEdDSA (classical 128-bit security)
-- **Mode B:** Kyber1024 + Dilithium5 (post-quantum NIST Level 5)
+- **Mode B:** MlKem1024 + ML-DSA-87 (FIPS 204) (post-quantum NIST Level 5)
 - **Formal Verification:** Tamarin proves key secrecy property
 
 **Against A₂ (Global Passive Observer):**
@@ -261,7 +261,7 @@ B4AE v2.0 defines six adversary types with precise capabilities and limitations.
 - **Limitation:** Requires mixnet (Tor/Nym) for strong unlinkability
 
 **Against A₃ (Quantum):**
-- ✅ **Mode B:** Kyber1024 provides post-quantum IND-CCA2 security
+- ✅ **Mode B:** MlKem1024 provides post-quantum IND-CCA2 security
 - ❌ **Mode A:** X25519 vulnerable to Shor's algorithm (documented trade-off)
 - **Mechanism:** Hybrid KEM combines classical + post-quantum primitives
 
@@ -330,7 +330,7 @@ pub fn ratchet_step(
 **Definition:** Parties can verify identity of communication partner
 
 **Against A_active:**
-- ✅ **Achieved:** Hybrid signatures (Ed25519 + Dilithium5)
+- ✅ **Achieved:** Hybrid signatures (Ed25519 + ML-DSA-87 (FIPS 204))
 - **Mechanism:** Both signatures must verify
 - **Source:** `src/crypto/hybrid.rs:318-334`
 
@@ -353,7 +353,7 @@ pub fn verify(
 ```
 
 **Against A_HNDL:**
-- ✅ **Achieved:** Dilithium5 provides post-quantum signature security
+- ✅ **Achieved:** ML-DSA-87 (FIPS 204) provides post-quantum signature security
 - **Mechanism:** Hybrid signature scheme
 - **Source:** `src/crypto/hybrid.rs:289-305`
 
@@ -587,7 +587,7 @@ pub fn initiate_ratchet(&mut self) -> CryptoResult<RatchetUpdate> {
 
 **Defense:**
 - Hybrid signature verification
-- Both Ed25519 AND Dilithium5 must verify
+- Both Ed25519 AND ML-DSA-87 (FIPS 204) must verify
 - **Source:** `src/protocol/handshake.rs:357-368`
 
 **Result:** Attack fails at signature verification
@@ -654,8 +654,8 @@ if message.ratchet_count < self.root_key_manager.ratchet_count() {
 4. Decrypt traffic
 
 **Defense:**
-- Hybrid KEM (Kyber1024 + X25519)
-- Hybrid signatures (Dilithium5 + Ed25519)
+- Hybrid KEM (MlKem1024 + X25519)
+- Hybrid signatures (ML-DSA-87 (FIPS 204) + Ed25519)
 - **Source:** `src/crypto/hybrid.rs:244-248`
 
 **Result:** Attack fails (Kyber and Dilithium remain secure)
@@ -713,8 +713,8 @@ if message.ratchet_count < self.root_key_manager.ratchet_count() {
 **Model:** IND-CCA2 security for KEMs, EUF-CMA security for signatures
 
 **Assumptions:**
-- Kyber1024 is IND-CCA2 secure (NIST PQC standard)
-- Dilithium5 is EUF-CMA secure (NIST PQC standard)
+- MlKem1024 is IND-CCA2 secure (NIST PQC standard)
+- ML-DSA-87 (FIPS 204) is EUF-CMA secure (NIST PQC standard)
 - Hybrid composition preserves security
 
 **Informal Claim:** B4AE provides post-quantum security if Kyber and Dilithium are secure
@@ -838,7 +838,7 @@ lemma post_compromise_security:
 - **Trade-off:** Deniable but not post-quantum secure
 
 **Mode B (PQ Non-Repudiable):**
-- ✅ **Achieved:** Dilithium5 signatures provide non-repudiable authentication
+- ✅ **Achieved:** ML-DSA-87 (FIPS 204) signatures provide non-repudiable authentication
 - **Property:** Signatures prove authorship to third parties
 - **Security:** Post-quantum secure against A₃
 - **Trade-off:** Non-repudiable but not deniable
@@ -992,7 +992,7 @@ For all sessions S1, S2 and global observer A₂:
 
 **Use Case:** Private messaging, whistleblowing, anonymous communication
 
-**Authentication:** XEdDSA only (no Dilithium5)
+**Authentication:** XEdDSA only (no ML-DSA-87 (FIPS 204))
 
 **Security Properties:**
 - ✅ Deniable authentication (verifier can forge signatures)
@@ -1015,7 +1015,7 @@ For all sessions S1, S2 and global observer A₂:
 
 **Use Case:** Legal contracts, audit trails, compliance, non-repudiation requirements
 
-**Authentication:** Dilithium5 only (no XEdDSA)
+**Authentication:** ML-DSA-87 (FIPS 204) only (no XEdDSA)
 
 **Security Properties:**
 - ✅ Post-quantum secure (NIST Level 5)
@@ -1030,8 +1030,8 @@ For all sessions S1, S2 and global observer A₂:
 - Trade-off: Non-deniable (by design)
 
 **Performance:**
-- Dilithium5 signature generation: ~5ms
-- Dilithium5 signature verification: ~5ms
+- ML-DSA-87 (FIPS 204) signature generation: ~5ms
+- ML-DSA-87 (FIPS 204) signature verification: ~5ms
 - Total handshake: ~9ms (signatures only)
 
 ### 6.3 Mode Comparison
@@ -1057,7 +1057,7 @@ For all sessions S1, S2 and global observer A₂:
 3. Establish separate sessions with Alice and Bob
 
 **Defense:**
-- Mode-specific signature verification (XEdDSA or Dilithium5)
+- Mode-specific signature verification (XEdDSA or ML-DSA-87 (FIPS 204))
 - Mode binding included in transcript
 - Any modification causes signature verification failure
 
@@ -1123,7 +1123,7 @@ For all sessions S1, S2 and global observer A₂:
 4. Decrypt stored traffic
 
 **Defense:**
-- **Mode B:** Kyber1024 + Dilithium5 resist quantum attacks
+- **Mode B:** MlKem1024 + ML-DSA-87 (FIPS 204) resist quantum attacks
 - **Mode A:** Vulnerable (documented trade-off for deniability)
 
 **Result:**
@@ -1226,7 +1226,7 @@ For all sessions S1, S2 and global observer A₂:
 
 **Status:** ❌ Not provided (by design)
 
-**Reason:** Dilithium5 signatures are non-repudiable
+**Reason:** ML-DSA-87 (FIPS 204) signatures are non-repudiable
 
 **Trade-off:** Mode B provides post-quantum security but not deniability
 
@@ -1285,5 +1285,5 @@ For all sessions S1, S2 and global observer A₂:
 
 **Document Status:** Complete  
 **Last Updated:** 2026  
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Formal Verification Status:** Pending (Phase 2)

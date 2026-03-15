@@ -1,6 +1,6 @@
 # B4AE vs E2EE: Technical Architecture Comparison
 
-**Document Version:** 1.0  
+**Document Version:** 2.1.1  
 **Date:** February 2026  
 **Author:** B4AE Team  
 **Status:** Technical Reference
@@ -128,8 +128,8 @@ METADATA EXPOSURE:
 │          - Application-specific encryption                  │
 ├─────────────────────────────────────────────────────────────┤
 │ Layer 6: Quantum-Resistant Cryptography                    │
-│          - Kyber-1024 (Key Exchange)                        │
-│          - Dilithium5 (Digital Signatures)                  │
+│          - ML-KEM-1024 (FIPS 203) (Key Exchange)                        │
+│          - ML-DSA-87 (FIPS 204) (Digital Signatures)                  │
 │          - Hybrid with X25519 / Ed25519                     │
 ├─────────────────────────────────────────────────────────────┤
 │ Layer 5: Metadata Obfuscation                              │
@@ -216,11 +216,11 @@ Alice                                                Bob
   │     ├── Client Random (32 bytes)                  │
   │     ├── Hybrid Public Key:                        │
   │     │   ├── X25519 Public (32 bytes)             │
-  │     │   ├── Kyber-1024 Public (1568 bytes)       │
+  │     │   ├── ML-KEM-1024 (FIPS 203) Public (1568 bytes)       │
   │     │   ├── Ed25519 Public (32 bytes)            │
-  │     │   └── Dilithium5 Public (2592 bytes)       │
+  │     │   └── ML-DSA-87 (FIPS 204) Public (2592 bytes)       │
   │     ├── Supported Algorithms                      │
-  │     └── Hybrid Signature (Ed25519 + Dilithium5)  │
+  │     └── Hybrid Signature (Ed25519 + ML-DSA-87 (FIPS 204))  │
   ├──────────────────────────────────────────────────>│
   │                                                   │
   │  2. HandshakeResponse                             │
@@ -229,7 +229,7 @@ Alice                                                Bob
   │     ├── Hybrid Public Key (Bob's)                 │
   │     ├── Encrypted Shared Secret:                  │
   │     │   ├── X25519 Ephemeral Public              │
-  │     │   └── Kyber-1024 Ciphertext (1568 bytes)   │
+  │     │   └── ML-KEM-1024 (FIPS 203) Ciphertext (1568 bytes)   │
   │     ├── Selected Algorithms                       │
   │     └── Hybrid Signature                          │
   │<──────────────────────────────────────────────────┤
@@ -254,7 +254,7 @@ Alice                                                Bob
   │                                                   │
 
 Timing: <200ms (target), <150ms (achieved)
-Quantum Vulnerability: ❌ Protected by Kyber-1024
+Quantum Vulnerability: ❌ Protected by ML-KEM-1024 (FIPS 203)
 Metadata Exposed: ❌ Padded, obfuscated, dummy traffic
 ```
 
@@ -338,10 +338,10 @@ where R is uniformly random, λ is the security parameter, and negl(λ) is a neg
 4. Challenge: Distinguish K_session from random
 
 **Security Claim:**  
-B4AE handshake provides forward secrecy under the hardness of Module-LWE (Kyber-1024 security) and CDH (X25519 security) in the random oracle model, assuming ephemeral keys are properly deleted after session establishment.
+B4AE handshake provides forward secrecy under the hardness of Module-LWE (ML-KEM-1024 (FIPS 203) security) and CDH (X25519 security) in the random oracle model, assuming ephemeral keys are properly deleted after session establishment.
 
 **Proof Sketch:**  
-Session keys are derived from ephemeral Diffie-Hellman exchanges (both classical X25519 and post-quantum Kyber-1024). Upon session completion, ephemeral secret keys are securely erased. Compromise of long-term keys reveals identity but not ephemeral secrets, thus K_session remains computationally indistinguishable from random under the hardness assumptions.
+Session keys are derived from ephemeral Diffie-Hellman exchanges (both classical X25519 and post-quantum ML-KEM-1024 (FIPS 203)). Upon session completion, ephemeral secret keys are securely erased. Compromise of long-term keys reveals identity but not ephemeral secrets, thus K_session remains computationally indistinguishable from random under the hardness assumptions.
 
 #### 3.1.2 Post-Compromise Security (Future Secrecy)
 
@@ -370,7 +370,7 @@ Compromise of party P_i's long-term secret key does not enable adversary A to im
 3. Challenge: Successfully authenticate as P_j without knowing sk_j
 
 **Security Claim:**  
-B4AE resists KCI attacks through mutual authentication with hybrid signatures (Dilithium5 + Ed25519). Even if A knows sk_i, A cannot forge signatures for P_j without knowing sk_j.
+B4AE resists KCI attacks through mutual authentication with hybrid signatures (ML-DSA-87 (FIPS 204) + Ed25519). Even if A knows sk_i, A cannot forge signatures for P_j without knowing sk_j.
 
 #### 3.1.4 Unknown Key-Share (UKS) Resistance
 
@@ -399,7 +399,7 @@ Adv^Hybrid_A ≤ min(Adv^C_A, Adv^PQ_A)
 ```
 
 **Security Claim:**  
-B4AE's hybrid approach (X25519 || Kyber-1024 for key exchange, Ed25519 + Dilithium5 for signatures) provides security as long as either the classical or post-quantum component remains unbroken.
+B4AE's hybrid approach (X25519 || ML-KEM-1024 (FIPS 203) for key exchange, Ed25519 + ML-DSA-87 (FIPS 204) for signatures) provides security as long as either the classical or post-quantum component remains unbroken.
 
 **Caveat:**  
 This assumes independent security of components. If a weakness exists that affects both classical and PQ algorithms simultaneously, the hybrid construction may not provide additional security.
@@ -501,7 +501,7 @@ Adversaries with sufficient resources are collecting encrypted traffic today for
 
 #### 3.5.3 B4AE Position
 
-B4AE implements NIST-standardized post-quantum cryptography (Kyber-1024, Dilithium5) to provide quantum resistance based on current cryptographic understanding. However:
+B4AE implements NIST-standardized post-quantum cryptography (ML-KEM-1024 (FIPS 203), ML-DSA-87 (FIPS 204)) to provide quantum resistance based on current cryptographic understanding. However:
 
 **Caveats:**
 1. PQC algorithms are relatively new; unforeseen weaknesses may be discovered
@@ -562,7 +562,7 @@ QUANTUM THREAT TIMELINE:
 │                 B4AE HYBRID CRYPTOGRAPHY                    │
 ├─────────────────────────────────────────────────────────────┤
 │ Key Exchange (Hybrid):                                      │
-│   Post-Quantum: Kyber-1024                                  │
+│   Post-Quantum: ML-KEM-1024 (FIPS 203)                                  │
 │     Standard: NIST FIPS 203                                 │
 │     Security: NIST Level 5 (256-bit quantum)               │
 │     Public Key: 1568 bytes                                  │
@@ -576,7 +576,7 @@ QUANTUM THREAT TIMELINE:
 │   Quantum Vulnerable: ❌ NO (protected by Kyber)           │
 │                                                             │
 │ Digital Signatures (Hybrid):                                │
-│   Post-Quantum: Dilithium5                                  │
+│   Post-Quantum: ML-DSA-87 (FIPS 204)                                  │
 │     Standard: NIST FIPS 204                                 │
 │     Security: NIST Level 5 (256-bit quantum)               │
 │     Public Key: 2592 bytes                                  │
@@ -604,8 +604,8 @@ QUANTUM THREAT TIMELINE:
 └─────────────────────────────────────────────────────────────┘
 
 QUANTUM RESISTANCE:
-├── Kyber-1024: Secure against quantum attacks (NIST Level 5)
-├── Dilithium5: Secure against quantum forgery
+├── ML-KEM-1024 (FIPS 203): Secure against quantum attacks (NIST Level 5)
+├── ML-DSA-87 (FIPS 204): Secure against quantum forgery
 ├── Hybrid Approach: Defense in depth (both must be broken)
 └── Risk: LOW for long-term confidential communications
 ```
@@ -655,7 +655,7 @@ Alice initiates handshake with Bob
    
 2. Alice sends HandshakeInit:
    - Hybrid Public Key (kyber_pk_A, x25519_pk_A, dilithium_pk_A, ed25519_pk_A)
-   - Hybrid Signature (Dilithium5 + Ed25519)
+   - Hybrid Signature (ML-DSA-87 (FIPS 204) + Ed25519)
 
 3. Bob receives, generates ephemeral keys, and encapsulates:
    (kyber_ct, kyber_ss) = Kyber.Encapsulate(kyber_pk_A)
@@ -680,7 +680,7 @@ Alice initiates handshake with Bob
 
 SECURITY PROPERTIES:
 ✅ Forward Secrecy: Ephemeral keys deleted after handshake
-✅ Quantum Resistance: Protected by Kyber-1024 (NIST Level 5)
+✅ Quantum Resistance: Protected by ML-KEM-1024 (FIPS 203) (NIST Level 5)
 ✅ Hybrid Security: Both Kyber AND X25519 must be broken
 ✅ Mutual Authentication: Hybrid signatures from both parties
 ✅ Future Secrecy: Key rotation and PFS+
@@ -693,7 +693,7 @@ PERFORMANCE:
 └── Latency: <200ms (target), <150ms (achieved)
 
 QUANTUM SECURITY ANALYSIS:
-├── Kyber-1024: Based on Module-LWE (lattice problem)
+├── ML-KEM-1024 (FIPS 203): Based on Module-LWE (lattice problem)
 │   - Best known quantum attack: 2^256 operations
 │   - Classical attack: 2^256 operations
 │   - Security Level: NIST Level 5 (highest)
@@ -725,10 +725,10 @@ PERFORMANCE:
 └── Total: ~0.20ms per message
 ```
 
-#### B4AE: Hybrid Signatures (Dilithium5 + Ed25519)
+#### B4AE: Hybrid Signatures (ML-DSA-87 (FIPS 204) + Ed25519)
 ```
-ALGORITHM: Dilithium5 + Ed25519 (Hybrid)
-├── Post-Quantum: Dilithium5 (NIST FIPS 204)
+ALGORITHM: ML-DSA-87 (FIPS 204) + Ed25519 (Hybrid)
+├── Post-Quantum: ML-DSA-87 (FIPS 204) (NIST FIPS 204)
 │   ├── Public Key: 2592 bytes
 │   ├── Signature: 4627 bytes
 │   ├── Security: NIST Level 5 (256-bit quantum)
@@ -747,14 +747,14 @@ USAGE IN B4AE:
 └── Audit Events: Sign compliance logs
 
 PERFORMANCE:
-├── Dilithium5 Sign: ~0.95ms
-├── Dilithium5 Verify: ~0.45ms
+├── ML-DSA-87 (FIPS 204) Sign: ~0.95ms
+├── ML-DSA-87 (FIPS 204) Verify: ~0.45ms
 ├── Ed25519 Sign: ~0.05ms
 ├── Ed25519 Verify: ~0.15ms
 └── Total: ~1.6ms per hybrid signature
 
 SECURITY ANALYSIS:
-├── Dilithium5: Based on Module-LWE (lattice problem)
+├── ML-DSA-87 (FIPS 204): Based on Module-LWE (lattice problem)
 │   - Best known quantum attack: 2^256 operations
 │   - Signature forgery: Computationally infeasible
 ├── Ed25519: Vulnerable to Shor's algorithm
@@ -812,7 +812,7 @@ with sufficient resources are collecting encrypted traffic today for
 future decryption when quantum computers become available.
 
 B4AE POSITION:
-Implements NIST-standardized PQC (Kyber-1024, Dilithium5) to provide 
+Implements NIST-standardized PQC (ML-KEM-1024 (FIPS 203), ML-DSA-87 (FIPS 204)) to provide 
 quantum resistance based on current cryptographic understanding. 
 However, PQC algorithms are relatively new (standardized 2024); 
 long-term security not yet proven through extensive cryptanalysis.
@@ -832,13 +832,13 @@ long-term security not yet proven through extensive cryptanalysis.
 │ AES-256          │ 256-bit   │ 128-bit   │ N/A             │
 │ Kyber-512        │ 128-bit   │ 128-bit   │ Level 1         │
 │ Kyber-768        │ 192-bit   │ 192-bit   │ Level 3         │
-│ Kyber-1024       │ 256-bit   │ 256-bit   │ Level 5 ✅      │
+│ ML-KEM-1024 (FIPS 203)       │ 256-bit   │ 256-bit   │ Level 5 ✅      │
 │ Dilithium2       │ 128-bit   │ 128-bit   │ Level 2         │
 │ Dilithium3       │ 192-bit   │ 192-bit   │ Level 3         │
-│ Dilithium5       │ 256-bit   │ 256-bit   │ Level 5 ✅      │
+│ ML-DSA-87 (FIPS 204)       │ 256-bit   │ 256-bit   │ Level 5 ✅      │
 └──────────────────┴───────────┴───────────┴─────────────────┘
 
-B4AE CHOICE: Kyber-1024 + Dilithium5 (NIST Level 5)
+B4AE CHOICE: ML-KEM-1024 (FIPS 203) + ML-DSA-87 (FIPS 204) (NIST Level 5)
 ├── Rationale: Maximum security for long-term confidentiality
 ├── Trade-off: Larger keys/signatures vs. security
 └── Future-proof: Secure against foreseeable quantum attacks
@@ -869,10 +869,10 @@ WHY HYBRID (PQC + Classical)?
    └── PQC for critical key exchange/signatures
 
 B4AE HYBRID APPROACH:
-├── Key Exchange: Kyber-1024 || X25519
+├── Key Exchange: ML-KEM-1024 (FIPS 203) || X25519
 │   - Combined shared secret: 64 bytes
 │   - Secure if EITHER algorithm is secure
-├── Signatures: Dilithium5 + Ed25519
+├── Signatures: ML-DSA-87 (FIPS 204) + Ed25519
 │   - Both signatures must verify
 │   - Secure if EITHER algorithm is secure
 └── Symmetric: AES-256-GCM (quantum-resistant with 256-bit keys)
@@ -1254,16 +1254,16 @@ BREAKDOWN:
 │ Operation                          │ Time      │ Notes      │
 ├────────────────────────────────────┼───────────┼────────────┤
 │ 1. Generate Hybrid Keys            │           │            │
-│    ├── Kyber-1024 KeyGen           │ ~0.12ms   │ PQC        │
+│    ├── ML-KEM-1024 (FIPS 203) KeyGen           │ ~0.12ms   │ PQC        │
 │    ├── X25519 KeyGen               │ ~0.05ms   │ Classical  │
-│    ├── Dilithium5 KeyGen           │ ~0.20ms   │ PQC        │
+│    ├── ML-DSA-87 (FIPS 204) KeyGen           │ ~0.20ms   │ PQC        │
 │    └── Ed25519 KeyGen              │ ~0.05ms   │ Classical  │
 │ 2. Sign HandshakeInit              │           │            │
-│    ├── Dilithium5 Sign             │ ~0.95ms   │ PQC        │
+│    ├── ML-DSA-87 (FIPS 204) Sign             │ ~0.95ms   │ PQC        │
 │    └── Ed25519 Sign                │ ~0.05ms   │ Classical  │
 │ 3. Send HandshakeInit (network)    │ ~50ms     │ 6KB data   │
 │ 4. Verify Signature                │           │            │
-│    ├── Dilithium5 Verify           │ ~0.45ms   │ PQC        │
+│    ├── ML-DSA-87 (FIPS 204) Verify           │ ~0.45ms   │ PQC        │
 │    └── Ed25519 Verify              │ ~0.15ms   │ Classical  │
 │ 5. Kyber Encapsulate               │ ~0.15ms   │ PQC        │
 │ 6. X25519 DH                       │ ~0.05ms   │ Classical  │
@@ -1542,7 +1542,7 @@ PERFORMANCE IMPACT:
 ├─────────────────────────────────────────────────────────────┤
 │ ✅ COMPREHENSIVE AUDIT LOGGING (AuditSink)                 │
 │    ├── Standardized audit events                           │
-│    ├── Tamper-evident logs (signed with Dilithium5)       │
+│    ├── Tamper-evident logs (signed with ML-DSA-87 (FIPS 204))       │
 │    ├── Configurable log levels                             │
 │    ├── Multiple output formats (JSON, syslog, SIEM)       │
 │    └── Real-time and batch logging                         │
@@ -2442,7 +2442,7 @@ USE CASES:
 │ │   └── Can correlate traffic patterns                     │
 │ ├── Quantum Computer (PRESENT & FUTURE)                    │
 │ │   ├── Can break classical crypto (X25519, Ed25519)      │
-│ │   └── Cannot break PQC (Kyber-1024, Dilithium5)        │
+│ │   └── Cannot break PQC (ML-KEM-1024 (FIPS 203), ML-DSA-87 (FIPS 204))        │
 │ └── Nation-State Adversary                                 │
 │     ├── Unlimited computational resources                  │
 │     ├── Can perform "harvest now, decrypt later"          │
@@ -2803,7 +2803,7 @@ alice.cleanup_old_state();
 bob.cleanup_old_state();
 
 // ADVANTAGES:
-// ✅ Quantum resistance (Kyber-1024, Dilithium5)
+// ✅ Quantum resistance (ML-KEM-1024 (FIPS 203), ML-DSA-87 (FIPS 204))
 // ✅ Metadata protection (padding, timing, dummy traffic)
 // ✅ Built-in audit logging
 // ✅ Automatic key management and rotation
@@ -3494,7 +3494,7 @@ B4AE represents a significant advancement over traditional E2EE protocols, provi
 
 ---
 
-**Document Version:** 1.0  
+**Document Version:** 2.1.1  
 **Last Updated:** February 2026  
 **License:** MIT OR Apache-2.0  
 **Copyright © 2026 B4AE Team**

@@ -1,6 +1,6 @@
 # B4AE v2.0 Security Analysis
 
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Date:** 2026  
 **Status:** Production-Ready  
 **Reference:** THREAT_MODEL_FORMALIZATION.md (Single Source of Truth)
@@ -24,13 +24,13 @@ B4AE v2.0 represents a fundamental security architecture redesign, transforming 
 
 ## 1. Authentication Mode Security Analysis
 
-B4AE v2.0 separates authentication into two distinct modes with clear, non-overlapping security properties. This resolves the v1.0 hybrid signature issue where XEdDSA + Dilithium5 destroyed deniability.
+B4AE v2.0 separates authentication into two distinct modes with clear, non-overlapping security properties. This resolves the v1.0 hybrid signature issue where XEdDSA + ML-DSA-87 (FIPS 204) destroyed deniability.
 
 ### 1.1 Mode A: Deniable Authentication
 
 **Cryptographic Primitives:**
-- **Signatures:** XEdDSA only (no Dilithium5)
-- **Key Exchange:** X25519 + Kyber1024 hybrid KEM
+- **Signatures:** XEdDSA only (no ML-DSA-87 (FIPS 204))
+- **Key Exchange:** X25519 + MlKem1024 hybrid KEM
 - **Encryption:** ChaCha20-Poly1305 AEAD
 
 #### Security Properties
@@ -86,7 +86,7 @@ B4AE v2.0 separates authentication into two distinct modes with clear, non-overl
 | Signature Generation | ~0.1ms | XEdDSA |
 | Signature Verification | ~0.2ms | XEdDSA |
 | Total Handshake (signatures only) | ~0.3ms | 30x faster than Mode B |
-| Key Exchange | ~0.6ms | Kyber1024 + X25519 |
+| Key Exchange | ~0.6ms | MlKem1024 + X25519 |
 | Complete Handshake | ~150ms | Including network RTT |
 
 #### Use Cases
@@ -120,28 +120,28 @@ B4AE v2.0 separates authentication into two distinct modes with clear, non-overl
 ### 1.2 Mode B: Post-Quantum Non-Repudiable
 
 **Cryptographic Primitives:**
-- **Signatures:** Dilithium5 only (no XEdDSA)
-- **Key Exchange:** Kyber1024 + X25519 hybrid KEM
+- **Signatures:** ML-DSA-87 (FIPS 204) only (no XEdDSA)
+- **Key Exchange:** MlKem1024 + X25519 hybrid KEM
 - **Encryption:** ChaCha20-Poly1305 AEAD
 
 #### Security Properties
 
 **✅ Post-Quantum Secure**
 - **Property:** Secure against quantum adversaries with Shor's algorithm
-- **Mechanism:** Dilithium5 (NIST Level 5) based on Module-LWE/SIS
+- **Mechanism:** ML-DSA-87 (FIPS 204) (NIST Level 5) based on Module-LWE/SIS
 - **Adversary Resistance:** A₃ (Store-Now-Decrypt-Later Quantum)
 - **Security Level:** NIST PQC Level 5 (highest standardized level)
 
 **✅ Non-Repudiable Signatures**
 - **Property:** Signatures prove authorship to third parties
-- **Mechanism:** Dilithium5 signatures cannot be forged by verifier
+- **Mechanism:** ML-DSA-87 (FIPS 204) signatures cannot be forged by verifier
 - **Implication:** Can be used as legal evidence
 - **Use Case:** Legal contracts, audit trails, compliance
 
 **✅ Mutual Authentication**
 - **Property:** Both parties verify each other's identity during handshake
 - **Adversary Resistance:** A₁ (Dolev-Yao) and A₃ (Quantum)
-- **Mechanism:** Dilithium5 signatures on handshake transcript
+- **Mechanism:** ML-DSA-87 (FIPS 204) signatures on handshake transcript
 - **Formal Verification:** Tamarin proves mutual authentication property
 
 **✅ Forward Secrecy**
@@ -165,7 +165,7 @@ B4AE v2.0 separates authentication into two distinct modes with clear, non-overl
 |----------------|-----------|-------|
 | A₁ (Dolev-Yao MITM) | ✅ | Mutual authentication, integrity, confidentiality |
 | A₂ (Global Passive) | ✅ | Ciphertext secure, metadata protected by scheduler |
-| A₃ (Quantum) | ✅ | Dilithium5 + Kyber1024 resist quantum attacks |
+| A₃ (Quantum) | ✅ | ML-DSA-87 (FIPS 204) + MlKem1024 resist quantum attacks |
 | A₄ (State Compromise) | ✅ | Forward secrecy + post-compromise security |
 | A₅ (Side-Channel) | ✅ | Constant-time operations |
 | A₆ (Multi-Session) | ✅ | Global scheduler prevents correlation |
@@ -174,10 +174,10 @@ B4AE v2.0 separates authentication into two distinct modes with clear, non-overl
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Signature Generation | ~5ms | Dilithium5 |
-| Signature Verification | ~5ms | Dilithium5 |
+| Signature Generation | ~5ms | ML-DSA-87 (FIPS 204) |
+| Signature Verification | ~5ms | ML-DSA-87 (FIPS 204) |
 | Total Handshake (signatures only) | ~9ms | Slower than Mode A |
-| Key Exchange | ~0.6ms | Kyber1024 + X25519 |
+| Key Exchange | ~0.6ms | MlKem1024 + X25519 |
 | Complete Handshake | ~155ms | Including network RTT |
 
 #### Use Cases
@@ -231,8 +231,8 @@ The stateless cookie challenge is a critical DoS protection mechanism introduced
 
 **Problem (v1.0):**
 - Server performs expensive cryptographic operations immediately upon receiving HandshakeInit
-- Dilithium5 verification: ~3ms per attempt
-- Kyber1024 decapsulation: ~0.6ms per attempt
+- ML-DSA-87 (FIPS 204) verification: ~3ms per attempt
+- MlKem1024 decapsulation: ~0.6ms per attempt
 - Total: ~3.6ms per handshake attempt
 - Attacker can exhaust server CPU with fake handshakes
 
@@ -702,7 +702,7 @@ B4AE v2.0 is designed for formal verification with Tamarin and ProVerif. This se
 
 | Feature | v1.0 | v2.0 | Improvement |
 |---------|------|------|-------------|
-| **Authentication** | XEdDSA + Dilithium5 hybrid | Mode A (XEdDSA) OR Mode B (Dilithium5) | Clear security properties |
+| **Authentication** | XEdDSA + ML-DSA-87 (FIPS 204) hybrid | Mode A (XEdDSA) OR Mode B (ML-DSA-87 (FIPS 204)) | Clear security properties |
 | **Deniability** | ❌ Destroyed by hybrid | ✅ Mode A provides deniability | Restored |
 | **Post-Quantum** | ⚠️ Hybrid (non-deniable) | ✅ Mode B (non-deniable) | Explicit trade-off |
 | **DoS Protection** | ❌ None | ✅ Cookie challenge (360x) | 360x improvement |
@@ -969,6 +969,6 @@ B4AE v2.0 is designed for formal verification with Tamarin and ProVerif. This se
 
 **Document Status:** Complete  
 **Last Updated:** 2026  
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Author:** B4AE Security Team  
 **Review Status:** Production-Ready

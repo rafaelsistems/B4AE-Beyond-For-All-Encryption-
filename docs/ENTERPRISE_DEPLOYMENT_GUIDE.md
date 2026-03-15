@@ -1,6 +1,6 @@
 # B4AE v2.0 Enterprise Deployment Guide
 
-**Version**: 2.0.0  
+**Version**: 2.1.1  
 **Status**: Production-Ready (100% complete)  
 **Last Updated**: 2026
 
@@ -29,7 +29,7 @@ Enterprise deployment guide for B4AE v2.0 in on-premises, hybrid cloud, and comp
 
 ### V2.0 Specific Requirements
 
-- **Mode B (PQ)**: Dilithium5 signature verification (~9ms per handshake)
+- **Mode B (PQ)**: ML-DSA-87 (FIPS 204) signature verification (~9ms per handshake)
 - **Global Traffic Scheduler**: Dedicated CPU core for high-throughput deployments
 - **Cookie Challenge**: Bloom filter memory (~10MB for 1M entries)
 - **Session Binding**: Additional 32 bytes per session for session_id
@@ -163,9 +163,9 @@ iptables -A INPUT -p udp --dport 4000 -m limit --limit 1000/s -j ACCEPT
 #### Mode B (Post-Quantum)
 
 - **Session Keys**: In-memory only (B4AE default: zeroize after use)
-- **Long-term Keys**: Dilithium5 keypairs
+- **Long-term Keys**: ML-DSA-87 (FIPS 204) keypairs
   - **MUST** store in HSM for compliance environments
-  - Dilithium5 private keys are large (~2.5KB)
+  - ML-DSA-87 (FIPS 204) private keys are large (~2.5KB)
   - HSM must support NIST PQC algorithms
 - **Key Rotation**: Every 90 days (compliance requirement)
 
@@ -174,10 +174,10 @@ iptables -A INPUT -p udp --dport 4000 -m limit --limit 1000/s -j ACCEPT
 use b4ae::crypto::hsm::HsmKeyStore;
 
 // Initialize HSM
-let hsm = HsmKeyStore::new("pkcs11:token=B4AE;object=dilithium5_key")?;
+let hsm = HsmKeyStore::new("pkcs11:token=B4AE;object=ML-DSA-87 (FIPS 204)_key")?;
 
-// Generate Dilithium5 keypair in HSM
-let keypair = hsm.generate_dilithium5_keypair()?;
+// Generate ML-DSA-87 (FIPS 204) keypair in HSM
+let keypair = hsm.generate_ML-DSA-87 (FIPS 204)_keypair()?;
 
 // Sign with HSM (private key never leaves HSM)
 let signature = hsm.sign(&message)?;
@@ -564,4 +564,4 @@ error!(
 
 **Document Status:** Complete  
 **Last Updated:** 2026  
-**Version:** 2.0.0
+**Version:** 2.1.1.0

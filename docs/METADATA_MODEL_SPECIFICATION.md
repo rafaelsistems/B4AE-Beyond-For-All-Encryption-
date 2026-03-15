@@ -145,25 +145,25 @@ message_size = ciphertext_length + 57 (metadata)
 **Measured Operations:**
 
 1. **Key Generation:**
-   - Kyber1024 keypair: ~0.5ms
+   - MlKem1024 keypair: ~0.5ms
    - X25519 keypair: ~0.05ms
-   - Dilithium5 keypair: ~2ms
+   - ML-DSA-87 (FIPS 204) keypair: ~2ms
    - Ed25519 keypair: ~0.1ms
    - **Total:** ~2.65ms per party
 
 2. **Signature Generation:**
-   - Dilithium5 sign: ~3ms
+   - ML-DSA-87 (FIPS 204) sign: ~3ms
    - Ed25519 sign: ~0.05ms
    - **Total:** ~3.05ms per signature
 
 3. **Signature Verification:**
-   - Dilithium5 verify: ~1.5ms
+   - ML-DSA-87 (FIPS 204) verify: ~1.5ms
    - Ed25519 verify: ~0.1ms
    - **Total:** ~1.6ms per verification
 
 4. **KEM Operations:**
-   - Kyber1024 encapsulate: ~0.5ms
-   - Kyber1024 decapsulate: ~0.6ms
+   - MlKem1024 encapsulate: ~0.5ms
+   - MlKem1024 decapsulate: ~0.6ms
    - X25519 DH: ~0.05ms
 
 **Total Handshake Time (Single-threaded):**
@@ -202,12 +202,12 @@ Responder: 2.65ms (keygen) + 1.6ms (verify Init) + 0.5ms (encapsulate) +
 **DH Ratchet Operations:**
 
 1. **Key Generation:**
-   - Kyber1024 keypair: ~0.5ms
+   - MlKem1024 keypair: ~0.5ms
    - X25519 keypair: ~0.05ms
    - **Total:** ~0.55ms
 
 2. **Shared Secret Derivation:**
-   - Kyber1024 encapsulate/decapsulate: ~0.5-0.6ms
+   - MlKem1024 encapsulate/decapsulate: ~0.5-0.6ms
    - X25519 DH: ~0.05ms
    - HKDF combination: ~0.01ms
    - **Total:** ~0.6ms

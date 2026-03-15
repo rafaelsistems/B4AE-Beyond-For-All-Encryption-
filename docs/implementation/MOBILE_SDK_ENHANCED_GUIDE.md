@@ -11,8 +11,8 @@ B4AE Mobile SDK provides quantum-safe secure communication for mobile applicatio
 ## 🔧 Supported Features
 
 ### Quantum-Safe Cryptography
-- **Kyber-1024**: Post-quantum key encapsulation (NIST standardized)
-- **Dilithium5**: Post-quantum digital signatures (NIST standardized)
+- **ML-KEM-1024 (FIPS 203)**: Post-quantum key encapsulation (NIST standardized)
+- **ML-DSA-87 (FIPS 204)**: Post-quantum digital signatures (NIST standardized)
 - **X25519/Ed25519**: Classical hybrid cryptography
 - **AES-256-GCM**: Symmetric encryption with authenticated encryption
 
@@ -129,7 +129,7 @@ try {
 try {
     val message = "Hello, quantum-safe world!".toByteArray()
     
-    // Generate Dilithium5 keypair
+    // Generate ML-DSA-87 (FIPS 204) keypair
     val signingKeypair = B4AE.generateKeypair(b4aeClient)
     
     // Sign message
@@ -273,7 +273,7 @@ do {
 do {
     let message = "Hello, quantum-safe iOS!".data(using: .utf8)!
     
-    // Generate Dilithium5 keypair
+    // Generate ML-DSA-87 (FIPS 204) keypair
     let signingKeypair = try b4aeClient?.generateKeypair()
     
     // Sign message
@@ -300,8 +300,8 @@ do {
 | Profile | Cryptography | Performance | Use Case |
 |---------|-------------|-------------|----------|
 | **Standard** | Kyber-768 + Dilithium3 | Fast | General messaging |
-| **High** | Kyber-1024 + Dilithium5 | Balanced | Business applications |
-| **Maximum** | Kyber-1024 + Dilithium5 + extra | Slow | High-security environments |
+| **High** | ML-KEM-1024 (FIPS 203) + ML-DSA-87 (FIPS 204) | Balanced | Business applications |
+| **Maximum** | ML-KEM-1024 (FIPS 203) + ML-DSA-87 (FIPS 204) + extra | Slow | High-security environments |
 | **Enterprise** | Configurable + HSM | Variable | Enterprise deployments |
 
 ### Performance Tuning
@@ -336,14 +336,14 @@ B4AEEnhanced.setMemoryLimit(50 * 1024 * 1024) // 50MB
 ## 📊 Performance Benchmarks
 
 ### Android Performance (Pixel 6)
-- **Key Generation**: 15-25ms (Kyber-1024)
+- **Key Generation**: 15-25ms (ML-KEM-1024 (FIPS 203))
 - **Handshake**: 50-80ms complete
 - **Message Encryption**: 2-5ms (1KB message)
 - **Memory Usage**: 5-15MB per client
 - **Battery Impact**: <1% per 1000 messages
 
 ### iOS Performance (iPhone 14)
-- **Key Generation**: 12-20ms (Kyber-1024)
+- **Key Generation**: 12-20ms (ML-KEM-1024 (FIPS 203))
 - **Handshake**: 40-70ms complete
 - **Message Encryption**: 1-4ms (1KB message)
 - **Memory Usage**: 4-12MB per client

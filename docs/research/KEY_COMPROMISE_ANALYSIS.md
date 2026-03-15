@@ -14,9 +14,9 @@ This document provides a comprehensive analysis of key compromise scenarios in t
 
 | Key Type                  | Size (bytes) | Lifetime      | Storage      | Source                          |
 |---------------------------|--------------|---------------|--------------|----------------------------------|
-| Dilithium5 Secret Key     | 4864         | Years         | Persistent   | hybrid.rs:289-305               |
+| ML-DSA-87 (FIPS 204) Secret Key     | 4864         | Years         | Persistent   | hybrid.rs:289-305               |
 | Ed25519 Secret Key (PKCS#8)| 83          | Years         | Persistent   | hybrid.rs:289-305               |
-| Kyber1024 Public Key      | 1568         | Per-session   | Ephemeral    | hybrid_dh_ratchet.rs:48-73      |
+| MlKem1024 Public Key      | 1568         | Per-session   | Ephemeral    | hybrid_dh_ratchet.rs:48-73      |
 | X25519 Public Key         | 32           | Per-session   | Ephemeral    | hybrid_dh_ratchet.rs:48-73      |
 
 ### 2.2 Session Keys
@@ -47,7 +47,7 @@ This document provides a comprehensive analysis of key compromise scenarios in t
 
 ```
 Attacker obtains:
-- Dilithium5 secret key (4864 bytes)
+- ML-DSA-87 (FIPS 204) secret key (4864 bytes)
 - Ed25519 secret key (83 bytes, PKCS#8)
 ```
 
@@ -397,7 +397,7 @@ Result: ❌ Attack fails (one-way function)
 
 ```
 Attacker obtains (during handshake):
-- Kyber1024 secret key (3168 bytes)
+- MlKem1024 secret key (3168 bytes)
 - X25519 secret key (32 bytes)
 ```
 
@@ -470,7 +470,7 @@ Result: ❌ Attack fails (different ephemeral keys)
 
 ```
 Attacker obtains (during DH ratchet):
-- Kyber1024 ephemeral secret key (3168 bytes)
+- MlKem1024 ephemeral secret key (3168 bytes)
 - X25519 ephemeral secret key (32 bytes)
 ```
 

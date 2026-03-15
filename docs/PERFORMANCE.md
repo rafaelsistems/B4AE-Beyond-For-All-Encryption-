@@ -1,6 +1,6 @@
 # B4AE v2.0 Performance Analysis
 
-**Version**: 2.0.0  
+**Version**: 2.1.1  
 **Status**: Production-Ready (100% complete)  
 **Last Updated**: 2026
 
@@ -88,11 +88,11 @@ RUSTFLAGS="-C target-cpu=native -C target-feature=+aes,+sha2" cargo build --rele
 | **Total Handshake** | 150ms | 155ms | 145ms |
 | Cookie Challenge | 0.01ms | 0.01ms | N/A |
 | Mode Negotiation | 0.5ms | 0.5ms | N/A |
-| Signature Generation | 0.1ms (XEdDSA) | 5ms (Dilithium5) | 5.1ms |
-| Signature Verification | 0.2ms (XEdDSA) | 4ms (Dilithium5) | 9.3ms |
-| Kyber1024 KeyGen | 0.15ms | 0.15ms | 0.15ms |
-| Kyber1024 Encaps | 0.2ms | 0.2ms | 0.2ms |
-| Kyber1024 Decaps | 0.25ms | 0.25ms | 0.25ms |
+| Signature Generation | 0.1ms (XEdDSA) | 5ms (ML-DSA-87 (FIPS 204)) | 5.1ms |
+| Signature Verification | 0.2ms (XEdDSA) | 4ms (ML-DSA-87 (FIPS 204)) | 9.3ms |
+| MlKem1024 KeyGen | 0.15ms | 0.15ms | 0.15ms |
+| MlKem1024 Encaps | 0.2ms | 0.2ms | 0.2ms |
+| MlKem1024 Decaps | 0.25ms | 0.25ms | 0.25ms |
 | X25519 KeyGen | 0.05ms | 0.05ms | 0.05ms |
 | X25519 DH | 0.08ms | 0.08ms | 0.08ms |
 | Network RTT | ~140ms | ~140ms | ~140ms |
@@ -111,7 +111,7 @@ RUSTFLAGS="-C target-cpu=native -C target-feature=+aes,+sha2" cargo build --rele
 - Network RTT: 140ms (3 round trips)
 - Cookie challenge: 0.01ms
 - Mode negotiation: 0.5ms
-- Dilithium5 operations: 9ms
+- ML-DSA-87 (FIPS 204) operations: 9ms
 - Kyber + X25519: 0.7ms
 - Key derivation: 0.5ms
 - Session binding: 0.1ms
@@ -149,11 +149,11 @@ RUSTFLAGS="-C target-cpu=native -C target-feature=+aes,+sha2" cargo build --rele
 |-----------|------------|------------|------------|
 | **XEdDSA Sign** | 0.1ms | 0.15ms | 10,000 ops/s |
 | **XEdDSA Verify** | 0.2ms | 0.3ms | 5,000 ops/s |
-| **Dilithium5 Sign** | 5ms | 7ms | 200 ops/s |
-| **Dilithium5 Verify** | 4ms | 6ms | 250 ops/s |
-| **Kyber1024 KeyGen** | 0.15ms | 0.2ms | 6,667 ops/s |
-| **Kyber1024 Encaps** | 0.2ms | 0.3ms | 5,000 ops/s |
-| **Kyber1024 Decaps** | 0.25ms | 0.35ms | 4,000 ops/s |
+| **ML-DSA-87 (FIPS 204) Sign** | 5ms | 7ms | 200 ops/s |
+| **ML-DSA-87 (FIPS 204) Verify** | 4ms | 6ms | 250 ops/s |
+| **MlKem1024 KeyGen** | 0.15ms | 0.2ms | 6,667 ops/s |
+| **MlKem1024 Encaps** | 0.2ms | 0.3ms | 5,000 ops/s |
+| **MlKem1024 Decaps** | 0.25ms | 0.35ms | 4,000 ops/s |
 | **X25519 KeyGen** | 0.05ms | 0.08ms | 20,000 ops/s |
 | **X25519 DH** | 0.08ms | 0.12ms | 12,500 ops/s |
 | **ChaCha20-Poly1305 Encrypt** | 0.3ms | 0.5ms | 3,333 ops/s |
@@ -487,4 +487,4 @@ perf report
 
 **Document Status:** Complete  
 **Last Updated:** 2026  
-**Version:** 2.0.0
+**Version:** 2.1.1.0

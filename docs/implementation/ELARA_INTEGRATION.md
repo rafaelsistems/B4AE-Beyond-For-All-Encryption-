@@ -6,7 +6,7 @@ Dokumentasi integrasi B4AE (quantum-resistant crypto, [Protocol Specification v1
 
 | Komponen | Sumber | Peran |
 |----------|--------|-------|
-| **Kriptografi** | B4AE | Kyber-1024, Dilithium5, Hybrid, AES-256-GCM |
+| **Kriptografi** | B4AE | ML-KEM-1024 (FIPS 203), ML-DSA-87 (FIPS 204), Hybrid, AES-256-GCM |
 | **Protokol** | B4AE | Handshake, Session, Message encryption |
 | **Transport** | ELARA | UDP, packet delivery, chunking (MAX_PACKET_SIZE=1400) |
 | **Proxy** | B4AE (socks) | SOCKS5 UDP ASSOCIATE untuk IP anonymization (Tor) |

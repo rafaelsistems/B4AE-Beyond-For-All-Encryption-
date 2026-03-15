@@ -469,9 +469,9 @@ data = C || B || A
 
 | Key Type              | Public Key (bytes) | Secret Key (bytes) | Ciphertext (bytes) |
 |-----------------------|--------------------|--------------------|--------------------|
-| Kyber-1024            | 1568               | 3168               | 1568               |
+| ML-KEM-1024 (FIPS 203)            | 1568               | 3168               | 1568               |
 | X25519                | 32                 | 32                 | 32 (ephemeral)     |
-| Dilithium5            | 2592               | 4864               | N/A                |
+| ML-DSA-87 (FIPS 204)            | 2592               | 4864               | N/A                |
 | Ed25519               | 32                 | 83 (PKCS#8)        | N/A                |
 
 **Sources:**

@@ -1,6 +1,6 @@
 # B4AE v2.0 Formal Security Argument Sketch
 
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Date:** 2026  
 **Status:** Updated for v2.0 Architecture
 
@@ -102,12 +102,12 @@ For all adversaries A and verifier V:
 
 ```
 For all quantum polynomial-time (QPT) adversaries A:
-  Pr[A forges Dilithium5 signature] ≤ negl(λ)
+  Pr[A forges ML-DSA-87 (FIPS 204) signature] ≤ negl(λ)
 ```
 
 **Formal Property:**
 ```
-∀m ∈ {0,1}*, sig = Dilithium5.Sign(sk, m) :
+∀m ∈ {0,1}*, sig = ML-DSA-87 (FIPS 204).Sign(sk, m) :
   ∀QPT adversary A :
     Pr[A forges sig without sk] ≤ negl(λ)
 ```
@@ -185,8 +185,8 @@ Where A wins if:
 **Model:** IND-CCA2 security for KEMs, EUF-CMA security for signatures
 
 **Assumptions:**
-1. Kyber1024 is IND-CCA2 secure against quantum adversaries
-2. Dilithium5 is EUF-CMA secure against quantum adversaries
+1. MlKem1024 is IND-CCA2 secure against quantum adversaries
+2. ML-DSA-87 (FIPS 204) is EUF-CMA secure against quantum adversaries
 3. Hybrid composition preserves security
 
 **Security Definition:**
@@ -235,16 +235,16 @@ For all PPT adversaries A:
 
 ### 3.2 Post-Quantum Assumptions
 
-**Assumption 5 (Kyber1024 Security):**
-Kyber1024 is IND-CCA2 secure against quantum adversaries.
+**Assumption 5 (MlKem1024 Security):**
+MlKem1024 is IND-CCA2 secure against quantum adversaries.
 
 ```
 For all QPT adversaries A:
 Adv_KEM(A) ≤ negl(λ)
 ```
 
-**Assumption 6 (Dilithium5 Security):**
-Dilithium5 is EUF-CMA secure against quantum adversaries.
+**Assumption 6 (ML-DSA-87 (FIPS 204) Security):**
+ML-DSA-87 (FIPS 204) is EUF-CMA secure against quantum adversaries.
 
 ```
 For all QPT adversaries A:
@@ -254,14 +254,14 @@ Pr[A forges valid signature] ≤ negl(λ)
 ### 3.3 Hybrid Composition Assumption
 
 **Assumption 7 (Hybrid KEM Security):**
-The hybrid KEM (Kyber1024 || X25519) is secure if either component is secure.
+The hybrid KEM (MlKem1024 || X25519) is secure if either component is secure.
 
 ```
 Adv_HybridKEM(A) ≤ max(Adv_Kyber(A), Adv_X25519(A))
 ```
 
 **Assumption 8 (Hybrid Signature Security):**
-The hybrid signature (Dilithium5 + Ed25519) is secure if either component is secure.
+The hybrid signature (ML-DSA-87 (FIPS 204) + Ed25519) is secure if either component is secure.
 
 ```
 Adv_HybridSig(A) ≤ max(Adv_Dilithium(A), Adv_Ed25519(A))
@@ -368,16 +368,16 @@ If adversary A breaks post-compromise security with advantage ε, then:
 **Proof Sketch:**
 
 1. **Hybrid KEM:**
-   - Shared secret depends on Kyber1024 (Assumption 5)
-   - Even if X25519 is broken by quantum computer, Kyber1024 remains secure
+   - Shared secret depends on MlKem1024 (Assumption 5)
+   - Even if X25519 is broken by quantum computer, MlKem1024 remains secure
 
 2. **Hybrid Signature:**
-   - Signatures depend on Dilithium5 (Assumption 6)
-   - Even if Ed25519 is broken by quantum computer, Dilithium5 remains secure
+   - Signatures depend on ML-DSA-87 (FIPS 204) (Assumption 6)
+   - Even if Ed25519 is broken by quantum computer, ML-DSA-87 (FIPS 204) remains secure
 
 3. **Quantum Adversary:**
    - Quantum adversary can break X25519 and Ed25519
-   - But cannot break Kyber1024 and Dilithium5 (NIST PQC standards)
+   - But cannot break MlKem1024 and ML-DSA-87 (FIPS 204) (NIST PQC standards)
 
 4. **Security Preservation:**
    - Hybrid composition preserves security (Assumptions 7-8)
@@ -386,8 +386,8 @@ If adversary A breaks post-compromise security with advantage ε, then:
 **Reduction:**
 ```
 If quantum adversary A breaks protocol with advantage ε, then:
-  - A breaks Kyber1024 with advantage ≥ ε/2, OR
-  - A breaks Dilithium5 with advantage ≥ ε/2
+  - A breaks MlKem1024 with advantage ≥ ε/2, OR
+  - A breaks ML-DSA-87 (FIPS 204) with advantage ≥ ε/2
 ```
 
 **Conclusion:** Protocol is post-quantum secure under Assumptions 5-6.

@@ -1,6 +1,6 @@
 # B4AE v2.0 Performance Under Stress Analysis
 
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Date:** 2026  
 **Status:** Production-Ready (v2.0 100% Complete)  
 **Reference:** V2_ARCHITECTURE_OVERVIEW.md, PERFORMANCE.md
@@ -27,12 +27,12 @@ This document analyzes the performance characteristics of the B4AE v2.0 protocol
 
 | Operation                  | Time (ms) | Notes                          |
 |----------------------------|-----------|--------------------------------|
-| Kyber1024 keygen           | 0.5       | Per party                      |
+| MlKem1024 keygen           | 0.5       | Per party                      |
 | X25519 keygen              | 0.05      | Per party                      |
 | XEdDSA sign                | 0.1       | Per signature                  |
 | XEdDSA verify              | 0.2       | Per verification               |
-| Kyber1024 encapsulate      | 0.5       | Once per handshake             |
-| Kyber1024 decapsulate      | 0.6       | Once per handshake             |
+| MlKem1024 encapsulate      | 0.5       | Once per handshake             |
+| MlKem1024 decapsulate      | 0.6       | Once per handshake             |
 | X25519 DH                  | 0.05      | Once per handshake             |
 | HKDF-SHA512 (32 bytes)     | 0.01      | Multiple times                 |
 | Cookie challenge (HMAC)    | 0.01      | DoS protection                 |
@@ -44,16 +44,16 @@ This document analyzes the performance characteristics of the B4AE v2.0 protocol
 - **Round-trip (0ms latency):** ~6.5 ms + cookie challenge
 - **With cookie challenge:** ~6.51 ms
 
-#### Mode B (Post-Quantum - Dilithium5 Only)
+#### Mode B (Post-Quantum - ML-DSA-87 (FIPS 204) Only)
 
 | Operation                  | Time (ms) | Notes                          |
 |----------------------------|-----------|--------------------------------|
-| Kyber1024 keygen           | 0.5       | Per party                      |
+| MlKem1024 keygen           | 0.5       | Per party                      |
 | X25519 keygen              | 0.05      | Per party                      |
-| Dilithium5 sign            | 5.0       | Per signature                  |
-| Dilithium5 verify          | 5.0       | Per verification               |
-| Kyber1024 encapsulate      | 0.5       | Once per handshake             |
-| Kyber1024 decapsulate      | 0.6       | Once per handshake             |
+| ML-DSA-87 (FIPS 204) sign            | 5.0       | Per signature                  |
+| ML-DSA-87 (FIPS 204) verify          | 5.0       | Per verification               |
+| MlKem1024 encapsulate      | 0.5       | Once per handshake             |
+| MlKem1024 decapsulate      | 0.6       | Once per handshake             |
 | X25519 DH                  | 0.05      | Once per handshake             |
 | HKDF-SHA512 (32 bytes)     | 0.01      | Multiple times                 |
 | Cookie challenge (HMAC)    | 0.01      | DoS protection                 |
@@ -168,9 +168,9 @@ This document analyzes the performance characteristics of the B4AE v2.0 protocol
 
 | Operation                  | Time (ms) | Notes                          |
 |----------------------------|-----------|--------------------------------|
-| Kyber1024 keygen           | 0.5       | Ephemeral keypair              |
+| MlKem1024 keygen           | 0.5       | Ephemeral keypair              |
 | X25519 keygen              | 0.05      | Ephemeral keypair              |
-| Kyber1024 encapsulate      | 0.5       | Shared secret derivation       |
+| MlKem1024 encapsulate      | 0.5       | Shared secret derivation       |
 | X25519 DH                  | 0.05      | Shared secret derivation       |
 | HKDF (root key)            | 0.01      | Root key ratchet               |
 | HKDF (chain keys)          | 0.02      | 2× chain key derivation        |

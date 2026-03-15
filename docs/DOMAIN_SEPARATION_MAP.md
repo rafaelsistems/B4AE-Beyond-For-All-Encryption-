@@ -65,14 +65,14 @@ fn derive_key(
 
 ### Root Key Derivation
 
-**Purpose:** Derive root key from hybrid shared secret (X25519 + Kyber1024)
+**Purpose:** Derive root key from hybrid shared secret (X25519 + MlKem1024)
 
 **Domain String:** `"B4AE-v1-Handshake-RootKey-Hardening"`
 
 **KDF Call:**
 ```rust
 let root_key = HKDF-SHA512(
-    ikm: hybrid_shared_secret,  // X25519 || Kyber1024 shared secrets
+    ikm: hybrid_shared_secret,  // X25519 || MlKem1024 shared secrets
     salt: handshake_hash,        // SHA-512 of handshake transcript
     info: "B4AE-v1-Handshake-RootKey-Hardening",
     length: 32
@@ -80,7 +80,7 @@ let root_key = HKDF-SHA512(
 ```
 
 **Inputs:**
-- `ikm`: 64 bytes (32 bytes X25519 + 32 bytes Kyber1024)
+- `ikm`: 64 bytes (32 bytes X25519 + 32 bytes MlKem1024)
 - `salt`: 64 bytes (SHA-512 of handshake transcript)
 - Output: 32 bytes
 

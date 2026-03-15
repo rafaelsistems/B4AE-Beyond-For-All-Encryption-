@@ -1,6 +1,6 @@
 # B4AE v2.0 Deployment Model - Threat Model by Platform
 
-**Document Version:** 2.0  
+**Document Version:** 2.1.1  
 **Date:** 2026  
 **Classification:** Technical Architecture  
 **Status:** Updated for v2.0 Architecture  

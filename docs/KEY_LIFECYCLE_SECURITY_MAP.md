@@ -528,7 +528,7 @@ fn zeroize_and_verify(key: &mut [u8]) -> bool {
   3. Zeroize old keypair after grace period (7 days)
   4. Update secure storage
 
-**Dilithium5 Keypair:**
+**ML-DSA-87 (FIPS 204) Keypair:**
 - **Policy:** Same as XEdDSA (rotate together)
 - **Reason:** Maintain hybrid security
 

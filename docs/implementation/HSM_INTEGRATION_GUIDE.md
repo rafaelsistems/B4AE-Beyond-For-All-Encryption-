@@ -180,7 +180,7 @@ fn setup_hsm_client() -> Result<B4aeClient, Box<dyn std::error::Error>> {
 
 ### HSM Performance Characteristics
 - **Key Generation**: 10-100ms depending on algorithm
-- **Signing Operations**: 1-10ms for Ed25519, 50-200ms for Dilithium5
+- **Signing Operations**: 1-10ms for Ed25519, 50-200ms for ML-DSA-87 (FIPS 204)
 - **Encryption/Decryption**: 0.5-5ms for AES operations
 - **Network Latency**: Add 1-50ms for network-attached HSMs
 
