@@ -411,7 +411,7 @@ impl PadmePadding {
         use crate::crypto::constant_time::ConstantTimeMemory;
         
         // Build expected padding for comparison
-        let mut expected_padding = vec![expected_padding_byte; padding_length];
+        let expected_padding = vec![expected_padding_byte; padding_length];
         
         // Extract actual padding bytes
         let actual_padding = &padded[original_length..bucket_size];

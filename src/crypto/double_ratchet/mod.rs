@@ -21,7 +21,6 @@ pub use session::{
     DoubleRatchetSession, RatchetMessage, RatchetUpdate, RatchetState, DoubleRatchetConfig,
 };
 
-use crate::crypto::CryptoResult;
 
 /// Maximum allowed message counter skip to prevent DoS attacks (1000 messages)
 pub const MAX_SKIP: u64 = 1000;
