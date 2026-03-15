@@ -5,6 +5,12 @@ All notable changes to B4AE will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.3] - 2026-03-15
+
+### Added
+- 4 fuzz targets baru untuk crypto primitives: `fuzz_mlkem` (ML-KEM-1024), `fuzz_mldsa` (ML-DSA-87), `fuzz_aes_gcm` (AES-256-GCM), `fuzz_hkdf` (HKDF)
+- 3 advanced API examples: `b4ae_hsm_integration_demo`, `b4ae_key_rotation_demo`, `b4ae_audit_logging_demo`
+
 ## [2.1.2] - 2026-03-15
 
 ### Fixed
