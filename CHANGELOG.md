@@ -5,6 +5,16 @@ All notable changes to B4AE will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-03-15
+
+### Fixed
+- Upgrade `pqcrypto-kyber` → `pqcrypto-mlkem` (mlkem1024, FIPS 203) untuk mengatasi Dependabot vulnerability alerts
+- Upgrade `pqcrypto-dilithium` → `pqcrypto-mldsa` (mldsa87, FIPS 204) untuk mengatasi Dependabot vulnerability alerts
+- Perbaiki semua `missing_docs` warnings — tambah doc comment pada semua public items di `src/security/`
+- Perbaiki `dead_code` warnings — prefix `_` pada fields internal yang tidak dipakai
+- Perbaiki `unused variable` warning di `src/crypto/double_ratchet/hybrid_dh_ratchet.rs`
+- Build bersih: 0 warning, 0 error
+
 ## [2.1.0] - 2026-03-15
 
 ### Added
