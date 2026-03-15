@@ -597,7 +597,6 @@ impl DoubleRatchetSession {
     /// # Returns
     /// * `Ok((alice, bob))` - Pair of sessions ready for testing
     /// * `Err(CryptoError)` - If session creation fails
-    #[cfg(test)]
     pub fn create_test_pair(
         master_secret: &[u8],
         session_id: [u8; 32],
