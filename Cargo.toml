@@ -1,6 +1,6 @@
 [package]
 name = "b4ae"
-version = "2.1.1"
+version = "2.1.2"
 edition = "2021"
 authors = ["B4AE Team"]
 description = "B4AE (Beyond For All Encryption) - Quantum-resistant secure communication protocol"

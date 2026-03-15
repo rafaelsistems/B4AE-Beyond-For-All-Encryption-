@@ -5,6 +5,15 @@ All notable changes to B4AE will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.2] - 2026-03-15
+
+### Fixed
+- Refactor `src/hsm/pkcs11_enhanced.rs`: hapus `unsafe impl Send+Sync` yang berbahaya — `cryptoki::Session` sengaja tidak `Send+Sync` karena PKCS#11 C API tidak thread-safe
+- Ganti `session_cache: Arc<RwLock<Session>>` dengan session baru per-operasi via `Arc<Mutex<Pkcs11>>`
+- Fix `Mechanism::Eddsa` API untuk `cryptoki 0.11.0` — gunakan `EddsaParams::new(EddsaSignatureScheme::Ed25519)`
+- Fix unused import `CryptoResult` di `src/crypto/double_ratchet/mod.rs`
+- Fix `unused_mut` warning di `src/crypto/padding.rs`
+
 ## [2.1.1] - 2026-03-15
 
 ### Fixed
