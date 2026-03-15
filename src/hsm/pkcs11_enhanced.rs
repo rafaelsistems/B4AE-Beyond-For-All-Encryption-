@@ -7,6 +7,8 @@ use super::HsmBackend;
 use crate::error::{B4aeError, B4aeResult};
 use cryptoki::context::{CInitializeArgs, CInitializeFlags};
 use cryptoki::mechanism::Mechanism;
+use cryptoki::mechanism::eddsa::{EddsaParams, EddsaSignatureScheme};
+#[allow(unused_imports)]
 use cryptoki::object::{Attribute, ObjectClass, KeyType};
 use cryptoki::session::UserType;
 use cryptoki::types::AuthPin;
@@ -225,8 +227,9 @@ impl Pkcs11HsmEnhanced {
                 B4aeError::ProtocolError(format!("Ed25519 private key not found: {}", key_id))
             })?;
 
+            let params = EddsaParams::new(EddsaSignatureScheme::Ed25519);
             session
-                .sign(&Mechanism::Eddsa, key_handle, data)
+                .sign(&Mechanism::Eddsa(params), key_handle, data)
                 .map_err(|e| B4aeError::ProtocolError(format!("Ed25519 sign: {}", e)))
         })
     }
@@ -248,7 +251,8 @@ impl Pkcs11HsmEnhanced {
                 B4aeError::ProtocolError(format!("Ed25519 public key not found: {}", key_id))
             })?;
 
-            match session.verify(&Mechanism::Eddsa, key_handle, data, signature) {
+            let params = EddsaParams::new(EddsaSignatureScheme::Ed25519);
+            match session.verify(&Mechanism::Eddsa(params), key_handle, data, signature) {
                 Ok(()) => Ok(true),
                 Err(_) => Ok(false),
             }
@@ -257,7 +261,7 @@ impl Pkcs11HsmEnhanced {
 
     /// Secure key derivation using HSM
     pub fn derive_key(&self, base_key_id: &str, context: &[u8], length: usize) -> B4aeResult<Vec<u8>> {
-        self.with_session(|session| {
+        self.with_session(|_session| {
             // Use HKDF mechanism if available, otherwise implement in software
             // For now, implement HKDF in software with HSM-protected base key
             let base_key = self.get_key(base_key_id)?;
@@ -306,6 +310,13 @@ impl Drop for Pkcs11HsmEnhanced {
 }
 
 /// HSM Backend implementation for B4AE integration
+/// SAFETY: Pkcs11HsmEnhanced menggunakan Arc<RwLock<...>> untuk semua akses mutable,
+/// sehingga aman untuk dikirim dan di-share antar thread.
+#[cfg(feature = "hsm-pkcs11")]
+unsafe impl Send for Pkcs11HsmEnhanced {}
+#[cfg(feature = "hsm-pkcs11")]
+unsafe impl Sync for Pkcs11HsmEnhanced {}
+
 #[cfg(feature = "hsm-pkcs11")]
 impl HsmBackend for Pkcs11HsmEnhanced {
     fn generate_keypair(&self, key_id: &str) -> B4aeResult<Vec<u8>> {
