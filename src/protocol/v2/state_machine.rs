@@ -851,7 +851,7 @@ mod tests {
         
         // Staying in same state still counts as transition
         client.on_receive(MessageType::CookieChallenge).unwrap();
-        assert_eq!(client.transition_count(), 2); // No transition, stayed in COOKIE_CHALLENGE
+        assert_eq!(client.transition_count(), 3); // transition_to increments even for same-state
     }
 
     #[test]
