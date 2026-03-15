@@ -119,15 +119,23 @@ pub mod network_input_migration {
         ))
     }
     
+    #[allow(dead_code)]
+    fn current_time_bytes() -> [u8; 8] {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+        secs.to_be_bytes()
+    }
+
     #[test]
     pub fn test_network_input_migration() {
+        let ts = current_time_bytes();
         let valid_header = vec![
             0x01, 0x00, // ProtocolVersion::V1_0
             0x04, // MessageType::Data
             0x03, // CipherSuite::Aes256Gcm
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x39, // Message ID (8 bytes)
             0x00, 0x00, 0x00, 0x64, // Payload length (4 bytes)
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Timestamp (8 bytes) - current time
+            ts[0], ts[1], ts[2], ts[3], ts[4], ts[5], ts[6], ts[7], // Timestamp (current time)
         ];
         
         let invalid_header = vec![0x42]; // Too short

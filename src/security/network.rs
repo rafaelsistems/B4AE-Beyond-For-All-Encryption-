@@ -384,6 +384,11 @@ impl SecurityStreamingValidator {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn current_time_secs() -> u64 {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
+    }
     
     #[test]
     fn test_network_parser_limits() {
@@ -415,7 +420,7 @@ mod tests {
         buffer.write_u8(0x03).expect("Write should succeed"); // Cipher suite (AES-GCM)
         buffer.write_u64_be(12345).expect("Write should succeed"); // Message ID
         buffer.write_u32_be(64).expect("Write should succeed"); // Payload length
-        buffer.write_u64_be(0).expect("Write should succeed"); // Timestamp
+        buffer.write_u64_be(current_time_secs()).expect("Write should succeed"); // Timestamp
         
         // Write payload
         let payload = vec![0x42u8; 64];
@@ -473,7 +478,7 @@ mod tests {
         buffer.write_u8(0x03).expect("Write should succeed"); // Cipher suite
         buffer.write_u64_be(12345).expect("Write should succeed"); // Message ID
         buffer.write_u32_be(64).expect("Write should succeed"); // Payload length
-        buffer.write_u64_be(0).expect("Write should succeed"); // Timestamp
+        buffer.write_u64_be(current_time_secs()).expect("Write should succeed"); // Timestamp
         
         // Write payload
         let payload = vec![0x42u8; 64];
@@ -513,7 +518,7 @@ mod tests {
         buffer.write_u8(0x03).expect("Write should succeed"); // Cipher suite
         buffer.write_i64_be(12345).expect("Write should succeed"); // Message ID
         buffer.write_u32_be(100).expect("Write should succeed"); // Payload length
-        buffer.write_i64_be(0).expect("Write should succeed"); // Timestamp
+        buffer.write_i64_be(current_time_secs() as i64).expect("Write should succeed"); // Timestamp
         
         // Reset position
         buffer.set_position(0).expect("Set position should succeed");

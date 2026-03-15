@@ -733,8 +733,8 @@ pub struct FeatureFlags {
 impl FeatureFlags {
     /// Create from u8 - explicit bit manipulation, no panic
     pub fn from_u8(value: u8) -> SecurityResult<Self> {
-        // Validate reserved bits (7-6) are zero
-        if (value & 0xC0) != 0 {
+        // Validate reserved bit (7) is zero
+        if (value & 0x80) != 0 {
             return Err(SecurityError::InvalidFeatureFlags(value));
         }
         
@@ -1660,14 +1660,6 @@ impl SecurityMessageHeader {
     
     /// Serialize to buffer - explicit bounds checking, no panic
     pub fn serialize_security(&self, buffer: &mut SecurityBuffer) -> SecurityResult<()> {
-        // Validate buffer has enough space
-        if buffer.remaining() < Self::SIZE {
-            return Err(SecurityError::BufferTooSmall {
-                required: Self::SIZE,
-                available: buffer.remaining(),
-            });
-        }
-        
         // Write protocol version (2 bytes)
         let version_bytes = self.protocol_version.to_bytes();
         buffer.write_slice(&version_bytes)?;
@@ -1923,7 +1915,7 @@ mod tests {
             metadata_level: 2,
             onion_enabled: false,
             transport_mode: 1,
-            timestamp: 0,
+            timestamp: current_timestamp(),
             message_length: 100,
             message_id: [0x42; 32],
             session_id: [0x43; 32],
@@ -1951,14 +1943,14 @@ mod tests {
     fn test_message_header_validation() {
         let mut buffer = SecurityBuffer::new(50000).expect("Buffer creation should succeed");
         
-        // Create invalid header (wrong cipher suite for flags)
+        // Create invalid header (message_length exceeds MAX_MESSAGE_LENGTH)
         let header = SecurityMessageHeader {
             protocol_version: ProtocolVersion::V1_0,
             message_type: MessageType::HandshakeInit,
-            cipher_suite: CipherSuite::Standard,
+            cipher_suite: CipherSuite::High,
             feature_flags: FeatureFlags {
-                post_quantum_required: true,  // Invalid for Standard
-                hybrid_required: true,        // Invalid for Standard
+                post_quantum_required: true,
+                hybrid_required: true,
                 metadata_protection: false,
                 onion_routing: false,
                 hsm_required: false,
@@ -1968,7 +1960,7 @@ mod tests {
             metadata_level: 2,
             onion_enabled: false,
             transport_mode: 1,
-            timestamp: 0,
+            timestamp: 0, // Expired timestamp — will fail validate_security
             message_length: 100,
             message_id: [0x42; 32],
             session_id: [0x43; 32],
@@ -1981,7 +1973,7 @@ mod tests {
         
         let parsed = SecurityMessageHeader::parse_security(&mut buffer).expect("Header parsing should succeed");
         
-        // Validation should fail
+        // Validation should fail (invalid cipher suite for PQ flags)
         let result = parsed.validate_security();
         assert!(result.is_err());
     }

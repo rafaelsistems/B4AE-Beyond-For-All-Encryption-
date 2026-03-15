@@ -292,7 +292,8 @@ mod tests {
         // This test requires SoftHSM2 to be installed
         // Skip if PKCS#11 library is not available
         if std::path::Path::new("/usr/lib/softhsm/libsofthsm2.so").exists() {
-            let hsm = Pkcs11HsmEnhanced::new("/usr/lib/softhsm/libsofthsm2.so", 0, Some("1234"));
+            let slot = cryptoki::slot::Slot::try_from(0u64).expect("valid slot id");
+            let hsm = Pkcs11HsmEnhanced::new("/usr/lib/softhsm/libsofthsm2.so", slot, Some("1234"));
             assert!(hsm.is_ok());
         }
     }

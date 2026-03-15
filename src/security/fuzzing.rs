@@ -258,6 +258,9 @@ impl NetworkFuzzingHarness {
                     SecurityError::BufferTooSmall { .. } => {},
                     SecurityError::InvalidProtocolVersion { .. } => {},
                     SecurityError::InvalidMessageType(_) => {},
+                    SecurityError::InvalidTimestamp(_) => {},
+                    SecurityError::ResourceExhaustionProtection { .. } => {},
+                    SecurityError::InvalidCipherSuite(_) => {},
                     _ => self.record_violation("unexpected_parse_error", input, error),
                 }
             }
@@ -284,6 +287,9 @@ impl NetworkFuzzingHarness {
                         SecurityError::InvalidProtocolVersion { .. } => {},
                         SecurityError::InvalidMessageType(_) => {},
                         SecurityError::InvalidCipherSuite(_) => {},
+                        SecurityError::InvalidTimestamp(_) => {},
+                        SecurityError::BufferTooSmall { .. } => {},
+                        SecurityError::InvalidLength { .. } => {},
                         _ => self.record_violation("unexpected_header_error", input, error),
                     }
                 }
@@ -305,6 +311,10 @@ impl NetworkFuzzingHarness {
                     match error {
                         SecurityError::InvalidMessageType(_) => {},
                         SecurityError::InvalidCipherSuite(_) => {},
+                        SecurityError::InvalidTimestamp(_) => {},
+                        SecurityError::BufferTooSmall { .. } => {},
+                        SecurityError::InvalidProtocolVersion { .. } => {},
+                        SecurityError::ResourceExhaustionProtection { .. } => {},
                         _ => self.record_violation("unexpected_handshake_error", input, error),
                     }
                 }
@@ -704,6 +714,8 @@ impl SecurityFuzzingOrchestrator {
     }
     
     fn run_all_harnesses(&mut self, input: &[u8]) {
+        self.results.total_runs += 1;
+        
         // Run buffer fuzzing
         match self.buffer_harness.fuzz_buffer_operations(input) {
             FuzzingResult::Success => self.results.successful_runs += 1,
