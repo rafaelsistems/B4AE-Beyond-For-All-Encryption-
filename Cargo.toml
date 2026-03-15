@@ -11,14 +11,40 @@ homepage = "https://github.com/rafaelsistems/B4AE-Beyond-For-All-Encryption-"
 readme = "README.md"
 keywords = ["cryptography", "post-quantum", "encryption", "security", "messaging"]
 exclude = [
+    # Subdirektori non-library
     "elara/", ".github/", "docs/", "research/", "specs/", "specs/**",
     "bindings/", "bindings/**",
     "b4ae-android/", "b4ae-ffi/", "b4ae-wasm/", "wasm-demo/",
     "b4ae-android-app/", "b4ae-android-app/**",
-    "fuzz/", "scripts/",
+    "fuzz/", "scripts/", "tla/",
+    # Docker & CI
     "Dockerfile", "docker-compose.yml", ".dockerignore",
-    ".gitignore", ".gitmodules", ".gitlab-ci.yml", "Cargo.toml.orig",
-    "cbindgen.toml", "RELEASE_NOTES_*.md", "TESTING_GUIDE.md", "CONTRIBUTING.md", "CHANGELOG.md",
+    "docker-publish.ps1", "docker-publish.sh",
+    ".gitignore", ".gitmodules", ".gitlab-ci.yml",
+    # File konfigurasi dev
+    "cbindgen.toml", "Cargo.toml.orig", "Cargo.lock",
+    # Dokumen internal dev (tidak untuk publik)
+    "AUDIT_FAKTUAL_KODEBASE.md",
+    "CI_WORKFLOW_FIXES.md",
+    "COMMIT_PLAN.md",
+    "GIT_STATUS_ANALYSIS.md",
+    "DOCKER_BUILD_PUBLISH_GUIDE.md",
+    "DOCKER_DEPLOYMENT_STATUS.md",
+    "DOCKER_PUBLISH_SUMMARY.md",
+    "DOCKER_QUICK_START.md",
+    "DOCKER_DEPLOYMENT_STATUS.md",
+    "IMPLEMENTATION_SUMMARY.md",
+    "PRODUCTION_ASSESSMENT.md",
+    "SECURITY_AUDIT_REPORT.md",
+    "STABILITAS_PROYEK.md",
+    "CONTRIBUTORS.md",
+    "pending_files.txt",
+    "remove_sensitive_docs.sh",
+    # Dokumen release & panduan (sudah ada di repo, tidak perlu di crates.io)
+    "RELEASE_NOTES_*.md",
+    "TESTING_GUIDE.md",
+    "CONTRIBUTING.md",
+    "CHANGELOG.md",
 ]
 categories = ["cryptography", "network-programming"]
 
