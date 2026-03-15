@@ -1,6 +1,6 @@
 # B4AE v2.0 Security Audit Checklist
 
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Date:** 2026  
 **Status:** Research-Grade Security Audit Requirements
 
@@ -13,7 +13,7 @@ Checklist untuk security audit internal dan eksternal B4AE v2.0 Protocol.
 ## 1. Cryptographic Security (v2.0)
 
 ### 1.1 Key Exchange (Hybrid KEM)
-- [ ] **Kyber-1024 implementation** — NIST FIPS 203, IND-CCA2 secure
+- [ ] **ML-KEM-1024 (FIPS 203) implementation** — NIST FIPS 203, IND-CCA2 secure
 - [ ] **X25519 (hybrid)** — constant-time, no side-channel leaks
 - [ ] **Hybrid KEM composition** — security preserving (Kyber || X25519)
 - [ ] **Key derivation HKDF-SHA512** — proper salt, context, domain separation
@@ -23,8 +23,8 @@ Checklist untuk security audit internal dan eksternal B4AE v2.0 Protocol.
 - [ ] **Forward secrecy** — old keys zeroized after use
 
 ### 1.2 Signatures (Mode-Specific)
-- [ ] **Mode A: XEdDSA only** — deniable authentication, no Dilithium5
-- [ ] **Mode B: Dilithium5 only** — post-quantum, no XEdDSA
+- [ ] **Mode A: XEdDSA only** — deniable authentication, no ML-DSA-87 (FIPS 204)
+- [ ] **Mode B: ML-DSA-87 (FIPS 204) only** — post-quantum, no XEdDSA
 - [ ] **No hybrid signatures** — mode separation enforced
 - [ ] **Mode binding** — mode_binding in all signatures
 - [ ] **Constant-time verification** — no timing side-channels
@@ -106,7 +106,7 @@ Checklist untuk security audit internal dan eksternal B4AE v2.0 Protocol.
 
 ### 3.3 Identity Protection
 - [ ] **Mode A deniability** — verifier can forge XEdDSA signatures
-- [ ] **Mode B non-repudiation** — Dilithium5 proves authorship
+- [ ] **Mode B non-repudiation** — ML-DSA-87 (FIPS 204) proves authorship
 - [ ] **No cross-mode leakage** — modes strictly separated
 
 ---
@@ -123,7 +123,7 @@ Checklist untuk security audit internal dan eksternal B4AE v2.0 Protocol.
 ### 4.2 Dependency Audit
 - [ ] **`cargo audit` clean** — no known CVEs
 - [ ] **Minimal dependency tree** — reduce attack surface
-- [ ] **PQC dependencies** — pqcrypto-kyber, pqcrypto-dilithium (NIST standards)
+- [ ] **PQC dependencies** — pqcrypto-mlkem, pqcrypto-mldsa (NIST standards)
 - [ ] **Lockfile integrity** — Cargo.lock committed
 
 ### 4.3 Error Handling
@@ -167,8 +167,8 @@ Checklist untuk security audit internal dan eksternal B4AE v2.0 Protocol.
 ## 6. v2.0-Specific Audit Items
 
 ### 6.1 Authentication Mode Separation
-- [ ] **Mode A uses XEdDSA only** — no Dilithium5
-- [ ] **Mode B uses Dilithium5 only** — no XEdDSA
+- [ ] **Mode A uses XEdDSA only** — no ML-DSA-87 (FIPS 204)
+- [ ] **Mode B uses ML-DSA-87 (FIPS 204) only** — no XEdDSA
 - [ ] **No hybrid signatures** — contradiction eliminated
 - [ ] **Mode binding enforced** — downgrade attacks prevented
 - [ ] **Deniability verified** — Mode A only (ProVerif)
@@ -223,10 +223,10 @@ Checklist untuk security audit internal dan eksternal B4AE v2.0 Protocol.
 - [ ] **Limitation documented** — requires mixnet for strong unlinkability
 
 ### 7.3 Adversary 3: Quantum (Store-Now-Decrypt-Later)
-- [ ] **Mode B: PQ secure** — Kyber1024 + Dilithium5
+- [ ] **Mode B: PQ secure** — MlKem1024 + ML-DSA-87 (FIPS 204)
 - [ ] **Mode A: Vulnerable** — documented trade-off
 - [ ] **Hybrid KEM** — security preserving composition
-- [ ] **PQ signatures** — Dilithium5 (Mode B)
+- [ ] **PQ signatures** — ML-DSA-87 (FIPS 204) (Mode B)
 
 ### 7.4 Adversary 4: Partial State Compromise
 - [ ] **Forward secrecy** — old keys zeroized
@@ -325,7 +325,7 @@ Checklist untuk security audit internal dan eksternal B4AE v2.0 Protocol.
 
 **Document Status:** Complete  
 **Last Updated:** 2026  
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Audit Status:** Pending (scheduled for Q2 2026)
 
 

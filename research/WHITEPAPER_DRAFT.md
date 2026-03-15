@@ -6,7 +6,7 @@
 
 ## Abstract
 
-B4AE (Beyond For All Encryption) is a drop-in quantum-safe transport layer designed to integrate with existing secure messaging and RPC stacks. It combines NIST-standardized post-quantum cryptography (Kyber-1024, Dilithium5) with classical algorithms in a hybrid construction, and provides metadata protection against traffic analysis. B4AE is implemented in Rust, formally specified, and suitable for deployment in Signal, Matrix, MQTT, gRPC, and IoT contexts.
+B4AE (Beyond For All Encryption) is a drop-in quantum-safe transport layer designed to integrate with existing secure messaging and RPC stacks. It combines NIST-standardized post-quantum cryptography (ML-KEM-1024 (FIPS 203), ML-DSA-87 (FIPS 204)) with classical algorithms in a hybrid construction, and provides metadata protection against traffic analysis. B4AE is implemented in Rust, formally specified, and suitable for deployment in Signal, Matrix, MQTT, gRPC, and IoT contexts.
 
 **Keywords:** Post-quantum cryptography, secure transport, metadata protection, Kyber, Dilithium, hybrid encryption.
 
@@ -31,8 +31,8 @@ Traditional end-to-end encryption (E2EE) protocols are vulnerable to future quan
 
 ### 2.1 Post-Quantum
 
-- **KEM:** CRYSTALS-Kyber-1024 (NIST FIPS 203, Level 5)
-- **Signatures:** CRYSTALS-Dilithium5 (NIST FIPS 204, Level 5)
+- **KEM:** CRYSTALS-ML-KEM-1024 (FIPS 203) (NIST FIPS 203, Level 5)
+- **Signatures:** CRYSTALS-ML-DSA-87 (FIPS 204) (NIST FIPS 204, Level 5)
 
 ### 2.2 Classical (Hybrid)
 

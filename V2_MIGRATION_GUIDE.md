@@ -22,7 +22,7 @@ B4AE v2.0 is **NOT backward compatible** with v1.0. This is a complete protocol 
 | Aspect | v1.0 | v2.0 | Impact |
 |--------|------|------|--------|
 | **Handshake** | 3-way | 5-phase (mode negotiation + cookie challenge) | HIGH |
-| **Signatures** | XEdDSA + Dilithium5 hybrid | Mode A (XEdDSA only) OR Mode B (Dilithium5 only) | HIGH |
+| **Signatures** | XEdDSA + ML-DSA-87 (FIPS 204) hybrid | Mode A (XEdDSA only) OR Mode B (ML-DSA-87 (FIPS 204) only) | HIGH |
 | **Traffic Scheduling** | Per-session | Global unified scheduler | MEDIUM |
 | **Key Derivation** | Simple HKDF | Session ID binding | MEDIUM |
 | **DoS Protection** | None | Stateless cookie challenge | LOW (automatic) |
@@ -223,7 +223,7 @@ let config = B4aeConfig::v2_default(); // All security features enabled
 // - Padding (always PADME 8-bucket)
 // - Metadata protection (always global scheduler)
 // - Cover traffic (minimum 20%, configurable up to 100%)
-// - Post-quantum crypto (always Kyber1024 + mode-specific signatures)
+// - Post-quantum crypto (always MlKem1024 + mode-specific signatures)
 // - Constant-time operations (always enabled)
 // - Downgrade protection (always mode binding)
 

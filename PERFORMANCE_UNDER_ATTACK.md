@@ -1,6 +1,6 @@
 # B4AE v2.0 Performance Under Attack - Denial of Service Analysis
 
-**Document Version:** 2.0  
+**Document Version:** 2.1.1  
 **Date:** 2026  
 **Classification:** Technical Security Analysis  
 **Status:** Production-Ready (100% complete)
@@ -108,7 +108,7 @@ Global Botnet        1 Tbps           1M-10M           Weeks              604 Pb
 **Attacker Goal**: Exhaust server CPU by forcing expensive cryptographic operations
 
 **V1.0 Vulnerability:**
-- Server performs Dilithium5 verification (~3ms) immediately
+- Server performs ML-DSA-87 (FIPS 204) verification (~3ms) immediately
 - Server performs Kyber decapsulation (~0.6ms) immediately
 - Total cost per invalid attempt: ~3.6ms
 - **Result**: 277 invalid attempts/second exhaust 1 CPU core
@@ -242,7 +242,7 @@ Result: ATTACK MITIGATED, SERVICE AVAILABLE
 ### D.1 CPU Exhaustion
 
 **V1.0 Vulnerability:**
-- Dilithium5 verification: 3ms per attempt
+- ML-DSA-87 (FIPS 204) verification: 3ms per attempt
 - 1 core = 333 attempts/second capacity
 - 4 cores = 1,332 attempts/second capacity
 - **Attack threshold: 1,332 attempts/second**
@@ -383,7 +383,7 @@ if cpu_usage > 80% {
 
 **Document Status:** Complete  
 **Last Updated:** 2026  
-**Version:** 2.0.0
+**Version:** 2.1.1.0
         if current_metrics.success_rate < 0.1:  # Target is failing
             attack_rate = int(attack_rate * 0.8)  # Reduce attack rate
         elif current_metrics.response_time > 1.0:  # Target is slow
@@ -408,9 +408,9 @@ Attack Rate (req/s)    CPU Usage    Memory Growth    Success Rate    Response Ti
 ```
 Operation              CPU Time (μs)    Memory (KB)    Network (bytes)    Bottleneck
 ------------------------------------------------------------------------------------------------
-Key Generation         850              12             0                  Kyber-1024
+Key Generation         850              12             0                  ML-KEM-1024 (FIPS 203)
 Message Serialization  45               8              1,642              Serialization
-Signature Generation   1,200            16             0                  Dilithium5
+Signature Generation   1,200            16             0                  ML-DSA-87 (FIPS 204)
 Network Transmission   15               2              1,642              Network stack
 Response Processing    125              24             1,642              Parsing/validation
 Total per Handshake    2,235            62             4,926              Kyber + Dilithium
@@ -600,10 +600,10 @@ Operation Type        CPU Cycles    Time (μs)    Percentage    Hardware Acceler
 ------------------------------------------------------------------------------------------------
 AES-256-GCM Encrypt   1,200         0.5          22%         AES-NI available
 AES-256-GCM Decrypt   1,400         0.6          26%         AES-NI available
-Kyber-1024 Encaps     850,000       354          31%         No acceleration
-Kyber-1024 Decaps     580,000       242          21%         No acceleration
-Dilithium5 Sign       1,200,000     500          45%         No acceleration
-Dilithium5 Verify     450,000       188          17%         No acceleration
+ML-KEM-1024 (FIPS 203) Encaps     850,000       354          31%         No acceleration
+ML-KEM-1024 (FIPS 203) Decaps     580,000       242          21%         No acceleration
+ML-DSA-87 (FIPS 204) Sign       1,200,000     500          45%         No acceleration
+ML-DSA-87 (FIPS 204) Verify     450,000       188          17%         No acceleration
 Key Generation        2,100,000     875          52%         No acceleration
 ```
 

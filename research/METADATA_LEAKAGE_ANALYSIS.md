@@ -1,6 +1,6 @@
 # B4AE Metadata Leakage Analysis - Quantitative Security Assessment
 
-**Document Version:** 1.0  
+**Document Version:** 2.1.1  
 **Date:** February 2025  
 **Classification:** Technical Security Analysis  
 **Warning:** This analysis contains quantitative measurements of traffic analysis resistance. Claims without numbers are marketing.

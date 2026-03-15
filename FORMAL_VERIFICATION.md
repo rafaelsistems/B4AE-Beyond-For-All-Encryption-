@@ -1,6 +1,6 @@
 # B4AE v2.0 Formal Verification Requirements
 
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Date:** 2026  
 **Status:** Research-Grade Formal Verification Plan  
 **Requirement:** Formal verification is MANDATORY for B4AE v2.0
@@ -500,15 +500,15 @@ Observational equivalence real_protocol ~ simulated_protocol is true.
 2. ✅ Forward secrecy (Tamarin)
 3. ✅ Session independence (Tamarin)
 4. ✅ Post-quantum security (ProVerif with quantum adversary model)
-5. ❌ NOT deniable (Dilithium5 is non-repudiable)
+5. ❌ NOT deniable (ML-DSA-87 (FIPS 204) is non-repudiable)
 
 **Tamarin Model:** `specs/tamarin/b4ae_v2_mode_b.spthy`
 
 **ProVerif Model:** `specs/proverif/b4ae_v2_mode_b.pv`
 
 **Post-Quantum Security:**
-- Kyber1024 provides quantum-resistant key exchange
-- Dilithium5 provides quantum-resistant signatures
+- MlKem1024 provides quantum-resistant key exchange
+- ML-DSA-87 (FIPS 204) provides quantum-resistant signatures
 - Security under quantum adversary model
 
 ---
@@ -747,5 +747,5 @@ jobs:
 
 **Document Status:** Complete  
 **Last Updated:** 2026  
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Verification Status:** Models pending (Phase 1)

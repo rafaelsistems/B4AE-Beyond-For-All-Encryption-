@@ -150,7 +150,7 @@ let decrypted = session.decrypt_message_with_unpadding(&encrypted, &padding)?;
 
 ### Overview
 
-XEdDSA provides deniable authentication - signatures that can be verified but also forged by the verifier. This allows participants to plausibly deny sending messages to third parties. The implementation hybridizes XEdDSA with Dilithium5 for post-quantum security.
+XEdDSA provides deniable authentication - signatures that can be verified but also forged by the verifier. This allows participants to plausibly deny sending messages to third parties. The implementation hybridizes XEdDSA with ML-DSA-87 (FIPS 204) for post-quantum security.
 
 ### API Reference
 
@@ -207,7 +207,7 @@ pub struct XEdDSASignature {
 
 #### `DeniableHybridKeyPair`
 
-Hybrid keypair combining XEdDSA and Dilithium5.
+Hybrid keypair combining XEdDSA and ML-DSA-87 (FIPS 204).
 
 ```rust
 pub struct DeniableHybridKeyPair {
@@ -229,7 +229,7 @@ use b4ae::crypto::xeddsa::DeniableHybridKeyPair;
 // Generate hybrid keypair
 let keypair = DeniableHybridKeyPair::generate()?;
 
-// Sign message with both XEdDSA and Dilithium5
+// Sign message with both XEdDSA and ML-DSA-87 (FIPS 204)
 let message = b"Important message";
 let signature = keypair.sign_with_deniable_hybrid(message)?;
 
@@ -241,7 +241,7 @@ assert!(valid);
 
 #### `DeniableHybridSignature`
 
-Hybrid signature containing both XEdDSA and Dilithium5 components.
+Hybrid signature containing both XEdDSA and ML-DSA-87 (FIPS 204) components.
 
 ```rust
 pub struct DeniableHybridSignature {
@@ -283,28 +283,28 @@ let result = initiator.finalize()?;
 
 ### Performance Characteristics
 
-- **Signature generation**: ~0.05ms (XEdDSA) + ~3ms (Dilithium5) = ~3.05ms total
-- **Signature verification**: ~0.1ms (XEdDSA) + ~3ms (Dilithium5) = ~3.1ms total
-- **Signature size**: 64 bytes (XEdDSA) + 4627 bytes (Dilithium5) = 4691 bytes
+- **Signature generation**: ~0.05ms (XEdDSA) + ~3ms (ML-DSA-87 (FIPS 204)) = ~3.05ms total
+- **Signature verification**: ~0.1ms (XEdDSA) + ~3ms (ML-DSA-87 (FIPS 204)) = ~3.1ms total
+- **Signature size**: 64 bytes (XEdDSA) + 4627 bytes (ML-DSA-87 (FIPS 204)) = 4691 bytes
 - **Handshake overhead**: +5ms compared to Ed25519-only
 
 ### Security Implications
 
 **Protections:**
 - Provides plausible deniability (verifier can forge XEdDSA signatures)
-- Maintains post-quantum security through Dilithium5
-- Secure if either XEdDSA OR Dilithium5 is secure
+- Maintains post-quantum security through ML-DSA-87 (FIPS 204)
+- Secure if either XEdDSA OR ML-DSA-87 (FIPS 204) is secure
 - Constant-time verification prevents timing attacks
 
 **Limitations:**
-- XEdDSA is not post-quantum secure (but Dilithium5 is)
+- XEdDSA is not post-quantum secure (but ML-DSA-87 (FIPS 204) is)
 - Larger signature size compared to Ed25519 alone
 - Cannot provide non-repudiation (by design)
 
 **Recommended Usage:**
 - Use for all handshakes requiring deniability
 - Understand that deniability means participants can deny sending messages
-- For non-repudiation, use Dilithium5 only (disable XEdDSA)
+- For non-repudiation, use ML-DSA-87 (FIPS 204) only (disable XEdDSA)
 
 ---
 
@@ -671,7 +671,7 @@ assert!(result.is_err());
 |-----------|---------------|--------|--------------|
 | PADMÉ Padding | Bandwidth | 2-100% (avg <5%) | Yes (bucket sizes) |
 | XEdDSA | Computation | +0.05ms per signature | No |
-| Dilithium5 | Computation | +3ms per signature | No |
+| ML-DSA-87 (FIPS 204) | Computation | +3ms per signature | No |
 | Cover Traffic | Bandwidth | 0-100% | Yes (rate) |
 | Timing Delays | Latency | 0-2000ms | Yes (min/max) |
 | Constant-Time Ops | Computation | <20% | No |
@@ -710,7 +710,7 @@ The security hardening suite protects against:
 1. **IP Addresses**: Still visible to network observers (use Tor/VPN)
 2. **Global Passive Adversary**: Requires mixnet for strong unlinkability
 3. **Endpoint Compromise**: Cannot protect if endpoints are compromised
-4. **Quantum Attacks on XEdDSA**: XEdDSA is not post-quantum (but Dilithium5 is)
+4. **Quantum Attacks on XEdDSA**: XEdDSA is not post-quantum (but ML-DSA-87 (FIPS 204) is)
 
 ### Best Practices
 

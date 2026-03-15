@@ -1,6 +1,6 @@
 # B4AE v2.0 Integration Testing Plan
 
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Status:** Production-Ready (v2.0 100% Complete)  
 **Reference:** V2_ARCHITECTURE_OVERVIEW.md, V2_SECURITY_ANALYSIS.md
 
@@ -67,8 +67,8 @@ async fn test_mode_b_handshake() {
     assert!(!session.is_deniable());
     assert!(session.is_post_quantum());
     
-    // Verify Dilithium5 signatures used
-    assert!(session.signature_scheme() == SignatureScheme::Dilithium5);
+    // Verify ML-DSA-87 (FIPS 204) signatures used
+    assert!(session.signature_scheme() == SignatureScheme::ML-DSA-87 (FIPS 204));
 }
 ```
 

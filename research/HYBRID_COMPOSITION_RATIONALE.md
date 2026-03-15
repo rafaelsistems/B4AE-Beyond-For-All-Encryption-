@@ -1,6 +1,6 @@
 # B4AE Hybrid Composition Rationale - Academic Analysis
 
-**Document Version:** 1.0  
+**Document Version:** 2.1.1  
 **Date:** February 2025  
 **Classification:** Technical Security Analysis  
 **Author:** Cryptography Team  
@@ -303,7 +303,7 @@ pub fn hybrid_encapsulate_secure(
 
 ### Benchmark Results
 
-| Operation | Kyber-1024 | X25519 | Hybrid (Both) | Overhead |
+| Operation | ML-KEM-1024 (FIPS 203) | X25519 | Hybrid (Both) | Overhead |
 |-----------|------------|---------|---------------|----------|
 | KeyGen | 0.8ms | 0.1ms | 0.9ms | 12.5% |
 | Encapsulate | 0.6ms | 0.05ms | 0.65ms | 8.3% |
@@ -354,8 +354,8 @@ Total: 1632 bytes vs 1568 bytes = 4% overhead
 ```rust
 // ALGORITHM AGILITY FRAMEWORK
 pub enum HybridKemAlgorithm {
-    Kyber1024_X25519,      // Current
-    Kyber1024_X448,        // Future: stronger classical
+    MlKem1024_X25519,      // Current
+    MlKem1024_X448,        // Future: stronger classical
     Kyber768_X25519,       // Future: smaller PQ
     Dilithium_KEM_X25519,  // Future: alternative PQ
 }
@@ -365,8 +365,8 @@ pub fn upgrade_hybrid_algorithm(
     target_security: SecurityLevel,
 ) -> HybridKemAlgorithm {
     match (current, target_security) {
-        (Kyber1024_X25519, Quantum128) => Kyber768_X25519,
-        (Kyber1024_X25519, Classical256) => Kyber1024_X448,
+        (MlKem1024_X25519, Quantum128) => Kyber768_X25519,
+        (MlKem1024_X25519, Classical256) => MlKem1024_X448,
         _ => current, // No upgrade needed
     }
 }
@@ -374,7 +374,7 @@ pub fn upgrade_hybrid_algorithm(
 
 ### Migration Path
 
-1. **Phase 1** (Current): Kyber-1024 + X25519
+1. **Phase 1** (Current): ML-KEM-1024 (FIPS 203) + X25519
 2. **Phase 2** (2026): Add Kyber-768 option for constrained devices
 3. **Phase 3** (2028): Add X448 for 224-bit classical security
 4. **Phase 4** (2030): Add alternative PQ algorithms (Dilithium-KEM)

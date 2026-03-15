@@ -1,6 +1,6 @@
 # B4AE v2.0 Security Invariants
 
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Date:** 2026  
 **Status:** Updated for v2.0 Architecture
 
@@ -136,24 +136,24 @@ This document specifies formal security invariants for B4AE v2.0. Invariants are
 
 ### Invariant M-1: Mode A Signature Exclusivity
 
-**Statement:** Mode A uses XEdDSA only, never Dilithium5
+**Statement:** Mode A uses XEdDSA only, never ML-DSA-87 (FIPS 204)
 
 **Formal Definition:**
 ```
 ∀session S, mode M :
   M = ModeA ⇒ 
-    ∀signature sig ∈ S : sig.type = XEdDSA ∧ sig.type ≠ Dilithium5
+    ∀signature sig ∈ S : sig.type = XEdDSA ∧ sig.type ≠ ML-DSA-87 (FIPS 204)
 ```
 
 **Verification Method:**
 - Mode A configuration enforces XEdDSA-only
-- Dilithium5 signature generation disabled in Mode A
+- ML-DSA-87 (FIPS 204) signature generation disabled in Mode A
 - Signature verification checks mode consistency
 
 **Test Coverage:** Mode A integration tests
 
 **Violation Consequences:**
-- Deniability broken (Dilithium5 is non-repudiable)
+- Deniability broken (ML-DSA-87 (FIPS 204) is non-repudiable)
 - Mode separation violated
 - Security property lost
 
@@ -161,17 +161,17 @@ This document specifies formal security invariants for B4AE v2.0. Invariants are
 
 ### Invariant M-2: Mode B Signature Exclusivity
 
-**Statement:** Mode B uses Dilithium5 only, never XEdDSA
+**Statement:** Mode B uses ML-DSA-87 (FIPS 204) only, never XEdDSA
 
 **Formal Definition:**
 ```
 ∀session S, mode M :
   M = ModeB ⇒ 
-    ∀signature sig ∈ S : sig.type = Dilithium5 ∧ sig.type ≠ XEdDSA
+    ∀signature sig ∈ S : sig.type = ML-DSA-87 (FIPS 204) ∧ sig.type ≠ XEdDSA
 ```
 
 **Verification Method:**
-- Mode B configuration enforces Dilithium5-only
+- Mode B configuration enforces ML-DSA-87 (FIPS 204)-only
 - XEdDSA signature generation disabled in Mode B
 - Signature verification checks mode consistency
 

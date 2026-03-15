@@ -1,6 +1,6 @@
 # B4AE v2.0 Pilot Deployment Guide
 
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Status:** Production-Ready (v2.0 100% Complete)  
 **Reference:** V2_ARCHITECTURE_OVERVIEW.md, DEPLOYMENT_GUIDE.md
 
@@ -57,7 +57,7 @@ let config = B4aeConfig {
 **Mode B (Post-Quantum Non-Repudiable):**
 ```rust
 let config = B4aeConfig {
-    authentication_mode: AuthenticationMode::ModeB,  // Dilithium5 only
+    authentication_mode: AuthenticationMode::ModeB,  // ML-DSA-87 (FIPS 204) only
     // ... other config
 };
 ```

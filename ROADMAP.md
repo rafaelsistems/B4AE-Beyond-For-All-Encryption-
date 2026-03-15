@@ -1,7 +1,7 @@
 # B4AE Roadmap
 
 **Last Updated**: 2026  
-**Current Version**: 2.0.0 (Production-Ready)
+**Current Version**: 2.1.1 (Production-Ready)
 
 Development roadmap for B4AE (Beyond For All Encryption).
 
@@ -104,7 +104,7 @@ Development roadmap for B4AE (Beyond For All Encryption).
 - [x] Crates.io preparation (metadata, exclude, CRATES_IO_PUBLISH_PREP.md)
 - [x] elara-transport: elara-core, elara-wire, elara-transport v0.1.0 published
 - [x] B4AE uses `version = "0.1"`
-- [ ] Publish b4ae v2.0.0 to crates.io
+- [x] Publish b4ae v2.1.1 to crates.io (15 Maret 2026)
 - [ ] Publish platform SDKs (iOS, Android, Web)
 
 ---
@@ -226,7 +226,7 @@ Development roadmap for B4AE (Beyond For All Encryption).
 ### Standardization
 
 - [ ] **IETF RFC submission** (B4AE protocol specification)
-- [ ] **NIST PQC integration** (Kyber, Dilithium standardization)
+- [x] **NIST PQC integration** (ML-KEM FIPS 203, ML-DSA FIPS 204) — selesai v2.1.1
 - [ ] **Academic publications** (formal verification results)
 - [ ] **Industry adoption** (partnerships, case studies)
 
@@ -297,4 +297,4 @@ Development roadmap for B4AE (Beyond For All Encryption).
 
 **Document Status:** Complete  
 **Last Updated:** 2026  
-**Version:** 2.0.0
+**Version:** 2.1.1

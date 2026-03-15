@@ -1,6 +1,6 @@
 # B4AE v2.0 Architecture Overview
 
-**Version**: 2.0.0  
+**Version**: 2.1.1  
 **Status**: Production-Ready (100% complete - 75/75 tasks)  
 **Specification**: `.kiro/specs/b4ae-v2-research-grade-architecture/`
 
@@ -17,13 +17,13 @@ B4AE v2.0 is a research-grade post-quantum metadata-hardened secure messaging pr
 
 ### 1. Authentication Mode Separation
 
-**Problem (v1.0)**: XEdDSA + Dilithium5 hybrid signatures destroy deniability because verifier cannot forge the Dilithium5 component.
+**Problem (v1.0)**: XEdDSA + ML-DSA-87 (FIPS 204) hybrid signatures destroy deniability because verifier cannot forge the ML-DSA-87 (FIPS 204) component.
 
 **Solution (v2.0)**: Separate authentication into distinct modes with clear security properties.
 
 #### Mode A: Deniable Authentication
 
-- **Signatures**: XEdDSA only (no Dilithium5)
+- **Signatures**: XEdDSA only (no ML-DSA-87 (FIPS 204))
 - **Security Properties**:
   - ✅ Deniable authentication (verifier can forge signatures)
   - ✅ Mutual authentication
@@ -35,7 +35,7 @@ B4AE v2.0 is a research-grade post-quantum metadata-hardened secure messaging pr
 
 #### Mode B: Post-Quantum Non-Repudiable
 
-- **Signatures**: Dilithium5 only (no XEdDSA)
+- **Signatures**: ML-DSA-87 (FIPS 204) only (no XEdDSA)
 - **Security Properties**:
   - ✅ Post-quantum secure (NIST Level 5)
   - ✅ Non-repudiable signatures (proves authorship)
@@ -53,7 +53,7 @@ B4AE v2.0 is a research-grade post-quantum metadata-hardened secure messaging pr
 
 ### 2. Stateless Cookie Challenge
 
-**Problem (v1.0)**: Server performs expensive cryptographic operations (Dilithium5 verification ~3ms, Kyber decapsulation ~0.6ms) immediately upon receiving HandshakeInit, making it vulnerable to DoS attacks.
+**Problem (v1.0)**: Server performs expensive cryptographic operations (ML-DSA-87 (FIPS 204) verification ~3ms, Kyber decapsulation ~0.6ms) immediately upon receiving HandshakeInit, making it vulnerable to DoS attacks.
 
 **Solution (v2.0)**: Stateless HMAC-based cookie challenge before expensive operations.
 
@@ -218,7 +218,7 @@ protocol_id = SHA3-256(canonical_specification_document)
 - **Padding**: PADME 8-bucket scheme (cannot be disabled)
 - **Metadata Protection**: Global scheduler (cannot be disabled)
 - **Cover Traffic**: Minimum 20% (configurable up to 100%, cannot go below 20%)
-- **Post-Quantum Crypto**: Kyber1024 + Dilithium5 or XEdDSA (cannot be disabled)
+- **Post-Quantum Crypto**: MlKem1024 + ML-DSA-87 (FIPS 204) or XEdDSA (cannot be disabled)
 - **Constant-Time Operations**: All crypto operations (cannot be disabled)
 - **Downgrade Protection**: Mode binding (cannot be disabled)
 

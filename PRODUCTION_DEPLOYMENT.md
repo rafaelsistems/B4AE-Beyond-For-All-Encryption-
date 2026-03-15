@@ -1,6 +1,6 @@
 # B4AE v2.0 Production Deployment
 
-**Version**: 2.0.0  
+**Version**: 2.1.1  
 **Status**: Production-Ready (100% complete)  
 **Last Updated**: 2026
 
@@ -253,16 +253,16 @@ key_manager.start_rotation_scheduler().await;
 
 #### 3. HSM Integration (Mode B)
 
-For compliance environments, store Dilithium5 keys in HSM:
+For compliance environments, store ML-DSA-87 (FIPS 204) keys in HSM:
 
 ```rust
 use b4ae::crypto::hsm::HsmKeyStore;
 
 // Initialize HSM
-let hsm = HsmKeyStore::new("pkcs11:token=B4AE;object=dilithium5_key")?;
+let hsm = HsmKeyStore::new("pkcs11:token=B4AE;object=ML-DSA-87 (FIPS 204)_key")?;
 
 // Generate keypair in HSM (private key never leaves HSM)
-let keypair = hsm.generate_dilithium5_keypair()?;
+let keypair = hsm.generate_ML-DSA-87 (FIPS 204)_keypair()?;
 
 // Sign with HSM
 let signature = hsm.sign(&message)?;
@@ -270,7 +270,7 @@ let signature = hsm.sign(&message)?;
 
 **HSM Requirements:**
 - PKCS#11 compatible
-- Support for NIST PQC algorithms (Dilithium5)
+- Support for NIST PQC algorithms (ML-DSA-87 (FIPS 204))
 - Hardware security module (not software emulation)
 
 #### 4. Network Segmentation
@@ -532,4 +532,4 @@ groups:
 
 **Document Status:** Complete  
 **Last Updated:** 2026  
-**Version:** 2.0.0
+**Version:** 2.1.1.0

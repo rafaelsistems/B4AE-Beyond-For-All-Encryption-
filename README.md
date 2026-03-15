@@ -1,6 +1,6 @@
 # B4AE Documentation
 
-Welcome to the B4AE (Beyond For All Encryption) documentation. This documentation covers the v2.0 implementation, which represents a research-grade protocol architecture with formal verification and comprehensive security analysis.
+Welcome to the B4AE (Beyond For All Encryption) documentation. This documentation covers the **v2.1.1** implementation — production-ready, 0 compiler warnings, NIST PQC standards (ML-KEM FIPS 203, ML-DSA FIPS 204).
 
 ## Quick Start
 
@@ -12,9 +12,7 @@ Welcome to the B4AE (Beyond For All Encryption) documentation. This documentatio
 
 ## Documentation Status
 
-**v2.0 Status:** ✅ **COMPLETE** (100%, 75/75 tasks)
-
-All P0, P1, P2, and P3 priority documentation has been updated to reflect the v2.0 architecture. See [DOCUMENTATION_AUDIT_REPORT.md](DOCUMENTATION_AUDIT_REPORT.md) for details.
+**v2.1.1 Status:** ✅ **PRODUCTION READY** — 0 warning, 0 error, NIST FIPS 203/204
 
 ## Core Documentation (docs/)
 
@@ -64,10 +62,7 @@ The root `docs/` folder contains all essential v2.0 documentation and technical 
 - [SECURITY_HARDENING_API.md](SECURITY_HARDENING_API.md) - Security API
 
 ### Project Management
-- [ROADMAP.md](ROADMAP.md) - Project roadmap (v2.0 complete)
-- [DOCUMENTATION_AUDIT_REPORT.md](DOCUMENTATION_AUDIT_REPORT.md) - Documentation audit
-- [P1_DOCUMENTATION_UPDATE_SUMMARY.md](P1_DOCUMENTATION_UPDATE_SUMMARY.md) - P1 updates
-- [P2_P3_DOCUMENTATION_UPDATE_SUMMARY.md](P2_P3_DOCUMENTATION_UPDATE_SUMMARY.md) - P2/P3 updates
+- [ROADMAP.md](ROADMAP.md) - Project roadmap (v2.1.1 current)
 
 ## Organized Documentation
 
@@ -109,28 +104,23 @@ Certifications, audits, and government requirements:
 - AUDIT_IMPLEMENTATION_MISMATCHES.md
 - AUDITOR_RFP_OUTREACH.md
 
-### [research/](research/) (8 files)
+### [research/](research/) (6 files)
 Academic papers, whitepapers, and formal security analysis:
 - WHITEPAPER_DRAFT.md
-- ACADEMIC_REVISION_SUMMARY.md
 - B4AE_VS_E2EE_ARCHITECTURE.md
 - HYBRID_COMPOSITION_RATIONALE.md
-- HYBRID_MODEL_STRATEGY.md
 - KEY_COMPROMISE_ANALYSIS.md
 - MULTI_SESSION_SECURITY_ANALYSIS.md
 - METADATA_LEAKAGE_ANALYSIS.md
 
-### [implementation/](implementation/) (11 files)
+### [implementation/](implementation/) (8 files)
 Implementation guides, SDK documentation, and platform-specific guides:
 - MOBILE_SDK_ENHANCED_GUIDE.md
 - PLATFORM_SDK.md
 - HSM_INTEGRATION_GUIDE.md
 - ELARA_INTEGRATION.md
-- ELARA_CRATES_IO_PUBLISH.md
-- CRATES_IO_PUBLISH_PREP.md
 - GATEWAY_PROXY.md
 - PLUGIN_ARCHITECTURE.md
-- ENTERPRISE_CONTROL_PLANE_DESIGN.md
 - IMPLEMENTATION_SECURITY_NOTES.md
 - ERROR_HANDLING_SECURITY.md
 
@@ -157,5 +147,5 @@ See [LICENSE](../LICENSE) in the root directory for license information.
 
 ---
 
-*Last updated: 2026*  
-*Documentation organized for v2.0 release*
+*Last updated: 15 Maret 2026*  
+*Documentation updated for v2.1.1 — NIST PQC Standards (ML-KEM FIPS 203, ML-DSA FIPS 204)*

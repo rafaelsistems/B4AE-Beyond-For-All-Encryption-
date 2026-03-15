@@ -1,6 +1,6 @@
 # B4AE v2.0 Deployment Guide
 
-**Version**: 2.0.0  
+**Version**: 2.1.1  
 **Status**: Production-Ready (100% complete)  
 **Last Updated**: 2026
 
@@ -168,7 +168,7 @@ let config = ModeNegotiationConfig {
 | Non-Repudiation | ❌ No | ✅ Yes |
 | Handshake Speed | ✅ Fast (~0.3ms) | ⚠️ Slower (~9ms) |
 | Quantum Resistance | ❌ Vulnerable | ✅ Secure |
-| Signatures | XEdDSA only | Dilithium5 only |
+| Signatures | XEdDSA only | ML-DSA-87 (FIPS 204) only |
 
 **See Also**: [V2_MODE_SELECTION_GUIDE.md](V2_MODE_SELECTION_GUIDE.md) for detailed mode selection guidance.
 
@@ -671,7 +671,7 @@ match config.validate() {
 ### Migration from v1.0 to v2.0
 
 **Breaking Changes:**
-- Authentication mode separation (Mode A/B replaces hybrid XEdDSA+Dilithium5)
+- Authentication mode separation (Mode A/B replaces hybrid XEdDSA+ML-DSA-87 (FIPS 204))
 - Cookie challenge added to handshake flow
 - Global traffic scheduler replaces per-session metadata protection
 - Session key binding changes key derivation
@@ -825,7 +825,7 @@ let encrypted = if padding_enabled {
 
 | Feature | V1.0 | V2.0 | Compatible? |
 |---------|------|------|-------------|
-| Handshake Protocol | Hybrid XEdDSA+Dilithium5 | Mode A or Mode B | ❌ No (breaking change) |
+| Handshake Protocol | Hybrid XEdDSA+ML-DSA-87 (FIPS 204) | Mode A or Mode B | ❌ No (breaking change) |
 | Cookie Challenge | No | Yes | ❌ No (protocol change) |
 | Global Scheduler | No | Yes | ✅ Yes (optional) |
 | Session Binding | No | Yes | ❌ No (key derivation change) |
@@ -895,7 +895,7 @@ let encrypted = if padding_enabled {
 |------------|----------------|---------------------|---------|
 | `x25519-dalek` | 2.0 | Latest | X25519 key exchange |
 | `curve25519-dalek` | 4.0 | Latest | Curve25519 operations |
-| `pqcrypto-dilithium` | 0.5 | Latest | Dilithium5 signatures |
+| `pqcrypto-mldsa` | 0.5 | Latest | ML-DSA-87 (FIPS 204) signatures |
 | `sha2` | 0.10 | Latest | SHA-512 for XEdDSA |
 | `subtle` | 2.0 | Latest | Constant-time operations |
 | `zeroize` | 1.0 | Latest | Secure zeroization |
@@ -1021,7 +1021,7 @@ match handshake_result {
 
 3. Check for key corruption or transmission errors
 
-4. Verify Dilithium5 component is also valid
+4. Verify ML-DSA-87 (FIPS 204) component is also valid
 
 #### Issue 4: Constant-Time Timing Variance
 

@@ -1,6 +1,6 @@
 # B4AE Cryptographic Assumptions - Brutal Honesty Assessment
 
-**Document Version:** 1.0  
+**Document Version:** 2.1.1  
 **Date:** February 2025  
 **Classification:** Technical Security Analysis  
 **Warning:** This document states exactly what breaks if our assumptions are wrong. No marketing spin.
@@ -15,7 +15,7 @@ This document explicitly states what happens to B4AE when each cryptographic ass
 
 ## A. Core Cryptographic Assumptions
 
-### 1. Kyber-1024 Security Assumption
+### 1. ML-KEM-1024 (FIPS 203) Security Assumption
 
 **What we assume:** The Module Learning With Errors (MLWE) problem with parameters (k=4, η=2, q=3329) is computationally infeasible to solve for 256-bit quantum security.
 
@@ -51,7 +51,7 @@ Legal Impact: Potential liability for recommending broken algorithm
 Timeline: Immediate failure upon algorithm break announcement
 ```
 
-### 2. Dilithium5 Security Assumption
+### 2. ML-DSA-87 (FIPS 204) Security Assumption
 
 **What we assume:** The Module Short Integer Solution (MSIS) problem and MLWE problem with parameters (k=8, l=7, η=4, q=8380417) provide 256-bit post-quantum signature security.
 
@@ -373,7 +373,7 @@ Rank    Component              Impact        Recovery Difficulty    Cascade Risk
 2       Kyber KEM             Critical       Algorithm replacement   Hybrid system
 3       AES-256               Critical       Algorithm replacement   All encryption
 4       HKDF                  High           Algorithm replacement   All key derivation
-5       Dilithium5            High           Algorithm replacement   All signatures
+5       ML-DSA-87 (FIPS 204)            High           Algorithm replacement   All signatures
 6       SHA3-256              Medium         Algorithm replacement   All hashing
 ```
 

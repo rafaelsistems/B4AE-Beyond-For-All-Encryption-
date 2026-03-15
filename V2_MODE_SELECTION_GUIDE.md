@@ -1,6 +1,6 @@
 # B4AE v2.0 Mode Selection Guide
 
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Date:** 2026  
 **Status:** Production-Ready  
 **Target Audience:** Developers, System Architects, Security Engineers
@@ -11,7 +11,7 @@ B4AE v2.0 introduces authentication mode separation to provide clear, non-overla
 
 **Two Authentication Modes:**
 - **Mode A (Deniable):** XEdDSA signatures, fast handshakes, deniable authentication
-- **Mode B (PQ Non-Repudiable):** Dilithium5 signatures, post-quantum secure, non-repudiable
+- **Mode B (PQ Non-Repudiable):** ML-DSA-87 (FIPS 204) signatures, post-quantum secure, non-repudiable
 
 **Key Insight:** There is no "best" mode - only the right mode for your specific requirements.
 
@@ -79,8 +79,8 @@ START: What are your security requirements?
 
 | Property | Mode A (Deniable) | Mode B (PQ Non-Repudiable) |
 |----------|-------------------|----------------------------|
-| **Signatures** | XEdDSA only | Dilithium5 only |
-| **Key Exchange** | X25519 + Kyber1024 | X25519 + Kyber1024 |
+| **Signatures** | XEdDSA only | ML-DSA-87 (FIPS 204) only |
+| **Key Exchange** | X25519 + MlKem1024 | X25519 + MlKem1024 |
 | **Encryption** | ChaCha20-Poly1305 | ChaCha20-Poly1305 |
 | **Deniability** | ✅ Yes | ❌ No |
 | **Post-Quantum** | ❌ No | ✅ Yes (NIST L5) |
@@ -371,7 +371,7 @@ client.set_cover_traffic_budget(1.00); // 100% cover traffic (maximum protection
 ```
 Phase 1: Mode Negotiation        ~1ms
 Phase 2: Cookie Challenge        ~0.01ms (server), ~1ms (client)
-Phase 3: Key Exchange            ~0.6ms (Kyber1024 + X25519)
+Phase 3: Key Exchange            ~0.6ms (MlKem1024 + X25519)
 Phase 4: Signature Operations    ~0.3ms (XEdDSA)
 Phase 5: Network RTT             ~145ms (typical)
 ─────────────────────────────────────────────
@@ -382,8 +382,8 @@ Total Handshake Time:            ~150ms
 ```
 Phase 1: Mode Negotiation        ~1ms
 Phase 2: Cookie Challenge        ~0.01ms (server), ~1ms (client)
-Phase 3: Key Exchange            ~0.6ms (Kyber1024 + X25519)
-Phase 4: Signature Operations    ~9ms (Dilithium5)
+Phase 3: Key Exchange            ~0.6ms (MlKem1024 + X25519)
+Phase 4: Signature Operations    ~9ms (ML-DSA-87 (FIPS 204))
 Phase 5: Network RTT             ~145ms (typical)
 ─────────────────────────────────────────────
 Total Handshake Time:            ~155ms
@@ -512,7 +512,7 @@ Total Handshake Time:            ~155ms
 - **Use Case:** Short-term communications, ephemeral data
 
 **Post-Quantum Security (Mode B):**
-- **Security Level:** NIST Level 5 (Kyber1024, Dilithium5)
+- **Security Level:** NIST Level 5 (MlKem1024, ML-DSA-87 (FIPS 204))
 - **Quantum Resistance:** ✅ Resistant to Shor's and Grover's algorithms
 - **Timeline:** Secure for >30 years (current knowledge)
 - **Use Case:** Long-term confidential data, future-proof security
@@ -530,7 +530,7 @@ Total Handshake Time:            ~155ms
 **Store-Now-Decrypt-Later (SNDL) Attack:**
 - **Threat:** Adversary records encrypted traffic today, decrypts with quantum computer in future
 - **Mode A:** Vulnerable (X25519 breakable with quantum computer)
-- **Mode B:** Secure (Kyber1024 resistant to quantum attacks)
+- **Mode B:** Secure (MlKem1024 resistant to quantum attacks)
 - **Mitigation:** Use Mode B for data requiring >10 year confidentiality
 
 ### Performance vs Security
@@ -598,12 +598,12 @@ Total Handshake Time:            ~155ms
 **eIDAS (EU Digital Signature Regulation):**
 - **Requirement:** Non-repudiable digital signatures
 - **Recommended Mode:** Mode B (PQ Non-Repudiable)
-- **Compliance:** Dilithium5 signatures meet eIDAS requirements
+- **Compliance:** ML-DSA-87 (FIPS 204) signatures meet eIDAS requirements
 
 **ESIGN Act (US Electronic Signature Law):**
 - **Requirement:** Non-repudiable electronic signatures
 - **Recommended Mode:** Mode B (PQ Non-Repudiable)
-- **Compliance:** Dilithium5 signatures meet ESIGN Act requirements
+- **Compliance:** ML-DSA-87 (FIPS 204) signatures meet ESIGN Act requirements
 
 **GDPR (EU Data Protection Regulation):**
 - **Requirement:** Data protection and privacy
@@ -623,7 +623,7 @@ Total Handshake Time:            ~155ms
 **NIST Post-Quantum Cryptography Standards:**
 - **Requirement:** Post-quantum secure cryptography
 - **Recommended Mode:** Mode B (PQ Non-Repudiable)
-- **Compliance:** Kyber1024 and Dilithium5 are NIST PQC standards
+- **Compliance:** MlKem1024 and ML-DSA-87 (FIPS 204) are NIST PQC standards
 
 ### Threat Model Alignment
 
@@ -1083,6 +1083,6 @@ client.set_proxy("socks5://127.0.0.1:9050")?; // Tor SOCKS proxy
 
 **Document Status:** Complete  
 **Last Updated:** 2026  
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Author:** B4AE Security Team  
 **Review Status:** Production-Ready

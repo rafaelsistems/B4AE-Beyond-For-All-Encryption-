@@ -1,6 +1,6 @@
 # B4AE v2.0 State Machine Security Specification
 
-**Version:** 2.0  
+**Version:** 2.1.1  
 **Date:** 2026  
 **Status:** Updated for v2.0 Architecture
 
@@ -35,8 +35,8 @@ This document specifies the state machine for the B4AE v2.0 protocol, focusing o
 The v2.0 handshake establishes a secure session using:
 - **Mode negotiation:** Select Mode A (deniable) or Mode B (PQ)
 - **Cookie challenge:** DoS protection before expensive crypto
-- **Hybrid key exchange:** X25519 + Kyber1024
-- **Mode-specific authentication:** XEdDSA (Mode A) or Dilithium5 (Mode B)
+- **Hybrid key exchange:** X25519 + MlKem1024
+- **Mode-specific authentication:** XEdDSA (Mode A) or ML-DSA-87 (FIPS 204) (Mode B)
 - **Session binding:** Keys bound to unique session_id
 
 ### 5-Phase State Diagram
@@ -59,7 +59,7 @@ Phase 5: ESTABLISHED
 | Aspect | v1.0 (3-phase) | v2.0 (5-phase) |
 |--------|----------------|----------------|
 | Phases | INIT → HANDSHAKE → ESTABLISHED | INIT → MODE_NEG → COOKIE → HANDSHAKE → ESTABLISHED |
-| Authentication | Hybrid (XEdDSA + Dilithium5) always | Mode A (XEdDSA) or Mode B (Dilithium5) |
+| Authentication | Hybrid (XEdDSA + ML-DSA-87 (FIPS 204)) always | Mode A (XEdDSA) or Mode B (ML-DSA-87 (FIPS 204)) |
 | DoS Protection | None | Cookie challenge (~0.01ms) |
 | Session Binding | Weak | Strong (session_id in all keys) |
 | Mode Downgrade | Possible | Prevented (mode binding) |
@@ -401,7 +401,7 @@ fn derive_session_keys(
 ### Handshake Invariants (v2.0)
 
 1. **5-Phase Completion:** All 5 phases must complete in order
-2. **Mode-Specific Authentication:** Mode A uses XEdDSA only, Mode B uses Dilithium5 only
+2. **Mode-Specific Authentication:** Mode A uses XEdDSA only, Mode B uses ML-DSA-87 (FIPS 204) only
 3. **Cookie Verification:** Cookie verified before signature verification
 4. **Session ID Uniqueness:** Each session has unique session_id
 5. **Transcript Binding:** All signatures cover entire handshake transcript including mode_binding
