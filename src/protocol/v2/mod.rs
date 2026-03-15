@@ -63,8 +63,22 @@ pub use types::*;
 pub use constants::*;
 pub use protocol_id::*;
 pub use state_machine::*;
-pub use mode_negotiation::*;
-pub use mode_binding::*;
+
+// Mode negotiation exports
+pub use mode_negotiation::{
+    negotiate_authentication_mode,
+    ModeNegotiationError,
+};
+
+// Mode binding exports (avoid ambiguous re-exports)
+pub use mode_binding::{
+    derive_mode_binding,
+    verify_mode_binding,
+    build_handshake_transcript,
+    verify_handshake_mode_binding,
+    DowngradeError,
+};
+
 pub use cookie_challenge::*;
 pub use replay_protection::*;
 pub use dos_metrics::*;

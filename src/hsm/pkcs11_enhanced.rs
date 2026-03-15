@@ -5,7 +5,6 @@
 
 use super::HsmBackend;
 use crate::error::{B4aeError, B4aeResult};
-use crate::crypto::{CryptoResult, CryptoError};
 use cryptoki::context::{CInitializeArgs, CInitializeFlags};
 use cryptoki::mechanism::Mechanism;
 use cryptoki::object::{Attribute, ObjectClass, KeyType};
@@ -264,7 +263,7 @@ impl Pkcs11HsmEnhanced {
             let base_key = self.get_key(base_key_id)?;
             
             // HKDF implementation
-            let hkdf_result = b4ae::crypto::hkdf::derive_key(
+            let hkdf_result = crate::crypto::hkdf::derive_key(
                 &[&base_key, context],
                 b"B4AE-HSM-derive",
                 length,

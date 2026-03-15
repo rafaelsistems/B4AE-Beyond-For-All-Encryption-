@@ -3,9 +3,8 @@
 //! Manages ephemeral Kyber and X25519 key pairs for DH ratchet steps.
 
 use crate::crypto::{CryptoResult, CryptoError};
-use crate::crypto::kyber::{self, KyberPublicKey, KyberSecretKey, KyberCiphertext, KyberSharedSecret};
-use x25519_dalek::{EphemeralSecret, PublicKey as X25519PublicKey, StaticSecret as X25519StaticSecret};
-use zeroize::Zeroize;
+use crate::crypto::kyber::{self, KyberPublicKey, KyberSecretKey};
+use x25519_dalek::{PublicKey as X25519PublicKey, StaticSecret as X25519StaticSecret};
 
 /// Hybrid Public Key
 ///

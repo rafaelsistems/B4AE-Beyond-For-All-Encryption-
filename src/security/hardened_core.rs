@@ -10,7 +10,7 @@
 
 use std::convert::TryFrom;
 use std::num::TryFromIntError;
-use zeroize::{Zeroize, Zeroizing};
+use zeroize::Zeroize;
 use subtle::{Choice, ConstantTimeEq};
 
 /// Security-hardened error types - no panic propagation

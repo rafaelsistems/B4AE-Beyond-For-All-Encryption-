@@ -3,7 +3,7 @@
 //! Three-way handshake with quantum-resistant key exchange.
 
 use crate::crypto::{CryptoError, CryptoResult};
-use crate::crypto::hybrid::{self, HybridPublicKey, HybridCiphertext};
+use crate::crypto::hybrid::{HybridCiphertext};
 use crate::crypto::xeddsa::{DeniableHybridKeyPair, DeniableHybridPublicKey, DeniableHybridSignature, verify_deniable_hybrid};
 use crate::crypto::hkdf;
 use crate::crypto::random;

@@ -40,7 +40,7 @@
 
 use crate::crypto::{CryptoError, CryptoResult};
 use crate::crypto::pq::{KyberKem, PqKem};
-use crate::crypto::kyber::{KyberPublicKey, KyberSecretKey, KyberCiphertext, KyberSharedSecret};
+use crate::crypto::kyber::{KyberPublicKey, KyberSecretKey, KyberCiphertext};
 use x25519_dalek::{EphemeralSecret, PublicKey as X25519PublicKey, StaticSecret as X25519StaticSecret};
 use sha2::Sha512;
 use hkdf::Hkdf;
