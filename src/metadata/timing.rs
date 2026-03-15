@@ -17,7 +17,7 @@ use std::time::Duration;
 /// use b4ae::metadata::timing::TimingObfuscator;
 /// use std::time::Duration;
 ///
-/// let obfuscator = TimingObfuscator::new(100, 2000);
+/// let obfuscator = TimingObfuscator::new(100, 2000).unwrap();
 /// let delay = obfuscator.random_delay();
 /// assert!(delay >= Duration::from_millis(100));
 /// assert!(delay <= Duration::from_millis(2000));
@@ -111,7 +111,7 @@ impl TimingObfuscator {
     /// ```
     /// use b4ae::metadata::timing::TimingObfuscator;
     ///
-    /// let obfuscator = TimingObfuscator::new(100, 2000);
+    /// let obfuscator = TimingObfuscator::new(100, 2000).unwrap();
     /// let delay = obfuscator.random_delay();
     /// // delay is between 100ms and 2000ms
     /// ```

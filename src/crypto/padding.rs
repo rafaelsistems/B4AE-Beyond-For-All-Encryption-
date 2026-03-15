@@ -384,7 +384,7 @@ impl PadmePadding {
     /// let padding = PadmePadding::new(PadmeConfig::default());
     /// let plaintext = b"Hello, World!";
     /// let padded = padding.pad(plaintext).unwrap();
-    /// let unpadded = padding.unpad(&padded.padded_data).unwrap();
+    /// let unpadded = padding.unpad(&padded).unwrap();
     ///
     /// assert_eq!(plaintext, unpadded.as_slice());
     /// ```

@@ -76,7 +76,7 @@ use std::sync::Arc;
 ///
 /// // Get current metrics
 /// let snapshot = metrics.snapshot();
-/// println!("Cookie success rate: {:.2}%", snapshot.cookie_success_rate());
+/// println!("Cookie success rate: {:.2}%", snapshot.cookie_success_rate);
 /// ```
 #[derive(Debug)]
 pub struct DosMetrics {
