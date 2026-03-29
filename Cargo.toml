@@ -80,7 +80,7 @@ subtle = "2.5"  # Constant-time comparison untuk mencegah timing attacks
 bloomfilter = "1.0"  # Bloom filter for replay protection
 
 # Async runtime
-tokio = { version = "1.35", features = ["full"], optional = true }
+tokio = { version = "1.50", features = ["full"], optional = true }
 async-trait = "0.1"
 
 # Networking
